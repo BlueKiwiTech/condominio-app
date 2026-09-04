@@ -104,24 +104,53 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01..07 | TBD | Pending |
-| HOUS-01..05 | TBD | Pending |
-| CUOT-01..07 | TBD | Pending |
-| PMNT-01..08 | TBD | Pending |
-| RPRT-01..05 | TBD | Pending |
-| RSDT-01..03 | TBD | Pending |
-| I18N-01..02 | TBD | Pending |
-| DPLY-01..02 | TBD | Pending |
+| DPLY-01 | Phase 1 — Foundation & Deployment | Pending |
+| DPLY-02 | Phase 1 — Foundation & Deployment | Pending |
+| AUTH-01 | Phase 2 — Admin Authentication | Pending |
+| AUTH-02 | Phase 2 — Admin Authentication | Pending |
+| AUTH-03 | Phase 2 — Admin Authentication | Pending |
+| AUTH-04 | Phase 2 — Admin Authentication | Pending |
+| HOUS-01 | Phase 3 — Houses & Resident Access | Pending |
+| HOUS-02 | Phase 3 — Houses & Resident Access | Pending |
+| HOUS-03 | Phase 3 — Houses & Resident Access | Pending |
+| HOUS-04 | Phase 3 — Houses & Resident Access | Pending |
+| HOUS-05 | Phase 3 — Houses & Resident Access | Pending |
+| AUTH-05 | Phase 3 — Houses & Resident Access | Pending |
+| AUTH-06 | Phase 3 — Houses & Resident Access | Pending |
+| AUTH-07 | Phase 3 — Houses & Resident Access | Pending |
+| CUOT-01 | Phase 4 — Cuota Engine | Pending |
+| CUOT-02 | Phase 4 — Cuota Engine | Pending |
+| CUOT-03 | Phase 4 — Cuota Engine | Pending |
+| CUOT-04 | Phase 4 — Cuota Engine | Pending |
+| CUOT-05 | Phase 4 — Cuota Engine | Pending |
+| CUOT-06 | Phase 4 — Cuota Engine | Pending |
+| CUOT-07 | Phase 4 — Cuota Engine | Pending |
+| PMNT-01 | Phase 5 — Payments | Pending |
+| PMNT-02 | Phase 5 — Payments | Pending |
+| PMNT-03 | Phase 5 — Payments | Pending |
+| PMNT-04 | Phase 5 — Payments | Pending |
+| PMNT-05 | Phase 5 — Payments | Pending |
+| PMNT-06 | Phase 5 — Payments | Pending |
+| PMNT-07 | Phase 5 — Payments | Pending |
+| PMNT-08 | Phase 5 — Payments | Pending |
+| RPRT-01 | Phase 6 — Reporting & Delinquency | Pending |
+| RPRT-02 | Phase 6 — Reporting & Delinquency | Pending |
+| RPRT-03 | Phase 6 — Reporting & Delinquency | Pending |
+| RPRT-04 | Phase 6 — Reporting & Delinquency | Pending |
+| RPRT-05 | Phase 6 — Reporting & Delinquency | Pending |
+| RSDT-01 | Phase 7 — Resident Portal | Pending |
+| RSDT-02 | Phase 7 — Resident Portal | Pending |
+| RSDT-03 | Phase 7 — Resident Portal | Pending |
+| I18N-01 | Phase 8 — Internationalization & Polish | Pending |
+| I18N-02 | Phase 8 — Internationalization & Polish | Pending |
 
 **Coverage:**
 - v1 requirements: 39 total
-- Mapped to phases: 0 (pending roadmap creation)
-- Unmapped: 39 ⚠️ (expected before roadmap step runs)
+- Mapped to phases: 39/39 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-09-04*
-*Last updated: 2026-09-04 after initial definition*
+*Last updated: 2026-09-04 after roadmap creation*
