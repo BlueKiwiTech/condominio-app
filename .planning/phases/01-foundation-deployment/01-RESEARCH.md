@@ -660,22 +660,25 @@ supabase db push --linked              # apply
 
 **If this table is empty:** N/A — see entries above; all are low-risk, verify-during-execution items, not decisions that block planning.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should `next-intl`'s `[locale]` routing segment be scaffolded in Phase 1, even though I18N-01/02 are Phase 8 requirements?**
    - What we know: `next-intl`'s documented App Router pattern requires a top-level `app/[locale]/` segment wrapping all routes (confirmed via Context7 `/amannn/next-intl`). Retrofitting this after Phases 2-7 build `app/(admin)/...`/`app/(resident)/...` means moving every existing route file.
    - What's unclear: CONTEXT.md doesn't address this directly; it's implicitly "Claude's Discretion" territory since it wasn't discussed.
    - Recommendation: Scaffold the `[locale]` segment now with `es`/`en` in `i18n/routing.ts` and near-empty `messages/{es,en}.json`, even though actual translation work is deferred to Phase 8. This is the cheaper-now-than-later structural choice. Flag this explicitly to the planner as a decision to confirm, not silently assume.
+   - **RESOLVED:** Scaffolded now — Plan 01-02 creates the `app/[locale]/` segment with `i18n/routing.ts` and near-empty `messages/{es,en}.json` per the recommendation above.
 
 2. **Which Supabase key-naming convention will the actual created project surface — legacy or new?**
    - What we know: Both systems coexist as of today (2026-09-05); Supabase's docs show the new naming as primary in current examples.
    - What's unclear: Behavior can vary by account/region rollout stage; this project's Supabase org hasn't had a project created yet to check.
    - Recommendation: Resolve during execution — create the project first, inspect Settings → API Keys, then lock env var names for the `.env.example` and Vercel config. Don't hardcode into the plan before that's known.
+   - **RESOLVED:** Deferred to execution as recommended — Plan 01-04 Task 2 creates the Supabase project and inspects the actual issued key names before locking env var naming; Plan 01-06 wires whichever convention was resolved into Vercel.
 
 3. **Should the `pgcrypto` extension be enabled in this phase's migration, ahead of Phase 3's PIN hashing need?**
    - What we know: It's a single `create extension if not exists pgcrypto;` statement, zero cost now, and Phase 3 will need it for `crypt()`/`gen_salt('bf')`-based PIN hashing (per `STACK.md`'s recommended pattern).
    - What's unclear: CONTEXT.md leaves this to Claude's discretion; not adding it now just means Phase 3 adds one more migration file.
    - Recommendation: Low-stakes either way — lean toward enabling it now since it's schema-adjacent and this phase already owns "the schema," but this is not blocking.
+   - **RESOLVED:** Enabled now — Plan 01-03 Task 2 includes `create extension if not exists pgcrypto;` in the initial migration.
 
 ## Environment Availability
 
