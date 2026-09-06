@@ -4,6 +4,7 @@ import { Column, Row, Button } from '@once-ui-system/core';
 import { getResidentSession } from '@/lib/auth/residentSession';
 import { residentLogout } from '@/lib/actions/residentAuth';
 import { ResidentTabBar } from '@/components/resident/ResidentTabBar';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 
 // Shared shell for every /mi-hogar, /mis-cuotas, /mis-pagos screen (Phase 7).
 // proxy.ts already gates all three via RESIDENT_PROTECTED_PATHS + the signed
@@ -18,7 +19,8 @@ export default async function ResidentLayout({ children }: { children: React.Rea
 
   return (
     <Column fillWidth style={{ minHeight: '100vh' }}>
-      <Row fillWidth horizontal="end" paddingX="16" paddingY="8" border="neutral-alpha-weak">
+      <Row fillWidth horizontal="between" vertical="center" paddingX="16" paddingY="8" border="neutral-alpha-weak">
+        <LocaleSwitcher />
         <form action={residentLogout}>
           <Button type="submit" variant="tertiary" size="s">
             {t('logout')}

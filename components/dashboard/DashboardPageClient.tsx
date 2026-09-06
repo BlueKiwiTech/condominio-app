@@ -19,6 +19,7 @@ import {
   type TableHeader,
 } from '@once-ui-system/core';
 import { logout } from '@/lib/actions/auth';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { computeMorosos, countDelinquentHouses } from '@/lib/reporting/morosos';
 import {
   collectedInMonth,
@@ -150,6 +151,7 @@ export function DashboardPageClient({
         <SmartLink href="/reporte">
           <Text variant="label-default-s">{t('reportLink')}</Text>
         </SmartLink>
+        <LocaleSwitcher />
         <form action={logout}>
           <Button type="submit" variant="tertiary" size="s">
             {t('logout')}
