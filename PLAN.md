@@ -1,6 +1,6 @@
 # Condominio App — ASOBARCELONA — Project Plan & Status
 
-**Last updated:** 2026-09-06
+**Last updated:** 2026-09-06 (Phase 3 complete)
 
 This file is the single source of truth for scope, decisions, and status going forward. It replaces the `.planning/` GSD structure for day-to-day tracking — historical detail from that process (per-plan summaries, verification reports, discussion logs) still lives under `.planning/` if needed for reference, but isn't required reading to pick up work.
 
@@ -61,16 +61,16 @@ Legend: ✅ done · 🔲 not started
 - ✅ **AUTH-02**: Admin receives email verification after signup *(code complete; live-project email-template config is a required manual step — see Phase 2 "Action needed")*
 - ✅ **AUTH-03**: Admin can reset password via email link
 - ✅ **AUTH-04**: Admin session persists across browser refresh
-- 🔲 **AUTH-05**: Resident can log in by house number + the house's PIN, no email *(corrected: PIN is one-per-house, not one-per-resident — see Phase 3 decisions)*
-- 🔲 **AUTH-06**: House PIN hashed at rest, login rate-limited against brute-force (5 attempts → 15-min lockout, per house)
-- 🔲 **AUTH-07**: RLS/equivalent ensures admins see everything, residents see only their house
+- ✅ **AUTH-05**: Resident can log in by house number + the house's PIN, no email *(corrected: PIN is one-per-house, not one-per-resident — see Phase 3 decisions)*
+- ✅ **AUTH-06**: House PIN hashed at rest, login rate-limited against brute-force (5 attempts → 15-min lockout, per house)
+- ✅ **AUTH-07**: RLS/equivalent ensures admins see everything, residents see only their house *(scoped to tables that exist through Phase 3: condo_communities/condo_houses/condo_house_residents. Later phases' tables — installments/payments — get their own admin policies when those features ship.)*
 
 ### Houses (HOUS) — Phase 3
-- 🔲 **HOUS-01**: Admin can create a house (number, name, owner name/phone/email, **PIN** — PIN lives on the house, not per-resident)
-- 🔲 **HOUS-02**: Admin can edit a house (including resetting its PIN)
-- 🔲 **HOUS-03**: Admin can delete a house
-- 🔲 **HOUS-04**: Admin can view list of all houses
-- 🔲 **HOUS-05**: Admin can add residents (name, phone — display/contact info only, no individual PIN) to a house
+- ✅ **HOUS-01**: Admin can create a house (number, name, owner name/phone/email, **PIN** — PIN lives on the house, not per-resident)
+- ✅ **HOUS-02**: Admin can edit a house (including resetting its PIN)
+- ✅ **HOUS-03**: Admin can delete a house
+- ✅ **HOUS-04**: Admin can view list of all houses
+- ✅ **HOUS-05**: Admin can add residents (name, phone — display/contact info only, no individual PIN) to a house
 
 ### Cuotas (CUOT) — Phase 4
 - 🔲 **CUOT-01**: Recurring cuota (name, cadence, amount, currency, start date, # installments, target houses)
@@ -145,9 +145,17 @@ Follow-up migration `20260906033502_schema_hardening.sql` also shipped (from cod
 
 **Reference docs still available if useful:** `.planning/phases/02-admin-authentication/02-CONTEXT.md`, `02-UI-SPEC.md`, `02-PATTERNS.md` (codebase analog mapping this build followed).
 
-### 🔲 Phase 3: Houses & Resident Access — NOT STARTED
+### ✅ Phase 3: Houses & Resident Access — COMPLETE
 **Goal:** Admin manages houses/residents; residents log in independently via house + PIN.
-**Depends on:** Phase 2
+**Depends on:** Phase 2 ✅
+
+**Action needed:** push `supabase/migrations/20260906120000_phase3_house_pin_and_rls.sql` to the live project (Dashboard SQL Editor or your own CLI session — cannot be done from this environment). It moves `pin_hash` off `condo_house_residents` onto `condo_houses` (+ `failed_pin_attempts`/`pin_locked_until` lockout columns), adds the first admin RLS policies (`condo_communities`, `condo_houses`, `condo_house_residents`), and creates two Postgres functions: `condo_hash_pin` (called by admin house create/edit) and `condo_verify_house_pin` (called by resident login — owns the PIN comparison + brute-force lockout counter atomically via pgcrypto's `crypt()`).
+
+**Also needed:** set `RESIDENT_SESSION_SECRET` (a long random string, e.g. `openssl rand -base64 32`) in Vercel's env vars and your local `.env` — signs the resident's jose session cookie. `.env.example` documents the shape.
+
+**Built:** Admin house/resident CRUD — `app/[locale]/(admin)/houses/page.tsx` (A3 list, Once UI `Table` with search) + `components/houses/HouseFormDialog.tsx` (A3b create/edit modal: house fields + PIN field, embedding `ResidentsManager.tsx` for add/delete residents inline) + `lib/actions/houses.ts` (createHouse/updateHouse/deleteHouse/addResident/deleteResident, all `getUser()`-gated). Resident login (V1) — `app/[locale]/(auth)/resident-login/page.tsx` (house selector fetched via the service-role client, since anon RLS denies it) + `components/residentAuth/ResidentLoginForm.tsx` + `lib/actions/residentAuth.ts`'s `residentLogin`, which calls the new `condo_verify_house_pin` RPC and, on success, mints a signed httpOnly cookie via `lib/auth/residentToken.ts` (pure jose sign/verify, edge-safe) + `lib/auth/residentSession.ts` (Node wrapper using `next/headers`' `cookies()`). A minimal `(resident)/mi-hogar` placeholder page (mirrors Phase 2's dashboard-placeholder pattern) gives the flow somewhere real to land pending Phase 7's actual portal content. `proxy.ts` now also gates `/houses` (admin) and `/mi-hogar` (resident, verified via `verifyResidentToken` — no network round-trip, same rationale as `getClaims()` for the admin path). The admin login screen's "¿Eres vecino? Entra con tu casa y PIN" link (flagged as a known gap in Phase 2) is now wired to `/resident-login`.
+
+**Implementation note (not a scope change):** PLAN.md's Pattern A description says "a Route Handler verifies {house_id, pin}..." — implemented as a Server Action instead (`residentLogin` in `lib/actions/houses.ts`'s sibling `lib/actions/residentAuth.ts`), since Next.js Server Actions can set cookies directly and CLAUDE.md's own convention prefers Server Actions over an `app/api/*` route tree for same-origin flows. Functionally identical: service-role client verification, PIN hash comparison, signed cookie minted server-side.
 
 **Decisions made (2026-09-06):**
 - **PIN is one-per-HOUSE, not one-per-resident.** Login = `house_number` + the house's single shared PIN. **Schema correction needed from Phase 1:** move `pin_hash` off `condo_house_residents` and onto `condo_houses` (residents keep name/phone as display/contact info only, no individual PIN). Update HOUS-05 accordingly: "Admin can add one or more residents (name, phone) to a house; the house itself has one PIN."
@@ -242,4 +250,6 @@ Phase 1's migration put `pin_hash` on `condo_house_residents` (per-resident PIN)
 
 ## Next Step
 
-Build out Phase 3 (Houses & Resident Access) — the `pin_hash` schema correction (move it from `condo_house_residents` to `condo_houses`, per the "Schema Correction Needed in Phase 3" section above), houses/residents admin CRUD (A3/A3b screens), and the resident house+PIN login (Pattern A, custom signed cookie via `jose`, V1 screen). No formal planning-doc process required going forward; work directly from this file and update the phase status here as things land.
+Build out Phase 4 (Cuota Engine) — `condo_installment_templates` admin create flow (A4/A4b screens: recurring vs. special/divisible), the transactional + idempotent generation logic that fans a template out into per-house `condo_installments` rows, and admin edit/delete/list (CUOT-01..07). Depends on Phase 3's houses existing to target. No formal planning-doc process required going forward; work directly from this file and update the phase status here as things land.
+
+**Before starting Phase 4:** push Phase 3's migration (`supabase/migrations/20260906120000_phase3_house_pin_and_rls.sql`) and set `RESIDENT_SESSION_SECRET` — see Phase 3's "Action needed" note above. Phase 4 doesn't strictly depend on either (it doesn't touch houses/residents/PIN), but they're still outstanding from the prior run.

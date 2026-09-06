@@ -59,6 +59,9 @@ export function LoginForm({
       <Text variant="label-default-s" onBackground="neutral-weak" align="center">
         {t('login.noAccount')} <SmartLink href="/signup">{t('login.signupLink')}</SmartLink>
       </Text>
+      <Text variant="label-default-s" onBackground="neutral-weak" align="center">
+        <SmartLink href="/resident-login">{t('login.residentLink')}</SmartLink>
+      </Text>
     </Column>
   );
 }

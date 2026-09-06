@@ -17,7 +17,8 @@
       "forgotPassword": "¿Olvidaste tu contraseña?",
       "noAccount": "¿No tienes cuenta?",
       "signupLink": "Crear una",
-      "resetSuccess": "Tu contraseña se actualizó correctamente. Ya puedes iniciar sesión."
+      "resetSuccess": "Tu contraseña se actualizó correctamente. Ya puedes iniciar sesión.",
+      "residentLink": "¿Eres vecino? Entra con tu casa y PIN"
     },
     "forgotPassword": {
       "heading": "Recuperar contraseña",
@@ -48,7 +49,58 @@
     }
   },
   "dashboard": {
-    "placeholder": "Panel de administración — las fases 3 en adelante construyen el contenido real.",
+    "placeholder": "Panel de administración — las fases 4 en adelante construyen el contenido real.",
+    "logout": "Cerrar sesión",
+    "housesLink": "Casas y vecinos"
+  },
+  "houses": {
+    "heading": "Casas y vecinos",
+    "newHouse": "Nueva casa",
+    "editHouse": "Editar casa",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "searchPlaceholder": "Buscar por casa, nombre o dueño...",
+    "empty": "Aún no hay casas registradas.",
+    "confirmDelete": "¿Eliminar la casa {house}? Esta acción no se puede deshacer.",
+    "table": {
+      "house": "Casa",
+      "name": "Nombre",
+      "owner": "Dueño",
+      "phone": "Teléfono",
+      "email": "Email"
+    },
+    "actions": {
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "fields": {
+      "houseNumber": "Número de casa",
+      "houseName": "Nombre",
+      "ownerName": "Dueño",
+      "ownerPhone": "Teléfono",
+      "ownerEmail": "Email (opcional)",
+      "pinLabel": "PIN (4 dígitos)",
+      "pinResetLabel": "Restablecer PIN (dejar en blanco para no cambiar)"
+    },
+    "residents": {
+      "heading": "Vecinos",
+      "empty": "Aún no hay vecinos agregados.",
+      "nameLabel": "Nombre",
+      "phoneLabel": "Teléfono",
+      "add": "Agregar"
+    }
+  },
+  "residentAuth": {
+    "heading": "Entra con tu casa y PIN",
+    "cta": "Entrar",
+    "forgotPin": "¿Olvidaste tu PIN? Contacta al administrador.",
+    "labels": {
+      "house": "Mi casa",
+      "pin": "Mi PIN"
+    }
+  },
+  "residentHome": {
+    "placeholder": "Mi hogar — la fase 7 construye el contenido real (saldo, próximas cuotas, historial).",
     "logout": "Cerrar sesión"
   }
 }

@@ -17,7 +17,8 @@
       "forgotPassword": "Forgot your password?",
       "noAccount": "Don't have an account?",
       "signupLink": "Create one",
-      "resetSuccess": "Your password was updated successfully. You can now log in."
+      "resetSuccess": "Your password was updated successfully. You can now log in.",
+      "residentLink": "Are you a resident? Log in with your house and PIN"
     },
     "forgotPassword": {
       "heading": "Recover password",
@@ -48,7 +49,58 @@
     }
   },
   "dashboard": {
-    "placeholder": "Admin dashboard — phases 3 onward build the real content.",
+    "placeholder": "Admin dashboard — phase 4 onward builds the real content.",
+    "logout": "Log out",
+    "housesLink": "Houses & residents"
+  },
+  "houses": {
+    "heading": "Houses & residents",
+    "newHouse": "New house",
+    "editHouse": "Edit house",
+    "cancel": "Cancel",
+    "save": "Save",
+    "searchPlaceholder": "Search by house, name, or owner...",
+    "empty": "No houses registered yet.",
+    "confirmDelete": "Delete house {house}? This action cannot be undone.",
+    "table": {
+      "house": "House",
+      "name": "Name",
+      "owner": "Owner",
+      "phone": "Phone",
+      "email": "Email"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "fields": {
+      "houseNumber": "House number",
+      "houseName": "Name",
+      "ownerName": "Owner",
+      "ownerPhone": "Phone",
+      "ownerEmail": "Email (optional)",
+      "pinLabel": "PIN (4 digits)",
+      "pinResetLabel": "Reset PIN (leave blank to keep current)"
+    },
+    "residents": {
+      "heading": "Residents",
+      "empty": "No residents added yet.",
+      "nameLabel": "Name",
+      "phoneLabel": "Phone",
+      "add": "Add"
+    }
+  },
+  "residentAuth": {
+    "heading": "Log in with your house and PIN",
+    "cta": "Log in",
+    "forgotPin": "Forgot your PIN? Contact the administrator.",
+    "labels": {
+      "house": "My house",
+      "pin": "My PIN"
+    }
+  },
+  "residentHome": {
+    "placeholder": "My home — phase 7 builds the real content (balance, upcoming dues, history).",
     "logout": "Log out"
   }
 }

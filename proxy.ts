@@ -2,13 +2,18 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 import { routing } from '@/i18n/routing';
+import { RESIDENT_SESSION_COOKIE_NAME, verifyResidentToken } from '@/lib/auth/residentToken';
 
 const handleI18nRouting = createMiddleware(routing);
 
 // Admin-only routes, matched against the pathname with any locale prefix
 // stripped (route groups like (admin) don't appear in the URL at all).
-// Phase 3+ will add more entries here as admin CRUD screens land.
-const PROTECTED_PATHS = ['/dashboard'];
+// Phase 4+ will add more entries here as admin CRUD screens land.
+const PROTECTED_PATHS = ['/dashboard', '/houses'];
+
+// Resident-only routes — gated by the signed jose cookie (Pattern A), never
+// Supabase Auth. Phase 7 will add more entries as the resident portal lands.
+const RESIDENT_PROTECTED_PATHS = ['/mi-hogar'];
 
 function stripLocalePrefix(pathname: string): { localePrefix: string; path: string } {
   const match = pathname.match(/^\/(es|en)(?=\/|$)/);
@@ -51,6 +56,20 @@ export async function proxy(request: NextRequest) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = `${localePrefix}/login`;
     return NextResponse.redirect(loginUrl);
+  }
+
+  const isResidentRoute = RESIDENT_PROTECTED_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+  if (isResidentRoute) {
+    const token = request.cookies.get(RESIDENT_SESSION_COOKIE_NAME)?.value;
+    // jose verifies locally (no network round-trip) — same fast-check
+    // rationale as getClaims() above, just for the resident's own signed
+    // cookie instead of a Supabase-issued JWT.
+    const payload = token ? await verifyResidentToken(token) : null;
+    if (!payload) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = `${localePrefix}/resident-login`;
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   return response;
