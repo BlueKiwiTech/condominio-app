@@ -12,7 +12,7 @@ This roadmap takes the app from an empty repo to a fully bilingual, deployed due
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & Deployment** - Scaffold the app, correct and migrate the Supabase schema, and stand up the Vercel deployment pipeline
+- [x] **Phase 1: Foundation & Deployment** - Scaffold the app, correct and migrate the Supabase schema, and stand up the Vercel deployment pipeline (completed 2026-09-06, 1 accepted gap: fresh-DB reproducibility deferred)
 - [ ] **Phase 2: Admin Authentication** - Admins can sign up, verify, log in, stay logged in, and recover their accounts
 - [ ] **Phase 3: Houses & Resident Access** - Admin manages houses/residents; residents log in independently via house + PIN
 - [ ] **Phase 4: Cuota Engine** - Admin defines recurring and special cuotas that generate correct per-house payable installments
@@ -29,17 +29,18 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Requirements**: DPLY-01, DPLY-02
 **Success Criteria** (what must be TRUE):
   1. Visiting the deployed Vercel URL renders the Next.js + Once UI component shell without build errors, with environment variables correctly wired to the Supabase project.
-  2. The Supabase project has all core tables (communities, houses, house_residents, cuota_templates, cuotas, payments, audit_logs) created via version-controlled migrations, with RLS enabled deny-by-default on every table.
-  3. Running the migrations against a fresh database reproduces the schema exactly (no manual/undocumented schema changes).
+  2. The Supabase project has all core tables (renamed post-hoc to condo_communities, condo_houses, condo_house_residents, condo_installment_templates, condo_installments, condo_payments, condo_audit_logs — see 01-03-SUMMARY.md) created via version-controlled migrations, with RLS enabled deny-by-default on every table. **VERIFIED**: RLS enabled + zero policies both confirmed on the live project.
+  3. Running the migrations against a fresh database reproduces the schema exactly (no manual/undocumented schema changes). **ACCEPTED GAP**: user explicitly deferred this check (see 01-VERIFICATION.md) — low risk for a single-developer project with no data at stake yet.
 **Plans**: 6 plans
 Plans:
 - [x] 01-01-PLAN.md — Scaffold Next.js 16 + install all Phase 1 dependencies
 - [x] 01-02-PLAN.md — Wire next-intl [locale] routing + Once UI provider shell
 - [x] 01-03-PLAN.md — Author the corrected 7-table Supabase migration (RLS, zero policies)
-- [ ] 01-04-PLAN.md — Create Supabase project, push migration [BLOCKING], verify RLS + reproducibility
+- [x] 01-04-PLAN.md — Create Supabase project, push migration [BLOCKING], verify RLS + reproducibility (partial: live project is user's own, not auto-created; RLS confirmed; fresh-DB reproducibility accepted as a gap)
 - [x] 01-05-PLAN.md — Supabase SSR client helpers (server/client/proxy.ts)
-- [ ] 01-06-PLAN.md — Vercel deployment: env vars, deploy, smoke check, secret-leak verification
+- [x] 01-06-PLAN.md — Vercel deployment: env vars, deploy, smoke check, secret-leak verification (deployed by user directly; smoke-check + secret-leak both pass)
 **UI hint**: yes
+**Status**: COMPLETE (passed_with_accepted_gap) — see 01-VERIFICATION.md
 
 ### Phase 2: Admin Authentication
 **Goal**: Admins can securely sign up, verify, log in, and recover access to their accounts.
@@ -132,7 +133,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Deployment | 2/6 | In progress | - |
+| 1. Foundation & Deployment | 6/6 | Complete (1 accepted gap) | 2026-09-06 |
 | 2. Admin Authentication | 0/? | Not started | - |
 | 3. Houses & Resident Access | 0/? | Not started | - |
 | 4. Cuota Engine | 0/? | Not started | - |

@@ -67,8 +67,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Deployment (DPLY)
 
-- [ ] **DPLY-01**: App is deployed to Vercel with environment variables configured for the Supabase project
-- [ ] **DPLY-02**: Supabase project has RLS enabled on every table and migrations are version-controlled
+- [x] **DPLY-01**: App is deployed to Vercel with environment variables configured for the Supabase project
+- [x] **DPLY-02**: Supabase project has RLS enabled on every table and migrations are version-controlled
 
 ## v2 Requirements
 
@@ -106,8 +106,8 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DPLY-01 | Phase 1 — Foundation & Deployment | Pending |
-| DPLY-02 | Phase 1 — Foundation & Deployment | Pending |
+| DPLY-01 | Phase 1 — Foundation & Deployment | Complete |
+| DPLY-02 | Phase 1 — Foundation & Deployment | Complete (1 accepted gap: fresh-DB reproducibility deferred) |
 | AUTH-01 | Phase 2 — Admin Authentication | Pending |
 | AUTH-02 | Phase 2 — Admin Authentication | Pending |
 | AUTH-03 | Phase 2 — Admin Authentication | Pending |
