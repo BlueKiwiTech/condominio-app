@@ -1,3 +1,5 @@
+"use client";
+
 import { style, dataStyle } from "@/resources/once-ui.config";
 import {
   LayoutProvider,
