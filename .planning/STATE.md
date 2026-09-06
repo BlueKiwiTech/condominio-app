@@ -69,6 +69,6 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-09-06
-Stopped at: Phase 2 context gathered (02-CONTEXT.md) — signup gating strategy decided (single-email allowlist). Phase 2 has no plans yet.
-Resume file: .planning/phases/02-admin-authentication/02-CONTEXT.md
+Stopped at: Phase 2 UI-SPEC approved (5/6 dimensions PASS, 1 non-blocking FLAG on visual focal-point wording). Phase 2 has context + UI-SPEC but no plans yet.
+Resume file: .planning/phases/02-admin-authentication/02-UI-SPEC.md
 Resume command: `/gsd-plan-phase 2`
