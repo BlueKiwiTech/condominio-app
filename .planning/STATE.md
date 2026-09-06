@@ -69,5 +69,6 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-09-06
-Stopped at: Phase 1 complete and verified (passed_with_accepted_gap). Phase 2 (Admin Authentication) has no plans yet.
-Resume command: `/gsd-plan-phase 2` (or `/gsd-discuss-phase 2` first if gray areas need surfacing — Phase 3's STATE.md blocker notes suggest discuss-first has been valuable for auth-adjacent phases in this project)
+Stopped at: Phase 2 context gathered (02-CONTEXT.md) — signup gating strategy decided (single-email allowlist). Phase 2 has no plans yet.
+Resume file: .planning/phases/02-admin-authentication/02-CONTEXT.md
+Resume command: `/gsd-plan-phase 2`
