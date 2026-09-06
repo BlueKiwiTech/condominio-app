@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 6 plans
 Plans:
 - [x] 01-01-PLAN.md — Scaffold Next.js 16 + install all Phase 1 dependencies
-- [ ] 01-02-PLAN.md — Wire next-intl [locale] routing + Once UI provider shell
+- [x] 01-02-PLAN.md — Wire next-intl [locale] routing + Once UI provider shell
 - [x] 01-03-PLAN.md — Author the corrected 7-table Supabase migration (RLS, zero policies)
 - [ ] 01-04-PLAN.md — Create Supabase project, push migration [BLOCKING], verify RLS + reproducibility
 - [ ] 01-05-PLAN.md — Supabase SSR client helpers (server/client/proxy.ts)

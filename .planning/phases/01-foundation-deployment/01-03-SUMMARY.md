@@ -77,6 +77,26 @@ _Plan metadata commit (this SUMMARY): pending — see final commit below._
 - Enabled `pgcrypto` extension in this migration now, ahead of when it's strictly needed (Phase 3 PIN hashing), since RESEARCH.md flagged it as a zero-cost forward-looking addition and this migration already owns "the schema" as a whole.
 - Preserved the plan's exact verbatim SQL (including an explanatory comment that mentions the word "overdue" while explaining that the value is never stored) rather than editing the comment text purely to satisfy the plan's own literal `! grep -q "'overdue'"` automated check string — see Deviations below.
 
+## Post-Merge Amendment (2026-09-05, user-requested during Wave 2)
+
+After this plan merged, the user requested two naming changes applied directly to
+`supabase/migrations/20260906005943_initial_schema.sql` (commit `7712c6e`, outside the
+normal executor flow since no dependent plan had built on the old names yet):
+
+1. Every table now carries a `condo_` prefix (`condo_communities`, `condo_houses`,
+   `condo_house_residents`, `condo_installment_templates`, `condo_installments`,
+   `condo_payments`, `condo_audit_logs`).
+2. The Spanish domain word `cuota` was renamed to `installment` in all SQL identifiers
+   (`cuota_templates` → `condo_installment_templates`, `cuotas` → `condo_installments`,
+   `cuota_type` → `installment_type`, `cuota_id` → `installment_id`,
+   `parent_cuota_id` → `parent_installment_id`).
+
+This is scoped to SQL identifiers only. ROADMAP.md's "Cuota Engine" phase name, the
+`CUOT-01..07` requirement IDs, and CLAUDE.md's product description intentionally keep
+the Spanish "cuota" term and were NOT changed. `scripts/check-rls.sql` (Plan 01-04) was
+updated to match the new names. Phases 2-7 must write RLS policies and application code
+against the new `condo_`/`installment` identifiers.
+
 ## Deviations from Plan
 
 None requiring a fix — plan executed exactly as written (SQL content is byte-identical to the plan's Task 2 code block, verified via `diff`). One informational note:
