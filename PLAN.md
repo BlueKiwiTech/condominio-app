@@ -1,6 +1,6 @@
 # Condominio App — ASOBARCELONA — Project Plan & Status
 
-**Last updated:** 2026-09-06 (Phase 5 complete)
+**Last updated:** 2026-09-06 (Phase 6 complete)
 
 This file is the single source of truth for scope, decisions, and status going forward. It replaces the `.planning/` GSD structure for day-to-day tracking — historical detail from that process (per-plan summaries, verification reports, discussion logs) still lives under `.planning/` if needed for reference, but isn't required reading to pick up work.
 
@@ -92,11 +92,11 @@ Legend: ✅ done · 🔲 not started
 - ✅ **PMNT-08**: Resident can view/print a receipt (comprobante) for a payment *(admin-reachable receipt/detail view ships now per the mockup's A7b layout; resident access is wired once Phase 7's portal exists — see Phase 5's build notes below)*
 
 ### Reporting & Delinquency (RPRT) — Phase 6
-- 🔲 **RPRT-01**: Admin dashboard KPIs (collected this month, outstanding, # morosos)
-- 🔲 **RPRT-02**: Morosos list (house, owner, owed, owed-since, days overdue, currency) — live-computed, never stale
-- 🔲 **RPRT-03**: Morosos/saldo always grouped per currency — USD/Bs/USDT never summed together
-- 🔲 **RPRT-04**: Monthly report per house: expected vs. paid vs. balance vs. status
-- 🔲 **RPRT-05**: Calendar-day-safe date math in a fixed timezone (never raw UTC splitting)
+- ✅ **RPRT-01**: Admin dashboard KPIs (collected this month, outstanding, # morosos)
+- ✅ **RPRT-02**: Morosos list (house, owner, owed, owed-since, days overdue, currency) — live-computed, never stale
+- ✅ **RPRT-03**: Morosos/saldo always grouped per currency — USD/Bs/USDT never summed together
+- ✅ **RPRT-04**: Monthly report per house: expected vs. paid vs. balance vs. status
+- ✅ **RPRT-05**: Calendar-day-safe date math in a fixed timezone (never raw UTC splitting)
 
 ### Resident Portal (RSDT) — Phase 7
 - 🔲 **RSDT-01**: Resident views own cuotas as calendar/grid, color-coded by status
@@ -215,13 +215,26 @@ Follow-up migration `20260906033502_schema_hardening.sql` also shipped (from cod
 
 **Assumption made (needs confirmation):** "Registrado por" on the receipt/detail view shows the *currently signed-in* admin's email rather than looking up `condo_payments.created_by` against `auth.users` (which would need a service-role query or a database view — out of scope for a single-admin app where the viewer is always the one admin anyway). Revisit only if a second admin/treasurer account is ever introduced.
 
-### 🔲 Phase 6: Reporting & Delinquency — NOT STARTED
+### ✅ Phase 6: Reporting & Delinquency — COMPLETE
 **Goal:** Admin dashboard, morosos list, monthly reports — live, per-currency computation.
-**Depends on:** Phase 5
+**Depends on:** Phase 5 ✅
+
+**Action needed:** push `supabase/migrations/20260906150000_phase6_reporting.sql` to the live project (Dashboard SQL Editor or your own CLI session — cannot be done from this environment). It adds `condo_communities.grace_period_days` (int, default 0) — no new RLS policy needed, the existing `condo_communities_admin_all` policy (Phase 3) already covers every column on that table.
 
 **Decisions made (2026-09-06):**
 - **Grace period before "moroso":** configurable, not hardcoded — a setting (e.g. `grace_period_days`, admin-configurable, could be set to 0/1 for no effective grace) determines when a house with an unpaid past-due cuota gets flagged as delinquent. Default value TBD at implementation (0 or a small number) — the requirement is that it's a setting, not a fixed constant baked into the query.
 - **"Total collected this month" KPI basis:** by **payment_date** falling in the selected month — cash-basis, not accrual (a late October payment for a September cuota counts toward October's "collected" total, not September's).
+
+**Built:** Full live-computed reporting layer (RPRT-01..05), reusing the Server-Component-fetch/pure-lib/Client-Component-render split established in Phases 4-5 — no `app/api/*` routes, no stored/cached "morosos" or "overdue" flags anywhere.
+- **`lib/reporting/dateMath.ts`** — `monthRange`/`daysToCloseOfMonth`/`monthKey`, calendar-day-safe (date-fns) month helpers shared by the dashboard and monthly report (RPRT-05).
+- **`lib/reporting/morosos.ts`** — `computeMorosos`: groups every non-paid installment **per house PER CURRENCY** (RPRT-03 — one house can produce separate rows if it owes in more than one currency), skipping any installment not yet overdue by more than `grace_period_days`; returns owed amount, owed-since (earliest qualifying due date), and days-overdue, sorted worst-first. `countDelinquentHouses` dedupes to a house count for the dashboard's KPI card.
+- **`lib/reporting/dashboard.ts`** — `collectedInMonth` (cash-basis, filters `condo_payments` by `payment_date` within the selected month's calendar range — the locked KPI-basis decision), `percentChange` (returns `null` — rendered as "no prior-month data" — rather than a nonsensical `Infinity`/divide-by-zero when the prior month collected nothing), `outstandingByCurrency` (every non-paid installment's remaining balance, not grace-period-gated — distinct from the morosos-only figure), `creditsByCurrency`, and `monthlyIncomeSeries` (6-month per-currency data points for the dashboard chart).
+- **`lib/reporting/monthlyReport.ts`** — `buildMonthlyReport`: filters installments to the selected month's due dates, groups per house per currency into expected/paid/pending/favor with a derived status (paid/overdue/partial/pending, live-computed via `lib/cuotas/status.ts`'s `isOverdue`), and `reportTotalsByCurrency` for the mockup's "separate footer total row per currency" (rendered as per-currency summary cards above the table, since Once UI's `Table` component has no native footer-row API).
+- **`app/[locale]/(admin)/dashboard/page.tsx`** (rewritten, replacing the Phase 2/3 placeholder) + **`components/dashboard/DashboardPageClient.tsx`** — the A2 screen: greeting + "days to close of month" subtitle, "Registrar pago"/"Nueva cuota" action buttons, 4 KPI `Card`s (cobrado en {mes} with a per-currency %-change line, morosos count + `ProgressBar`, saldo pendiente, saldo a favor — all per-currency, never a combined number), a 6-month per-currency income chart (one `LineChart` per currency, Once UI's bundled `recharts` — no separate chart lib added, per CLAUDE.md), a "casas con deuda" table sourced from `computeMorosos`, and a scrollable "últimos pagos" list reusing Phase 5's `groupPaymentsByBatch` helper, each row linking to its existing `/pagos/[batchId]` receipt page.
+- **`app/[locale]/(admin)/reporte/page.tsx`** + **`components/reports/MonthlyReportClient.tsx`** — the A6 screen: a month `Select` (last 12 months, localized month names via `date-fns/locale`), currency filter `Chip`s (Todas/USD/Bs/USDT — view-only filter, never a cross-currency sum) and status filter `Chip`s, a per-house/per-currency table (expected/paid/pending/favor/status), and per-currency totals cards above the table.
+- `proxy.ts`'s `PROTECTED_PATHS` now also gates `/reporte`; `messages/es.json`/`en.json` got the dashboard namespace rewritten (was a Phase 2 placeholder) plus a new `reports` namespace (both locales).
+
+**Assumption made (needs confirmation):** `grace_period_days` defaults to **0** (a house is "moroso" the instant any installment is one calendar day past due and unpaid, with no forgiveness window) since no specific default was locked — change the value directly on the `condo_communities` row (no admin settings UI for it yet; that's a natural Phase 8/Configuración addition) if a grace window is actually wanted.
 
 ### 🔲 Phase 7: Resident Portal — NOT STARTED
 **Goal:** Residents self-serve view their cuotas, saldo, and payment history.
@@ -283,15 +296,18 @@ Phase 1's migration put `pin_hash` on `condo_house_residents` (per-resident PIN)
 
 ## Next Step
 
-Build out Phase 6 (Reporting & Delinquency) — admin dashboard (A2), morosos list, and monthly report (A6/A7), all live-computed and per-currency:
-- **Dashboard (A2)**, replacing the current `(admin)/dashboard` placeholder: KPI cards (cobrado en {mes} per-currency, morosos count + progress bar, saldo pendiente per-currency, saldo a favor highlight — the `condo_house_credits` table Phase 5 added is the source for that last one), a 6-month per-currency income chart (Once UI bundles `recharts` — don't add a separate charting lib; 3 separate scales, never combined per RPRT-03), a "casas con deuda" table, and a scrollable "últimos pagos" list (the `groupPaymentsByBatch` helper in `components/payments/types.ts` is directly reusable here).
-- **Morosos list (RPRT-02)**: house, owner, owed, owed-since, days overdue, currency — computed live from `condo_installments` (`due_date < today AND status != 'paid'`, per the standing anti-pattern rule), never a stored flag. **Grace period is a locked-but-unresolved detail:** PLAN.md's Phase 6 decision says this must be a configurable setting (e.g. `grace_period_days`), not a hardcoded constant — this needs a small settings table/row (or a column on `condo_communities`) plus an admin-editable field; pick a sensible default (e.g. 0) and flag it as an assumption if a specific default isn't otherwise obvious by the time you build this.
-- **Monthly report (A6/RPRT-04)**: month picker, currency filter chips (view-only filter, never a cross-currency sum), status filter, expected/paid/pending/favor per house, with a **separate footer total row per currency**.
-- **RPRT-05** (calendar-day-safe date math) is already satisfied by the date-fns patterns established in `lib/cuotas/status.ts`/`lib/cuotas/generate.ts` — reuse those, don't reintroduce raw UTC string splitting.
-- **"Total collected this month" KPI basis:** by `payment_date` falling in the selected month — cash-basis (a late payment for an old cuota counts toward the month it was actually paid, not the cuota's original due month). `condo_payments.payment_date` is exactly the field to filter/group on.
+Build out Phase 7 (Resident Portal) — residents self-serve view their cuotas, saldo, and payment history, per the V2/V3/V3b/V4 mockups:
+- **V2 · Mi hogar** (replacing the current `(resident)/mi-hogar` placeholder): greeting, saldo a favor/pendiente highlight card, house info card, "Lo que viene" (upcoming installments), "Reportar un pago que hice" button (out of v1 scope per NOTF-*, but the button/CTA itself can just link to a contact method — don't build an actual reporting workflow), bottom tab bar.
+- **V3 · Mis cuotas** (RSDT-01): Pendientes/Histórico tabs, month-grid calendar color-coded by status (pagada/adelantada/pendiente/vencida), cuota especial list section.
+- **V3b · Cuota vencida state**: red "Deuda acumulada" card, overdue items list, "Escribir a la junta" CTA (a mailto:/tel: link to the community's contact info is enough — no in-app messaging, NOTF-* is deferred).
+- **V4 · Mis pagos** (RSDT-03): period filter chips, payment history list, per-period total.
+- **RSDT-02** (saldo — "credit" or "debt since [date]"): reuse `lib/reporting/morosos.ts`'s per-currency owed/owed-since computation and `condo_house_credits` (already exist from Phases 5-6) — same pure functions, just scoped to a single house instead of every house.
+- All resident reads must go through the **service-role client, manually filtered by `house_id`** (Pattern A, locked in Phase 3 — residents never get RLS-backed access). Reuse `lib/auth/residentSession.ts`'s cookie-verification helper (already used by the `(resident)/mi-hogar` placeholder) to get the current `house_id` server-side before querying.
+- **V6 · Mi perfil is explicitly OUT of this build** per the Design Reference's standing note — do not add a resident-initiated "Cambiar mi PIN" row; if a profile screen is built at all, keep PIN changes admin-only (link to "contact the admin" instead).
+- V5 (Contactar a la junta) is out of v1 scope — do not build a messaging feature.
 
-Depends on Phase 5's `condo_payments`/`condo_house_credits` existing to report against.
+Depends on Phase 3 (resident auth, ✅) and Phase 6 (per-currency reporting math, ✅ — this phase's `lib/reporting/*` pure functions are directly reusable, just re-scoped from "every house" to "the signed-in resident's one house").
 
-**Before starting Phase 6:** push Phase 3's migration (`supabase/migrations/20260906120000_phase3_house_pin_and_rls.sql`), Phase 4's migration (`supabase/migrations/20260906130000_phase4_cuota_rls.sql`), and Phase 5's migration (`supabase/migrations/20260906140000_phase5_payments.sql`) — see each phase's "Action needed" note above. Also set `RESIDENT_SESSION_SECRET` (Phase 3) if not already done; not required for Phase 6 itself but still outstanding from an earlier run.
+**Before starting Phase 7:** push Phase 3's migration (`supabase/migrations/20260906120000_phase3_house_pin_and_rls.sql`), Phase 4's migration (`supabase/migrations/20260906130000_phase4_cuota_rls.sql`), Phase 5's migration (`supabase/migrations/20260906140000_phase5_payments.sql`), and Phase 6's migration (`supabase/migrations/20260906150000_phase6_reporting.sql`) — see each phase's "Action needed" note above. Also set `RESIDENT_SESSION_SECRET` (Phase 3) if not already done.
 
 No formal planning-doc process required going forward; work directly from this file and update the phase status here as things land.

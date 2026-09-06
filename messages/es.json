@@ -49,11 +49,56 @@
     }
   },
   "dashboard": {
-    "placeholder": "Panel de administración — las fases 6 en adelante construyen el contenido real.",
+    "heading": "Panel de administración",
+    "subtitle": "Quedan {days, plural, =0 {0 días} =1 {1 día} other {# días}} para el cierre de {month}.",
     "logout": "Cerrar sesión",
     "housesLink": "Casas y vecinos",
     "cuotasLink": "Cuotas",
-    "pagosLink": "Pagos"
+    "pagosLink": "Pagos",
+    "reportLink": "Reporte mensual",
+    "actions": {
+      "registerPayment": "Registrar pago",
+      "newCuota": "Nueva cuota"
+    },
+    "kpis": {
+      "collected": {
+        "title": "Cobrado en {month}",
+        "empty": "Sin cobros este mes.",
+        "change": "{percent}% vs. mes anterior ({currency})",
+        "noPrior": "Sin datos del mes anterior ({currency})"
+      },
+      "morosos": {
+        "title": "Morosos",
+        "count": "{count, plural, =0 {0 casas} =1 {1 casa} other {# casas}}",
+        "of": "de {total} casas"
+      },
+      "outstanding": {
+        "title": "Saldo pendiente",
+        "empty": "Sin saldo pendiente."
+      },
+      "credit": {
+        "title": "Saldo a favor",
+        "empty": "Sin saldo a favor."
+      }
+    },
+    "chart": {
+      "heading": "Ingresos — últimos 6 meses",
+      "empty": "Sin datos de pagos en {currency}."
+    },
+    "debtTable": {
+      "heading": "Casas con deuda",
+      "empty": "Ninguna casa está en mora.",
+      "house": "Casa",
+      "owner": "Dueño",
+      "owed": "Debe",
+      "since": "Desde",
+      "daysOverdue": "Días de atraso"
+    },
+    "recentPayments": {
+      "heading": "Últimos pagos",
+      "empty": "Aún no hay pagos registrados.",
+      "viewAll": "Ver todos los pagos"
+    }
   },
   "houses": {
     "heading": "Casas y vecinos",
@@ -242,5 +287,29 @@
   "residentHome": {
     "placeholder": "Mi hogar — la fase 7 construye el contenido real (saldo, próximas cuotas, historial).",
     "logout": "Cerrar sesión"
+  },
+  "reports": {
+    "heading": "Reporte mensual",
+    "monthLabel": "Mes",
+    "currencyLabel": "Moneda",
+    "statusLabel": "Estado",
+    "all": "Todas",
+    "empty": "No hay cuotas para el mes y filtros seleccionados.",
+    "totalsFor": "Total {currency}",
+    "table": {
+      "house": "Casa",
+      "currency": "Moneda",
+      "expected": "Esperado",
+      "paid": "Cobrado",
+      "pending": "Pendiente",
+      "favor": "Saldo a favor",
+      "status": "Estado"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "partial": "Parcial",
+      "paid": "Pagada",
+      "overdue": "Vencida"
+    }
   }
 }

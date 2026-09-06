@@ -49,11 +49,56 @@
     }
   },
   "dashboard": {
-    "placeholder": "Admin dashboard — phase 6 onward builds the real content.",
+    "heading": "Admin dashboard",
+    "subtitle": "{days, plural, =0 {0 days} =1 {1 day} other {# days}} left until the end of {month}.",
     "logout": "Log out",
     "housesLink": "Houses & residents",
     "cuotasLink": "Cuotas",
-    "pagosLink": "Payments"
+    "pagosLink": "Payments",
+    "reportLink": "Monthly report",
+    "actions": {
+      "registerPayment": "Register payment",
+      "newCuota": "New cuota"
+    },
+    "kpis": {
+      "collected": {
+        "title": "Collected in {month}",
+        "empty": "No collections this month.",
+        "change": "{percent}% vs. last month ({currency})",
+        "noPrior": "No data for last month ({currency})"
+      },
+      "morosos": {
+        "title": "Delinquent",
+        "count": "{count, plural, =0 {0 houses} =1 {1 house} other {# houses}}",
+        "of": "of {total} houses"
+      },
+      "outstanding": {
+        "title": "Outstanding balance",
+        "empty": "No outstanding balance."
+      },
+      "credit": {
+        "title": "Credit balance",
+        "empty": "No credit balance."
+      }
+    },
+    "chart": {
+      "heading": "Income — last 6 months",
+      "empty": "No payment data in {currency}."
+    },
+    "debtTable": {
+      "heading": "Houses with debt",
+      "empty": "No house is delinquent.",
+      "house": "House",
+      "owner": "Owner",
+      "owed": "Owed",
+      "since": "Since",
+      "daysOverdue": "Days overdue"
+    },
+    "recentPayments": {
+      "heading": "Recent payments",
+      "empty": "No payments registered yet.",
+      "viewAll": "View all payments"
+    }
   },
   "houses": {
     "heading": "Houses & residents",
@@ -242,5 +287,29 @@
   "residentHome": {
     "placeholder": "My home — phase 7 builds the real content (balance, upcoming dues, history).",
     "logout": "Log out"
+  },
+  "reports": {
+    "heading": "Monthly report",
+    "monthLabel": "Month",
+    "currencyLabel": "Currency",
+    "statusLabel": "Status",
+    "all": "All",
+    "empty": "No cuotas for the selected month and filters.",
+    "totalsFor": "Total {currency}",
+    "table": {
+      "house": "House",
+      "currency": "Currency",
+      "expected": "Expected",
+      "paid": "Paid",
+      "pending": "Pending",
+      "favor": "Credit balance",
+      "status": "Status"
+    },
+    "status": {
+      "pending": "Pending",
+      "partial": "Partial",
+      "paid": "Paid",
+      "overdue": "Overdue"
+    }
   }
 }
