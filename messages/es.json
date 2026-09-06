@@ -49,9 +49,10 @@
     }
   },
   "dashboard": {
-    "placeholder": "Panel de administración — las fases 4 en adelante construyen el contenido real.",
+    "placeholder": "Panel de administración — las fases 5 en adelante construyen el contenido real.",
     "logout": "Cerrar sesión",
-    "housesLink": "Casas y vecinos"
+    "housesLink": "Casas y vecinos",
+    "cuotasLink": "Cuotas"
   },
   "houses": {
     "heading": "Casas y vecinos",
@@ -88,6 +89,79 @@
       "nameLabel": "Nombre",
       "phoneLabel": "Teléfono",
       "add": "Agregar"
+    }
+  },
+  "cuotas": {
+    "heading": "Cuotas",
+    "newCuota": "Nueva cuota",
+    "editCuota": "Editar cuota",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "searchPlaceholder": "Buscar por nombre...",
+    "empty": "Aún no hay cuotas creadas.",
+    "confirmDelete": "¿Eliminar la cuota \"{name}\"? Esta acción no se puede deshacer.",
+    "editDividedAmountLocked": "Esta cuota está dividida en varias cuotas — el monto no se puede editar aquí. Elimínala y crea una nueva si necesitas cambiar el monto.",
+    "editCascadeNote": "Los cambios se aplican a todas las cuotas pendientes generadas (las ya pagadas no se modifican).",
+    "table": {
+      "name": "Nombre",
+      "type": "Tipo",
+      "amount": "Monto",
+      "houses": "Casas",
+      "status": "Estado"
+    },
+    "actions": {
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "cadence": {
+      "weekly": "Semanal",
+      "monthly": "Mensual",
+      "annual": "Anual"
+    },
+    "type": {
+      "specialSingle": "Especial (única)",
+      "specialDivided": "Especial (dividida)"
+    },
+    "status": {
+      "pending": "{count} pendiente(s)",
+      "overdue": "{count} vencida(s)",
+      "paid": "{count} pagada(s)"
+    },
+    "fields": {
+      "name": "Descripción",
+      "description": "Notas (opcional)",
+      "currency": "Moneda",
+      "amount": "Monto"
+    },
+    "new": {
+      "heading": "Nueva cuota"
+    },
+    "form": {
+      "typeRecurring": "Recurrente",
+      "typeSpecial": "Especial",
+      "cadence": "Cadencia",
+      "isDivided": "Dividir en cuotas",
+      "startDate": "Fecha de inicio",
+      "firstInstallmentDate": "Primera cuota",
+      "dueDate": "Fecha de la cuota",
+      "numberOfInstallments": "Número de cuotas",
+      "applicableHouses": "Casas aplicables",
+      "allHouses": "Todas",
+      "amountPerInstallment": "Monto por cuota",
+      "amountTotal": "Monto total",
+      "submit": "Crear cuota"
+    },
+    "preview": {
+      "heading": "Resumen",
+      "empty": "Completa el monto y la fecha para ver la vista previa.",
+      "info": "Cuotas que se generarán por casa:",
+      "totalPerHouse": "Total por casa",
+      "houses": "Casas aplicables",
+      "expectedTotal": "Recaudación esperada",
+      "noConversionNote": "Los montos no se convierten entre monedas — cada cuota se registra y se cobra en la moneda seleccionada."
+    },
+    "errors": {
+      "invalid": "Datos inválidos. Revisa el formulario."
     }
   },
   "residentAuth": {

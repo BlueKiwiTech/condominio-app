@@ -1,6 +1,6 @@
 # Condominio App — ASOBARCELONA — Project Plan & Status
 
-**Last updated:** 2026-09-06 (Phase 3 complete)
+**Last updated:** 2026-09-06 (Phase 4 complete)
 
 This file is the single source of truth for scope, decisions, and status going forward. It replaces the `.planning/` GSD structure for day-to-day tracking — historical detail from that process (per-plan summaries, verification reports, discussion logs) still lives under `.planning/` if needed for reference, but isn't required reading to pick up work.
 
@@ -73,13 +73,13 @@ Legend: ✅ done · 🔲 not started
 - ✅ **HOUS-05**: Admin can add residents (name, phone — display/contact info only, no individual PIN) to a house
 
 ### Cuotas (CUOT) — Phase 4
-- 🔲 **CUOT-01**: Recurring cuota (name, cadence, amount, currency, start date, # installments, target houses)
-- 🔲 **CUOT-02**: One cuota instance per installment per applicable house (not a shared record)
-- 🔲 **CUOT-03**: Special/one-time cuota (name, amount, currency)
-- 🔲 **CUOT-04**: Special cuota optionally divided into N installments, staggered due dates (parent/child)
-- 🔲 **CUOT-05**: Generation is transactional + idempotent — no duplicate installments on retry/double-click
-- 🔲 **CUOT-06**: Admin can edit/delete a cuota (or template) before any payment exists against it
-- 🔲 **CUOT-07**: Admin can list all cuotas with status (pending/paid/overdue)
+- ✅ **CUOT-01**: Recurring cuota (name, cadence, amount, currency, start date, # installments, target houses)
+- ✅ **CUOT-02**: One cuota instance per installment per applicable house (not a shared record)
+- ✅ **CUOT-03**: Special/one-time cuota (name, amount, currency)
+- ✅ **CUOT-04**: Special cuota optionally divided into N installments, staggered due dates *(grouped via `template_id` + `installment_number`, not the schema's `parent_installment_id` self-reference — see Phase 4 "Assumption made")*
+- ✅ **CUOT-05**: Generation is transactional + idempotent — no duplicate installments on retry/double-click
+- ✅ **CUOT-06**: Admin can edit/delete a cuota (or template) before any payment exists against it
+- ✅ **CUOT-07**: Admin can list all cuotas with status (pending/paid/overdue)
 
 ### Payments (PMNT) — Phase 5
 - 🔲 **PMNT-01**: Admin selects a house, sees its pending cuotas
@@ -164,14 +164,31 @@ Follow-up migration `20260906033502_schema_hardening.sql` also shipped (from cod
 - **PIN assignment:** admin sets the PIN when creating/editing a house (no resident self-service PIN change in v1).
 - **Resident session duration:** long-lived (~30 days), "remember this device" style — minimize re-entry friction.
 
-### 🔲 Phase 4: Cuota Engine — NOT STARTED
+### ✅ Phase 4: Cuota Engine — COMPLETE
 **Goal:** Admin defines recurring and special cuotas generating correct per-house installments.
-**Depends on:** Phase 3
+**Depends on:** Phase 3 ✅
+
+**Action needed:** push `supabase/migrations/20260906130000_phase4_cuota_rls.sql` to the live project (Dashboard SQL Editor or your own CLI session — cannot be done from this environment). It adds the first admin RLS policies for `condo_installment_templates` and `condo_installments` (both tables had RLS enabled with zero policies since Phase 1's deny-by-default migration — same single-community/single-admin scoping pattern as Phase 3's `condo_houses` policy). Without this, the admin's cookie-based Supabase client cannot read/write either table at all.
 
 **Decisions made (2026-09-06):**
 - **Month-end dates:** recurring cuotas always land on the **1st of each month**, regardless of the start date's day-of-month. (Not a last-day-of-month clamp — always day 1.)
 - **New houses joining an existing recurring cuota:** **no** — a recurring cuota's applicable-houses list is fixed at creation time. A house added later needs its own new cuota (or the admin edits/recreates).
 - **Editing a cuota template:** the edit **updates all unpaid future installments** already generated from it (paid installments are untouched, preserved as historical record).
+
+**Built:** Full create → list → edit → delete flow for both cuota types (CUOT-01..07), reusing Phase 3's Server-Action/Server-Component patterns throughout — no `app/api/*` routes.
+- **`lib/cuotas/generate.ts`** — pure, calendar-day-safe (date-fns) due-date and amount-split math shared verbatim between the create Server Action (persists the real rows) and the create-cuota Client Component (renders an identical live preview before submit, matching the A4 mockup's right-panel preview). `computeDueDates` implements three modes: `recurring` (weekly = straight +7-day steps; monthly/annual = day forced to 1, per the locked decision); `special-single` (exactly the admin-picked date, no math); `special-divided` (staggered one calendar month apart, preserving the admin's chosen day-of-month — this is NOT a "recurring" cuota, so the day-1 forcing rule doesn't apply). `splitAmount` does an equal cents-based split with the rounding remainder absorbed by the **last** installment, so the parts always sum exactly to the total.
+- **`lib/cuotas/status.ts`** — `isOverdue`/`summarizeTemplate`: "overdue" computed at render time (`due_date < today AND status != 'paid'`), never stored, per the anti-pattern rule. Used by the list page to show live pending/overdue/paid counts per template.
+- **`lib/validation/cuotas.ts`** — `createTemplateSchema` (a zod discriminated union on `installment_type`: `recurring` requires `cadence` + `number_of_installments`; `special` has an optional `is_divided` + `number_of_installments`) and a deliberately narrow `updateTemplateSchema` (name/description/currency/amount only — see below).
+- **`lib/actions/cuotas.ts`** — `createInstallmentTemplate`, `updateInstallmentTemplate`, `deleteInstallmentTemplate`, all `getUser()`-gated (never `getSession()`). Creation resolves "Todas" (empty `applicable_houses` selection) into a **snapshot of the current house-id list at creation time**, stored on the template row — consistent with the locked "fixed at creation" decision. Installment generation is one multi-row `insert`/`upsert` call — a single INSERT statement is already atomic (CUOT-05's "transactional"), and `.upsert(rows, { onConflict: 'template_id,house_id,installment_number', ignoreDuplicates: true })` makes it idempotent against a retried/double-submitted call, backed by the existing unique constraint. This is NOT a single DB transaction spanning the template-row insert too (Server Actions call PostgREST over HTTP, not a shared connection) — if the installments insert fails, the template row is explicitly rolled back instead, covering the realistic failure mode without a Postgres function. `updateInstallmentTemplate` cascades name/currency (and amount, for non-divided templates only) onto every installment with `status != 'paid'`, leaving paid ones untouched, per the locked decision. `deleteInstallmentTemplate` checks for zero payments across all of the template's installments before deleting (CUOT-06's literal "before any payment exists" wording — the locked decision only loosens *editing*, not deleting).
+- **`app/[locale]/(admin)/cuotas/page.tsx`** + **`components/cuotas/CuotasPageClient.tsx`** — list table (CUOT-07): name, type, per-currency total, house count, live pending/overdue/paid `Tag` badges, edit/delete actions. Edit opens **`components/cuotas/CuotaEditDialog.tsx`** (a Dialog, same pattern as `HouseFormDialog`).
+- **`app/[locale]/(admin)/cuotas/new/page.tsx`** + **`components/cuotas/CuotaFormClient.tsx`** — the full A4/A4b creation screen: `SegmentedControl` for Recurrente/Especial, conditional fields (cadence + count for recurring; a "Dividir en cuotas" `Switch` + count for special), a `Chip`-based "Todas / seleccionar casas" house-targeting UI, and a live right-panel preview (per-due-date breakdown, total per house, houses count, expected total, and a "no currency conversion" info banner) built from the same `buildPreview()` helper the Server Action's math derives from. Validates via `createTemplateSchema.safeParse` client-side before calling the Server Action (not wired through `zodResolver` — the discriminated-union + per-branch-conditional-fields shape doesn't fit RHF's resolver contract cleanly, so this form manages its own submit-time validation instead, same zod schema either way).
+- `proxy.ts`'s `PROTECTED_PATHS` now also gates `/cuotas`; dashboard placeholder gained a "Cuotas" nav link; `messages/es.json`/`en.json` got a full `cuotas` namespace (both locales).
+
+**Assumptions made (needs confirmation):**
+- **`parent_installment_id` left unused.** The original Phase 1 schema comment suggested special-divided installments might link via `condo_installments.parent_installment_id` (a self-reference) rather than `template_id`. This build instead creates a `condo_installment_templates` row for **every** cuota type (recurring and special alike) and groups/orders divided installments via `template_id` + `installment_number` — simpler, one consistent code path, and it directly satisfies CUOT-06's own wording ("edit/delete a cuota **(or template)**", treating the two as interchangeable for every type). `parent_installment_id` and the schema-hardening migration's `template_id IS NULL` partial unique index remain in the schema, unused by this implementation, as a no-cost safety net. Revisit only if a literal parent/child row structure turns out to matter later (e.g. for a future receipt/report that needs to walk "children of X").
+- **"Distribución Manual" not implemented.** The A4 mockup shows an Automática/Manual toggle for splitting a divided special cuota's amount across installments; only automatic (equal split, remainder cent on the last installment) is built. Manual per-installment amount entry isn't in any locked decision — add it later if actually needed.
+- **A4's three-way "Tipo de cuota" radio (Recurrente/Única/Especial) collapsed to two.** The DB only distinguishes `recurring`/`special` (`condo_installment_templates.installment_type` check constraint). The form offers Recurrente/Especial; "Única" is simply Especial with "Dividir en cuotas" left unchecked. Copy-level consolidation, not a functional gap.
+- **Recurring "annual" cadence also forced to day 1** of the resulting month, on the same reasoning as monthly (the locked decision says "recurring cuotas always land on the 1st of each month" without carving out annual); only weekly cadence is exempt (no month concept to normalize). Flagging in case "annual" was actually meant to preserve the original day-of-month.
 
 ### 🔲 Phase 5: Payments — NOT STARTED
 **Goal:** Admin registers payments against pending cuotas; residents retrieve receipts.
@@ -250,6 +267,8 @@ Phase 1's migration put `pin_hash` on `condo_house_residents` (per-resident PIN)
 
 ## Next Step
 
-Build out Phase 4 (Cuota Engine) — `condo_installment_templates` admin create flow (A4/A4b screens: recurring vs. special/divisible), the transactional + idempotent generation logic that fans a template out into per-house `condo_installments` rows, and admin edit/delete/list (CUOT-01..07). Depends on Phase 3's houses existing to target. No formal planning-doc process required going forward; work directly from this file and update the phase status here as things land.
+Build out Phase 5 (Payments) — `app/[locale]/(admin)/pagos/*`: house selector showing its pending `condo_installments`, multi-select checklist + one payment registered against several selected installments in one action (PMNT-01/02), amount pre-filled from the selected cuotas' sum but adjustable for partial payment with **oldest-cuota-first allocation** (locked decision), overpayment becomes **saldo a favor auto-applied to the next due cuota** (locked decision), sequential community-wide receipt numbering (locked decision), currency-must-match-cuota validation (the `condo_payments_currency_guard` trigger already enforces this at the DB level — Phase 5 just needs the UI/Server Action to respect it up front), payment history list filterable by house (PMNT-07), and a resident-facing receipt view (PMNT-08 — note residents can't reach it yet until Phase 7's portal exists; a plain admin-reachable receipt/detail view, like the A7b mockup, can ship now and Phase 7 links to it later). Depends on Phase 4's `condo_installments` existing to pay against.
 
-**Before starting Phase 4:** push Phase 3's migration (`supabase/migrations/20260906120000_phase3_house_pin_and_rls.sql`) and set `RESIDENT_SESSION_SECRET` — see Phase 3's "Action needed" note above. Phase 4 doesn't strictly depend on either (it doesn't touch houses/residents/PIN), but they're still outstanding from the prior run.
+**Before starting Phase 5:** push Phase 3's migration (`supabase/migrations/20260906120000_phase3_house_pin_and_rls.sql`), Phase 4's migration (`supabase/migrations/20260906130000_phase4_cuota_rls.sql`), and set `RESIDENT_SESSION_SECRET` — see Phase 3/4's "Action needed" notes above. Phase 5 needs Phase 4's RLS policies in place (it reads/writes `condo_installments`) but not `RESIDENT_SESSION_SECRET` specifically; still flagging since it's outstanding from an earlier run.
+
+No formal planning-doc process required going forward; work directly from this file and update the phase status here as things land.

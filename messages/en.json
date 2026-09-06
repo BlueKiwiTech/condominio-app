@@ -49,9 +49,10 @@
     }
   },
   "dashboard": {
-    "placeholder": "Admin dashboard — phase 4 onward builds the real content.",
+    "placeholder": "Admin dashboard — phase 5 onward builds the real content.",
     "logout": "Log out",
-    "housesLink": "Houses & residents"
+    "housesLink": "Houses & residents",
+    "cuotasLink": "Cuotas"
   },
   "houses": {
     "heading": "Houses & residents",
@@ -88,6 +89,79 @@
       "nameLabel": "Name",
       "phoneLabel": "Phone",
       "add": "Add"
+    }
+  },
+  "cuotas": {
+    "heading": "Cuotas",
+    "newCuota": "New cuota",
+    "editCuota": "Edit cuota",
+    "cancel": "Cancel",
+    "save": "Save",
+    "searchPlaceholder": "Search by name...",
+    "empty": "No cuotas created yet.",
+    "confirmDelete": "Delete cuota \"{name}\"? This action cannot be undone.",
+    "editDividedAmountLocked": "This cuota is split into several installments — the amount can't be edited here. Delete it and create a new one if you need to change the amount.",
+    "editCascadeNote": "Changes apply to all pending generated installments (already-paid ones are left untouched).",
+    "table": {
+      "name": "Name",
+      "type": "Type",
+      "amount": "Amount",
+      "houses": "Houses",
+      "status": "Status"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "cadence": {
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "annual": "Annual"
+    },
+    "type": {
+      "specialSingle": "Special (single)",
+      "specialDivided": "Special (split)"
+    },
+    "status": {
+      "pending": "{count} pending",
+      "overdue": "{count} overdue",
+      "paid": "{count} paid"
+    },
+    "fields": {
+      "name": "Description",
+      "description": "Notes (optional)",
+      "currency": "Currency",
+      "amount": "Amount"
+    },
+    "new": {
+      "heading": "New cuota"
+    },
+    "form": {
+      "typeRecurring": "Recurring",
+      "typeSpecial": "Special",
+      "cadence": "Cadence",
+      "isDivided": "Split into installments",
+      "startDate": "Start date",
+      "firstInstallmentDate": "First installment",
+      "dueDate": "Due date",
+      "numberOfInstallments": "Number of installments",
+      "applicableHouses": "Applicable houses",
+      "allHouses": "All",
+      "amountPerInstallment": "Amount per installment",
+      "amountTotal": "Total amount",
+      "submit": "Create cuota"
+    },
+    "preview": {
+      "heading": "Summary",
+      "empty": "Fill in the amount and date to see the preview.",
+      "info": "Installments to be generated per house:",
+      "totalPerHouse": "Total per house",
+      "houses": "Applicable houses",
+      "expectedTotal": "Expected collection",
+      "noConversionNote": "Amounts are never converted between currencies — each installment is recorded and collected in the selected currency."
+    },
+    "errors": {
+      "invalid": "Invalid data. Check the form."
     }
   },
   "residentAuth": {

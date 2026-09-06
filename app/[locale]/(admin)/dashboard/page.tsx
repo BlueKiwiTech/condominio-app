@@ -16,6 +16,7 @@ export default async function DashboardPage() {
       </Text>
       <Row gap="16">
         <SmartLink href="/houses">{t('housesLink')}</SmartLink>
+        <SmartLink href="/cuotas">{t('cuotasLink')}</SmartLink>
       </Row>
       <form action={logout}>
         <Button type="submit" variant="secondary">
