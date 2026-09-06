@@ -108,7 +108,9 @@
     },
     "roleLabel": "Administradora",
     "unknownAdmin": "Administrador",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "openMenu": "Abrir menú",
+    "menuTitle": "Menú"
   },
   "dashboard": {
     "heading": "Panel de administración",
@@ -343,6 +345,7 @@
       "existingCredit": "Esta casa tiene un saldo a favor de {amount} {currency}, que se aplicará automáticamente a este pago.",
       "submit": "Registrar pago",
       "cancel": "Cancelar",
+      "toastSuccess": "Pago registrado correctamente.",
       "summary": {
         "heading": "Resumen del pago",
         "empty": "Selecciona una casa y al menos una cuota para ver el resumen.",

@@ -18,7 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const adminEmail = (data.claims as { email?: string }).email ?? null;
 
   return (
-    <Row fillWidth style={{ minHeight: '100vh' }}>
+    <Row fillWidth style={{ minHeight: '100vh' }} s={{ direction: 'column' }}>
       <AdminSidebar adminEmail={adminEmail} />
       <Column fillWidth flex={1} style={{ overflowY: 'auto' }}>
         {children}

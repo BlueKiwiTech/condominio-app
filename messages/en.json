@@ -108,7 +108,9 @@
     },
     "roleLabel": "Board admin",
     "unknownAdmin": "Admin",
-    "logout": "Log out"
+    "logout": "Log out",
+    "openMenu": "Open menu",
+    "menuTitle": "Menu"
   },
   "dashboard": {
     "heading": "Admin dashboard",
@@ -343,6 +345,7 @@
       "existingCredit": "This house has a credit balance of {amount} {currency}, which will be applied automatically to this payment.",
       "submit": "Register payment",
       "cancel": "Cancel",
+      "toastSuccess": "Payment registered successfully.",
       "summary": {
         "heading": "Payment summary",
         "empty": "Select a house and at least one cuota to see the summary.",

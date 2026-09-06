@@ -18,6 +18,7 @@ import {
   Heading,
   Table,
   Tag,
+  useToast,
   type TableHeader,
 } from '@once-ui-system/core';
 import { registerPayment } from '@/lib/actions/payments';
@@ -37,6 +38,7 @@ export function PaymentFormClient({
   const t = useTranslations('payments.new');
   const locale = useLocale();
   const router = useRouter();
+  const { addToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -149,6 +151,7 @@ export function PaymentFormClient({
         setServerError(result.error);
         return;
       }
+      addToast({ variant: 'success', message: t('toastSuccess') });
       router.push(`/pagos/${result.batchId}`);
     });
   };
