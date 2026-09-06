@@ -49,10 +49,11 @@
     }
   },
   "dashboard": {
-    "placeholder": "Admin dashboard — phase 5 onward builds the real content.",
+    "placeholder": "Admin dashboard — phase 6 onward builds the real content.",
     "logout": "Log out",
     "housesLink": "Houses & residents",
-    "cuotasLink": "Cuotas"
+    "cuotasLink": "Cuotas",
+    "pagosLink": "Payments"
   },
   "houses": {
     "heading": "Houses & residents",
@@ -124,6 +125,7 @@
     },
     "status": {
       "pending": "{count} pending",
+      "partial": "{count} partial",
       "overdue": "{count} overdue",
       "paid": "{count} paid"
     },
@@ -162,6 +164,70 @@
     },
     "errors": {
       "invalid": "Invalid data. Check the form."
+    }
+  },
+  "payments": {
+    "heading": "Payments",
+    "registerPayment": "Register payment",
+    "filterHouse": "Filter by house",
+    "filterAllHouses": "All houses",
+    "searchPlaceholder": "Search by house or reference...",
+    "empty": "No payments registered yet.",
+    "viewDetail": "View detail",
+    "cuotaSingular": "cuota",
+    "cuotaPlural": "cuotas",
+    "table": {
+      "date": "Date",
+      "receipt": "Receipt",
+      "house": "House",
+      "cuotas": "Cuotas",
+      "amount": "Amount",
+      "reference": "Reference"
+    },
+    "detail": {
+      "back": "Back to payments",
+      "noReceipt": "No receipt number",
+      "house": "House",
+      "cuotasCovered": "Cuotas covered",
+      "currency": "Currency",
+      "reference": "Reference",
+      "registeredBy": "Registered by",
+      "notes": "Notes"
+    },
+    "new": {
+      "heading": "Register payment",
+      "fields": {
+        "house": "House",
+        "currency": "Currency",
+        "amountReceived": "Amount received",
+        "paymentDate": "Payment date",
+        "reference": "Reference (optional)",
+        "notes": "Notes (optional)"
+      },
+      "table": {
+        "cuota": "Cuota",
+        "due": "Due",
+        "balance": "Balance",
+        "status": "Status"
+      },
+      "status": {
+        "pending": "Pending",
+        "partial": "Partial",
+        "paid": "Paid"
+      },
+      "noHouses": "No houses registered.",
+      "noPendingInstallments": "This house has no pending cuotas.",
+      "existingCredit": "This house has a credit balance of {amount} {currency}, which will be applied automatically to this payment.",
+      "submit": "Register payment",
+      "cancel": "Cancel",
+      "summary": {
+        "heading": "Payment summary",
+        "empty": "Select a house and at least one cuota to see the summary.",
+        "total": "Total received",
+        "creditUsed": "Credit applied",
+        "resultingCredit": "A credit balance of {amount} {currency} remains for the next cuota.",
+        "upToDate": "With this payment, the house is up to date."
+      }
     }
   },
   "residentAuth": {

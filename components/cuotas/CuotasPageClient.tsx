@@ -61,6 +61,7 @@ export function CuotasPageClient({ initialTemplates }: { initialTemplates: Templ
       String(summary.housesCount),
       <Row key={`status-${template.id}`} gap="8" wrap>
         {summary.pendingCount > 0 && <Tag variant="info" label={t('status.pending', { count: summary.pendingCount })} />}
+        {summary.partialCount > 0 && <Tag variant="warning" label={t('status.partial', { count: summary.partialCount })} />}
         {summary.overdueCount > 0 && <Tag variant="danger" label={t('status.overdue', { count: summary.overdueCount })} />}
         {summary.paidCount > 0 && <Tag variant="success" label={t('status.paid', { count: summary.paidCount })} />}
       </Row>,

@@ -13,8 +13,11 @@ import {
   computeDueDates,
   parseDateOnly,
   splitAmount,
+  toDateOnly,
   type DueDateMode,
 } from '@/lib/cuotas/generate';
+import { sweepCreditForNewInstallments } from '@/lib/payments/creditSweep';
+import type { AllocatableInstallment } from '@/lib/payments/allocate';
 
 type ActionResult = { error: string } | { success: true };
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -114,16 +117,46 @@ export async function createInstallmentTemplate(input: CreateTemplateInput): Pro
   // connection/BEGIN block) -- if this second statement fails, the template
   // row is explicitly rolled back below instead, which covers the realistic
   // failure mode (the multi-row insert itself is atomic on its own).
-  const { error: installmentsError } = await supabase
+  const { data: insertedRows, error: installmentsError } = await supabase
     .from('condo_installments')
-    .upsert(rows, { onConflict: 'template_id,house_id,installment_number', ignoreDuplicates: true });
+    .upsert(rows, { onConflict: 'template_id,house_id,installment_number', ignoreDuplicates: true })
+    .select('id, house_id, installment_number, due_date, amount');
 
   if (installmentsError) {
     await supabase.from('condo_installment_templates').delete().eq('id', template.id);
     return { error: installmentsError.message };
   }
 
+  // PLAN.md Phase 5 decision: a house's saldo a favor (credit) is
+  // "auto-applied to the next cuota that becomes due" — a freshly generated
+  // installment IS exactly that case. Best-effort per house: a credit-sweep
+  // failure here doesn't roll back the cuota that was just created (the
+  // installments themselves are already valid pending rows either way).
+  const byHouse = new Map<string, AllocatableInstallment[]>();
+  for (const row of insertedRows ?? []) {
+    const list = byHouse.get(row.house_id as string) ?? [];
+    list.push({
+      id: row.id as string,
+      amount: row.amount as number,
+      amount_paid: 0,
+      due_date: row.due_date as string,
+      installment_number: row.installment_number as number,
+    });
+    byHouse.set(row.house_id as string, list);
+  }
+  for (const [houseId, newInstallments] of byHouse) {
+    await sweepCreditForNewInstallments(supabase, {
+      houseId,
+      currency: data.currency,
+      createdBy: userId,
+      newInstallments,
+      paymentDate: toDateOnly(new Date()),
+      notes: 'Aplicado automáticamente desde saldo a favor.',
+    });
+  }
+
   revalidatePath('/cuotas');
+  revalidatePath('/pagos');
   return { success: true };
 }
 

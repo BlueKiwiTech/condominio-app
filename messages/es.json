@@ -49,10 +49,11 @@
     }
   },
   "dashboard": {
-    "placeholder": "Panel de administración — las fases 5 en adelante construyen el contenido real.",
+    "placeholder": "Panel de administración — las fases 6 en adelante construyen el contenido real.",
     "logout": "Cerrar sesión",
     "housesLink": "Casas y vecinos",
-    "cuotasLink": "Cuotas"
+    "cuotasLink": "Cuotas",
+    "pagosLink": "Pagos"
   },
   "houses": {
     "heading": "Casas y vecinos",
@@ -124,6 +125,7 @@
     },
     "status": {
       "pending": "{count} pendiente(s)",
+      "partial": "{count} parcial(es)",
       "overdue": "{count} vencida(s)",
       "paid": "{count} pagada(s)"
     },
@@ -162,6 +164,70 @@
     },
     "errors": {
       "invalid": "Datos inválidos. Revisa el formulario."
+    }
+  },
+  "payments": {
+    "heading": "Pagos",
+    "registerPayment": "Registrar pago",
+    "filterHouse": "Filtrar por casa",
+    "filterAllHouses": "Todas las casas",
+    "searchPlaceholder": "Buscar por casa o referencia...",
+    "empty": "Aún no hay pagos registrados.",
+    "viewDetail": "Ver detalle",
+    "cuotaSingular": "cuota",
+    "cuotaPlural": "cuotas",
+    "table": {
+      "date": "Fecha",
+      "receipt": "Recibo",
+      "house": "Casa",
+      "cuotas": "Cuotas",
+      "amount": "Monto",
+      "reference": "Referencia"
+    },
+    "detail": {
+      "back": "Volver a pagos",
+      "noReceipt": "Sin número de recibo",
+      "house": "Casa",
+      "cuotasCovered": "Cuotas cubiertas",
+      "currency": "Moneda",
+      "reference": "Referencia",
+      "registeredBy": "Registrado por",
+      "notes": "Notas"
+    },
+    "new": {
+      "heading": "Registrar pago",
+      "fields": {
+        "house": "Casa",
+        "currency": "Moneda",
+        "amountReceived": "Monto recibido",
+        "paymentDate": "Fecha del pago",
+        "reference": "Referencia (opcional)",
+        "notes": "Notas (opcional)"
+      },
+      "table": {
+        "cuota": "Cuota",
+        "due": "Vence",
+        "balance": "Saldo",
+        "status": "Estado"
+      },
+      "status": {
+        "pending": "Pendiente",
+        "partial": "Parcial",
+        "paid": "Pagada"
+      },
+      "noHouses": "No hay casas registradas.",
+      "noPendingInstallments": "Esta casa no tiene cuotas pendientes.",
+      "existingCredit": "Esta casa tiene un saldo a favor de {amount} {currency}, que se aplicará automáticamente a este pago.",
+      "submit": "Registrar pago",
+      "cancel": "Cancelar",
+      "summary": {
+        "heading": "Resumen del pago",
+        "empty": "Selecciona una casa y al menos una cuota para ver el resumen.",
+        "total": "Total recibido",
+        "creditUsed": "Saldo a favor aplicado",
+        "resultingCredit": "Queda un saldo a favor de {amount} {currency} para la próxima cuota.",
+        "upToDate": "Con este pago, la casa queda al día."
+      }
     }
   },
   "residentAuth": {

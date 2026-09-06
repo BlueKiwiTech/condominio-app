@@ -1,6 +1,6 @@
 # Condominio App — ASOBARCELONA — Project Plan & Status
 
-**Last updated:** 2026-09-06 (Phase 4 complete)
+**Last updated:** 2026-09-06 (Phase 5 complete)
 
 This file is the single source of truth for scope, decisions, and status going forward. It replaces the `.planning/` GSD structure for day-to-day tracking — historical detail from that process (per-plan summaries, verification reports, discussion logs) still lives under `.planning/` if needed for reference, but isn't required reading to pick up work.
 
@@ -82,14 +82,14 @@ Legend: ✅ done · 🔲 not started
 - ✅ **CUOT-07**: Admin can list all cuotas with status (pending/paid/overdue)
 
 ### Payments (PMNT) — Phase 5
-- 🔲 **PMNT-01**: Admin selects a house, sees its pending cuotas
-- 🔲 **PMNT-02**: Register one payment against multiple selected pending cuotas in one action
-- 🔲 **PMNT-03**: Amount pre-fills from cuota sum, adjustable (partial payment)
-- 🔲 **PMNT-04**: Payment currency must match the cuota's currency
-- 🔲 **PMNT-05**: Date defaults to today (changeable), optional notes
-- 🔲 **PMNT-06**: Registering a payment updates cuota status(es) (pending/partial/paid)
-- 🔲 **PMNT-07**: Admin can view payment history, filterable by house
-- 🔲 **PMNT-08**: Resident can view/print a receipt (comprobante) for a payment
+- ✅ **PMNT-01**: Admin selects a house, sees its pending cuotas
+- ✅ **PMNT-02**: Register one payment against multiple selected pending cuotas in one action
+- ✅ **PMNT-03**: Amount pre-fills from cuota sum, adjustable (partial payment)
+- ✅ **PMNT-04**: Payment currency must match the cuota's currency
+- ✅ **PMNT-05**: Date defaults to today (changeable), optional notes
+- ✅ **PMNT-06**: Registering a payment updates cuota status(es) (pending/partial/paid)
+- ✅ **PMNT-07**: Admin can view payment history, filterable by house
+- ✅ **PMNT-08**: Resident can view/print a receipt (comprobante) for a payment *(admin-reachable receipt/detail view ships now per the mockup's A7b layout; resident access is wired once Phase 7's portal exists — see Phase 5's build notes below)*
 
 ### Reporting & Delinquency (RPRT) — Phase 6
 - 🔲 **RPRT-01**: Admin dashboard KPIs (collected this month, outstanding, # morosos)
@@ -190,14 +190,30 @@ Follow-up migration `20260906033502_schema_hardening.sql` also shipped (from cod
 - **A4's three-way "Tipo de cuota" radio (Recurrente/Única/Especial) collapsed to two.** The DB only distinguishes `recurring`/`special` (`condo_installment_templates.installment_type` check constraint). The form offers Recurrente/Especial; "Única" is simply Especial with "Dividir en cuotas" left unchecked. Copy-level consolidation, not a functional gap.
 - **Recurring "annual" cadence also forced to day 1** of the resulting month, on the same reasoning as monthly (the locked decision says "recurring cuotas always land on the 1st of each month" without carving out annual); only weekly cadence is exempt (no month concept to normalize). Flagging in case "annual" was actually meant to preserve the original day-of-month.
 
-### 🔲 Phase 5: Payments — NOT STARTED
+### ✅ Phase 5: Payments — COMPLETE
 **Goal:** Admin registers payments against pending cuotas; residents retrieve receipts.
-**Depends on:** Phase 4
+**Depends on:** Phase 4 ✅
+
+**Action needed:** push `supabase/migrations/20260906140000_phase5_payments.sql` to the live project (Dashboard SQL Editor or your own CLI session — cannot be done from this environment). It adds `condo_installments.amount_paid` (running paid total) and extends the `status` check constraint to include `'partial'` (alongside the existing `pending`/`paid`/`advance`); adds `reference` + `receipt_number` columns to `condo_payments` plus a sequence-backed `condo_next_receipt_number()` function for the sequential community-wide numbering decision; creates `condo_house_credits` (per house, per currency — never summed across currencies) for the saldo-a-favor decision; and adds the first admin RLS policies for `condo_payments` and `condo_house_credits` (both had RLS enabled with zero policies since Phase 1's deny-by-default migration). Without this, none of Phase 5's writes/reads will work against the live project.
 
 **Decisions made (2026-09-06):**
 - **Partial payment allocation:** oldest-cuota-first. If the payment doesn't cover all selected cuotas, the oldest gets paid first, the next becomes "partially paid" for the remainder.
 - **Overpayment:** the excess becomes **saldo a favor (credit)** on the house, **auto-applied to the next cuota** that becomes due (not something the admin has to manually remember to apply).
 - **Receipt numbering:** sequential receipt number (e.g. #0001, #0002...), community-wide.
+
+**Built:** Full register → allocate → list → receipt flow (PMNT-01..08), reusing the Server-Action/Server-Component/Once-UI patterns established in Phases 3-4.
+- **`lib/payments/allocate.ts`** — pure, calendar-day-safe (date-fns) allocation math shared between the Server Action and the client form's live "Resumen del pago" preview. `sortOldestFirst` orders by `due_date` then `installment_number` as a tiebreaker; `allocateFunds` walks a list of installments in whatever order it's given (callers decide what "oldest first" is scoped to — see below) and works in integer cents internally (same rounding-safety approach as Phase 4's `splitAmount`) so allocations never drift by a fraction of a cent. Returns per-installment allocations (amount applied, new cumulative `amount_paid`, new `partial`/`paid` status) plus `leftoverCents` for whatever wasn't needed.
+- **`lib/payments/creditSweep.ts`** — shared saldo-a-favor (credit) helpers (`getHouseCredit`, `setHouseCredit`, `sweepCreditForNewInstallments`), used by both `lib/actions/payments.ts` and `lib/actions/cuotas.ts`. The locked "auto-applied to the next cuota that becomes due" decision is implemented at two touchpoints: (1) `registerPayment` nets any pre-existing credit together with the new cash **before** allocating across the admin-selected cuotas, so old credit gets consumed the next time the admin actually processes a payment for that house; (2) `sweepCreditForNewInstallments`, called from `createInstallmentTemplate` right after a cuota template generates brand-new installment rows, auto-settles existing credit against those newly-due installments with zero admin action needed — the literal "becomes due" case. Deliberately **not** implemented: sweeping a house's *other*, already-existing pending/overdue installments that the admin didn't select in a given payment action — auto-clearing old debt via credit meant for something else would silently hide real morosos, which contradicts PLAN.md's core value. Documented inline as the reasoning, not treated as a gap.
+- **`lib/validation/payments.ts`** — `registerPaymentSchema` (house/currency/installment-ids/amount/date, optional reference+notes).
+- **`lib/actions/payments.ts`** — `registerPayment`, `getUser()`-gated (never `getSession()`). Re-fetches the selected installments fresh from the DB (never trusts client-supplied amounts/status), validates house/currency consistency, nets in existing credit, allocates oldest-selected-first, reserves a sequential receipt number via the `condo_next_receipt_number()` RPC, and writes one `condo_payments` row per installment that received money (all sharing one `payment_batch_id` + receipt number). Not a single DB transaction (Server Actions call PostgREST over HTTP, same constraint already documented in Phase 4's code) — writes happen in an order that keeps `condo_payments` (the ledger) as the first, most-likely-to-succeed write, so a later failure leaves the ledger intact even if derived installment/credit state needs manual reconciliation.
+- **`lib/actions/cuotas.ts`** — `createInstallmentTemplate` extended: after generating a template's installment rows, groups the newly-inserted rows per house and calls `sweepCreditForNewInstallments` for each, best-effort (a sweep failure doesn't roll back the cuota that was just created — the installments are already valid pending rows either way).
+- **`app/[locale]/(admin)/pagos/page.tsx`** + **`components/payments/PaymentsPageClient.tsx`** — payment history (PMNT-07): a house-filter `Select` (+ "Todas") and a table grouping raw `condo_payments` rows into one row per `payment_batch_id` (`groupPaymentsByBatch` in `components/payments/types.ts`), showing date, receipt #, casa, cuota count, total (safe to sum — one currency per batch, enforced at write time), reference, and a link to the detail view.
+- **`app/[locale]/(admin)/pagos/nuevo/page.tsx`** + **`components/payments/PaymentFormClient.tsx`** — the A5 screen: casa `Select`, a currency `Chip` switcher when a house has pending cuotas in more than one currency, a pending-cuotas checklist `Table` (all checked by default — the common case is "pay everything currently due"; the admin unchecks to leave some out), amount-received input that pre-fills from the selected sum but stops auto-updating once the admin types their own value (PMNT-03), a read-only currency display (locked to the selected cuotas' currency — enforces PMNT-04 in the UI, backed by the `condo_payments_currency_guard` DB trigger from Phase 1's hardening migration as the real enforcement), date/reference/notes fields, and a live right-panel "Resumen del pago" built from the same `allocateFunds` the Server Action uses (per-cuota allocation + resulting status, existing credit shown/used, resulting saldo-a-favor or an "up to date" success banner). All house-change/currency-change/checkbox-toggle state transitions are handled imperatively in event handlers, not via `useEffect` + `setState` (avoids the cascading-render anti-pattern the stricter `react-hooks/set-state-in-effect` lint rule flags — confirmed clean via a full `npx eslint .` pass).
+- **`app/[locale]/(admin)/pagos/[batchId]/page.tsx`** — the A7b receipt/detail view (PMNT-08): recibo #, fecha, casa, cuotas cubiertas (line items), moneda, referencia, "registrado por" (the current admin's email — safe to assume it's the same as `created_by` given the single-admin invariant already established elsewhere in this codebase), and notes. Admin-only for now via `proxy.ts`'s existing gate (residents can't reach it until Phase 7's portal + resident-scoped data access exist — a plain, printable page now, Phase 7 links to it later, exactly as flagged in the "Next Step" note this phase started from).
+- `lib/cuotas/status.ts`'s `InstallmentStatus` extended with `'partial'`; `summarizeTemplate` gained a `partialCount` bucket, surfaced as a new warning-colored tag on the `/cuotas` list page.
+- `proxy.ts`'s `PROTECTED_PATHS` now also gates `/pagos`; dashboard placeholder gained a "Pagos" nav link; `messages/es.json`/`en.json` got a full `payments` namespace (both locales) plus the new `cuotas.status.partial` key.
+
+**Assumption made (needs confirmation):** "Registrado por" on the receipt/detail view shows the *currently signed-in* admin's email rather than looking up `condo_payments.created_by` against `auth.users` (which would need a service-role query or a database view — out of scope for a single-admin app where the viewer is always the one admin anyway). Revisit only if a second admin/treasurer account is ever introduced.
 
 ### 🔲 Phase 6: Reporting & Delinquency — NOT STARTED
 **Goal:** Admin dashboard, morosos list, monthly reports — live, per-currency computation.
@@ -267,8 +283,15 @@ Phase 1's migration put `pin_hash` on `condo_house_residents` (per-resident PIN)
 
 ## Next Step
 
-Build out Phase 5 (Payments) — `app/[locale]/(admin)/pagos/*`: house selector showing its pending `condo_installments`, multi-select checklist + one payment registered against several selected installments in one action (PMNT-01/02), amount pre-filled from the selected cuotas' sum but adjustable for partial payment with **oldest-cuota-first allocation** (locked decision), overpayment becomes **saldo a favor auto-applied to the next due cuota** (locked decision), sequential community-wide receipt numbering (locked decision), currency-must-match-cuota validation (the `condo_payments_currency_guard` trigger already enforces this at the DB level — Phase 5 just needs the UI/Server Action to respect it up front), payment history list filterable by house (PMNT-07), and a resident-facing receipt view (PMNT-08 — note residents can't reach it yet until Phase 7's portal exists; a plain admin-reachable receipt/detail view, like the A7b mockup, can ship now and Phase 7 links to it later). Depends on Phase 4's `condo_installments` existing to pay against.
+Build out Phase 6 (Reporting & Delinquency) — admin dashboard (A2), morosos list, and monthly report (A6/A7), all live-computed and per-currency:
+- **Dashboard (A2)**, replacing the current `(admin)/dashboard` placeholder: KPI cards (cobrado en {mes} per-currency, morosos count + progress bar, saldo pendiente per-currency, saldo a favor highlight — the `condo_house_credits` table Phase 5 added is the source for that last one), a 6-month per-currency income chart (Once UI bundles `recharts` — don't add a separate charting lib; 3 separate scales, never combined per RPRT-03), a "casas con deuda" table, and a scrollable "últimos pagos" list (the `groupPaymentsByBatch` helper in `components/payments/types.ts` is directly reusable here).
+- **Morosos list (RPRT-02)**: house, owner, owed, owed-since, days overdue, currency — computed live from `condo_installments` (`due_date < today AND status != 'paid'`, per the standing anti-pattern rule), never a stored flag. **Grace period is a locked-but-unresolved detail:** PLAN.md's Phase 6 decision says this must be a configurable setting (e.g. `grace_period_days`), not a hardcoded constant — this needs a small settings table/row (or a column on `condo_communities`) plus an admin-editable field; pick a sensible default (e.g. 0) and flag it as an assumption if a specific default isn't otherwise obvious by the time you build this.
+- **Monthly report (A6/RPRT-04)**: month picker, currency filter chips (view-only filter, never a cross-currency sum), status filter, expected/paid/pending/favor per house, with a **separate footer total row per currency**.
+- **RPRT-05** (calendar-day-safe date math) is already satisfied by the date-fns patterns established in `lib/cuotas/status.ts`/`lib/cuotas/generate.ts` — reuse those, don't reintroduce raw UTC string splitting.
+- **"Total collected this month" KPI basis:** by `payment_date` falling in the selected month — cash-basis (a late payment for an old cuota counts toward the month it was actually paid, not the cuota's original due month). `condo_payments.payment_date` is exactly the field to filter/group on.
 
-**Before starting Phase 5:** push Phase 3's migration (`supabase/migrations/20260906120000_phase3_house_pin_and_rls.sql`), Phase 4's migration (`supabase/migrations/20260906130000_phase4_cuota_rls.sql`), and set `RESIDENT_SESSION_SECRET` — see Phase 3/4's "Action needed" notes above. Phase 5 needs Phase 4's RLS policies in place (it reads/writes `condo_installments`) but not `RESIDENT_SESSION_SECRET` specifically; still flagging since it's outstanding from an earlier run.
+Depends on Phase 5's `condo_payments`/`condo_house_credits` existing to report against.
+
+**Before starting Phase 6:** push Phase 3's migration (`supabase/migrations/20260906120000_phase3_house_pin_and_rls.sql`), Phase 4's migration (`supabase/migrations/20260906130000_phase4_cuota_rls.sql`), and Phase 5's migration (`supabase/migrations/20260906140000_phase5_payments.sql`) — see each phase's "Action needed" note above. Also set `RESIDENT_SESSION_SECRET` (Phase 3) if not already done; not required for Phase 6 itself but still outstanding from an earlier run.
 
 No formal planning-doc process required going forward; work directly from this file and update the phase status here as things land.
