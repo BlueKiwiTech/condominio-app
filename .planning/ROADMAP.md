@@ -33,9 +33,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Running the migrations against a fresh database reproduces the schema exactly (no manual/undocumented schema changes).
 **Plans**: 6 plans
 Plans:
-- [ ] 01-01-PLAN.md — Scaffold Next.js 16 + install all Phase 1 dependencies
+- [x] 01-01-PLAN.md — Scaffold Next.js 16 + install all Phase 1 dependencies
 - [ ] 01-02-PLAN.md — Wire next-intl [locale] routing + Once UI provider shell
-- [ ] 01-03-PLAN.md — Author the corrected 7-table Supabase migration (RLS, zero policies)
+- [x] 01-03-PLAN.md — Author the corrected 7-table Supabase migration (RLS, zero policies)
 - [ ] 01-04-PLAN.md — Create Supabase project, push migration [BLOCKING], verify RLS + reproducibility
 - [ ] 01-05-PLAN.md — Supabase SSR client helpers (server/client/proxy.ts)
 - [ ] 01-06-PLAN.md — Vercel deployment: env vars, deploy, smoke check, secret-leak verification
@@ -132,7 +132,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Deployment | 0/6 | Not started | - |
+| 1. Foundation & Deployment | 2/6 | In progress | - |
 | 2. Admin Authentication | 0/? | Not started | - |
 | 3. Houses & Resident Access | 0/? | Not started | - |
 | 4. Cuota Engine | 0/? | Not started | - |
