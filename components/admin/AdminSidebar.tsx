@@ -1,0 +1,151 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Row, Column, SmartLink, Icon, Text, Button, type IconName } from '@once-ui-system/core';
+import { logout } from '@/lib/actions/auth';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+
+type NavItem = { href: string; icon: IconName; labelKey: string };
+type NavGroup = { titleKey: string; items: NavItem[] };
+
+const GROUPS: NavGroup[] = [
+  {
+    titleKey: 'groups.general',
+    items: [
+      { href: '/dashboard', icon: 'linearGauge', labelKey: 'items.dashboard' },
+      { href: '/houses', icon: 'person', labelKey: 'items.houses' },
+    ],
+  },
+  {
+    titleKey: 'groups.collection',
+    items: [
+      { href: '/cuotas', icon: 'calendar', labelKey: 'items.cuotas' },
+      { href: '/pagos/nuevo', icon: 'plus', labelKey: 'items.registerPayment' },
+    ],
+  },
+  {
+    titleKey: 'groups.reports',
+    items: [
+      { href: '/reporte', icon: 'clipboard', labelKey: 'items.report' },
+      { href: '/pagos', icon: 'document', labelKey: 'items.paymentsHistory' },
+    ],
+  },
+];
+
+// Admin (admin)/* sidebar (matches design/reference/AdminNav.dc.html's
+// layout, using Once UI's own icon set + tokens rather than the mockup's
+// inline SVGs). Mounted once via app/[locale]/(admin)/layout.tsx so every
+// admin screen (houses/cuotas/pagos/reporte/dashboard) gets consistent
+// navigation + the locale switcher, instead of only the dashboard having a
+// nav row (the gap flagged in PLAN.md's Phase 8 polish notes).
+export function AdminSidebar({ adminEmail }: { adminEmail: string | null }) {
+  const pathname = usePathname();
+  const t = useTranslations('adminNav');
+
+  const isActive = (href: string) => pathname.endsWith(href);
+
+  const initials = adminEmail ? adminEmail.slice(0, 2).toUpperCase() : '—';
+
+  return (
+    <Column
+      as="nav"
+      gap="20"
+      paddingX="12"
+      paddingY="16"
+      style={{ width: 232, flex: '0 0 232px', height: '100vh', position: 'sticky', top: 0, overflowY: 'auto' }}
+      background="neutral-weak"
+      borderRight="neutral-alpha-weak"
+    >
+      <Row gap="8" vertical="center" paddingX="8" paddingY="4">
+        <Column
+          horizontal="center"
+          vertical="center"
+          radius="m"
+          background="brand-strong"
+          style={{ width: 30, height: 30, flex: '0 0 30px' }}
+        >
+          <Text variant="label-strong-xs" style={{ color: '#fff' }}>
+            AB
+          </Text>
+        </Column>
+        <Column gap="2">
+          <Text variant="label-strong-s">{t('brand.name')}</Text>
+          <Text variant="body-default-xs" onBackground="neutral-weak">
+            {t('brand.subtitle')}
+          </Text>
+        </Column>
+      </Row>
+
+      <Column gap="16">
+        {GROUPS.map((group) => (
+          <Column key={group.titleKey} gap="2">
+            <Text
+              variant="label-default-xs"
+              onBackground="neutral-weak"
+              paddingX="8"
+              paddingBottom="4"
+              style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}
+            >
+              {t(group.titleKey)}
+            </Text>
+            {group.items.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <SmartLink key={item.href} href={item.href} unstyled fillWidth>
+                  <Row
+                    gap="8"
+                    vertical="center"
+                    paddingX="8"
+                    radius="m"
+                    background={active ? 'brand-alpha-weak' : undefined}
+                    border={active ? 'brand-alpha-medium' : undefined}
+                    style={{ height: 34 }}
+                  >
+                    <Icon name={item.icon} size="s" onBackground={active ? 'brand-strong' : 'neutral-medium'} />
+                    <Text variant="label-default-s" onBackground={active ? 'brand-strong' : 'neutral-medium'}>
+                      {t(item.labelKey)}
+                    </Text>
+                  </Row>
+                </SmartLink>
+              );
+            })}
+          </Column>
+        ))}
+      </Column>
+
+      <Column gap="8" style={{ marginTop: 'auto' }}>
+        <LocaleSwitcher />
+        <Row gap="8" vertical="center" paddingX="8" paddingY="8" radius="m" background="neutral-alpha-weak">
+          <Column
+            horizontal="center"
+            vertical="center"
+            radius="full"
+            background="accent-alpha-weak"
+            style={{ width: 26, height: 26, flex: '0 0 26px' }}
+          >
+            <Text variant="label-strong-xs" onBackground="accent-strong">
+              {initials}
+            </Text>
+          </Column>
+          <Column gap="0" style={{ minWidth: 0 }}>
+            <Text
+              variant="label-default-s"
+              style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+            >
+              {adminEmail ?? t('unknownAdmin')}
+            </Text>
+            <Text variant="body-default-xs" onBackground="neutral-weak">
+              {t('roleLabel')}
+            </Text>
+          </Column>
+        </Row>
+        <form action={logout}>
+          <Button type="submit" variant="tertiary" size="s" fillWidth>
+            {t('logout')}
+          </Button>
+        </form>
+      </Column>
+    </Column>
+  );
+}

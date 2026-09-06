@@ -88,6 +88,28 @@
       "passwordUpdated": "Tu contraseña se actualizó correctamente. Ya puedes iniciar sesión."
     }
   },
+  "adminNav": {
+    "brand": {
+      "name": "ASOBARCELONA",
+      "subtitle": "Junta de condominio"
+    },
+    "groups": {
+      "general": "General",
+      "collection": "Cobranza",
+      "reports": "Reportes"
+    },
+    "items": {
+      "dashboard": "Panel",
+      "houses": "Casas y vecinos",
+      "cuotas": "Cuotas",
+      "registerPayment": "Registrar pago",
+      "report": "Reporte mensual",
+      "paymentsHistory": "Historial de pagos"
+    },
+    "roleLabel": "Administradora",
+    "unknownAdmin": "Administrador",
+    "logout": "Cerrar sesión"
+  },
   "dashboard": {
     "heading": "Panel de administración",
     "subtitle": "Quedan {days, plural, =0 {0 días} =1 {1 día} other {# días}} para el cierre de {month}.",

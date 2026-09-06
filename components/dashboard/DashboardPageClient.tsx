@@ -18,8 +18,6 @@ import {
   SmartLink,
   type TableHeader,
 } from '@once-ui-system/core';
-import { logout } from '@/lib/actions/auth';
-import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { computeMorosos, countDelinquentHouses } from '@/lib/reporting/morosos';
 import {
   collectedInMonth,
@@ -136,27 +134,6 @@ export function DashboardPageClient({
             </Button>
           </SmartLink>
         </Row>
-      </Row>
-
-      <Row gap="16" wrap>
-        <SmartLink href="/houses">
-          <Text variant="label-default-s">{t('housesLink')}</Text>
-        </SmartLink>
-        <SmartLink href="/cuotas">
-          <Text variant="label-default-s">{t('cuotasLink')}</Text>
-        </SmartLink>
-        <SmartLink href="/pagos">
-          <Text variant="label-default-s">{t('pagosLink')}</Text>
-        </SmartLink>
-        <SmartLink href="/reporte">
-          <Text variant="label-default-s">{t('reportLink')}</Text>
-        </SmartLink>
-        <LocaleSwitcher />
-        <form action={logout}>
-          <Button type="submit" variant="tertiary" size="s">
-            {t('logout')}
-          </Button>
-        </form>
       </Row>
 
       <Row gap="16" wrap fillWidth>
