@@ -1,7 +1,8 @@
 ---
 phase: 2
 slug: admin-authentication
-status: draft
+status: approved
+reviewed_at: 2026-09-06
 shadcn_initialized: false
 preset: none
 created: 2026-09-06
