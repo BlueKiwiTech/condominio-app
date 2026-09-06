@@ -18,7 +18,7 @@ export const style = {
   surface: "translucent",
   transition: "all",
   scaling: "100",
-};
+} as const;
 
 export const dataStyle = {
   variant: "gradient",
@@ -26,4 +26,4 @@ export const dataStyle = {
   height: 24,
   axis: { stroke: "var(--neutral-alpha-weak)" },
   tick: { fill: "var(--neutral-on-background-weak)", fontSize: 11, line: false },
-};
+} as const;
