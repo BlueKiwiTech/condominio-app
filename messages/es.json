@@ -1,1 +1,54 @@
-{}
+{
+  "auth": {
+    "labels": {
+      "email": "Correo",
+      "password": "Contraseña",
+      "confirmPassword": "Confirmar contraseña"
+    },
+    "signup": {
+      "heading": "Crear cuenta",
+      "cta": "Crear cuenta",
+      "haveAccount": "¿Ya tienes cuenta?",
+      "loginLink": "Inicia sesión"
+    },
+    "login": {
+      "heading": "Iniciar sesión",
+      "cta": "Iniciar sesión",
+      "forgotPassword": "¿Olvidaste tu contraseña?",
+      "noAccount": "¿No tienes cuenta?",
+      "signupLink": "Crear una",
+      "resetSuccess": "Tu contraseña se actualizó correctamente. Ya puedes iniciar sesión."
+    },
+    "forgotPassword": {
+      "heading": "Recuperar contraseña",
+      "cta": "Enviar enlace de recuperación",
+      "backToLogin": "Volver a iniciar sesión"
+    },
+    "resetPassword": {
+      "heading": "Restablecer contraseña",
+      "cta": "Restablecer contraseña"
+    },
+    "verifyEmail": {
+      "heading": "Verifica tu correo",
+      "body": "Enviamos un enlace de verificación a {email}. Ábrelo para activar tu cuenta y acceder al panel de administración.",
+      "resend": "Reenviar correo de verificación",
+      "resendSent": "Enviamos el enlace de nuevo. Revisa tu bandeja de entrada.",
+      "backToLogin": "Volver a iniciar sesión"
+    },
+    "errors": {
+      "allowlistRejected": "Este sistema es solo por invitación. Si crees que esto es un error, contacta al administrador de ASOBARCELONA.",
+      "invalidCredentials": "Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.",
+      "unverifiedEmail": "Tu correo aún no está verificado. Revisa tu bandeja de entrada para activar tu cuenta.",
+      "expiredResetLink": "Este enlace de recuperación ya no es válido. Solicita uno nuevo.",
+      "confirmError": "Este enlace ya no es válido o expiró. Intenta iniciar sesión de nuevo o solicita uno nuevo."
+    },
+    "success": {
+      "resetEmailSent": "Si el correo existe en nuestro sistema, enviamos un enlace de recuperación.",
+      "passwordUpdated": "Tu contraseña se actualizó correctamente. Ya puedes iniciar sesión."
+    }
+  },
+  "dashboard": {
+    "placeholder": "Panel de administración — las fases 3 en adelante construyen el contenido real.",
+    "logout": "Cerrar sesión"
+  }
+}

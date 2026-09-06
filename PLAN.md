@@ -57,10 +57,10 @@ Legend: ✅ done · 🔲 not started
 - ✅ **DPLY-02**: RLS enabled on every table, migrations version-controlled
 
 ### Authentication (AUTH) — Phases 2 & 3
-- 🔲 **AUTH-01**: Admin can sign up with email and password (Supabase Auth)
-- 🔲 **AUTH-02**: Admin receives email verification after signup
-- 🔲 **AUTH-03**: Admin can reset password via email link
-- 🔲 **AUTH-04**: Admin session persists across browser refresh
+- ✅ **AUTH-01**: Admin can sign up with email and password (Supabase Auth)
+- ✅ **AUTH-02**: Admin receives email verification after signup *(code complete; live-project email-template config is a required manual step — see Phase 2 "Action needed")*
+- ✅ **AUTH-03**: Admin can reset password via email link
+- ✅ **AUTH-04**: Admin session persists across browser refresh
 - 🔲 **AUTH-05**: Resident can log in by house number + the house's PIN, no email *(corrected: PIN is one-per-house, not one-per-resident — see Phase 3 decisions)*
 - 🔲 **AUTH-06**: House PIN hashed at rest, login rate-limited against brute-force (5 attempts → 15-min lockout, per house)
 - 🔲 **AUTH-07**: RLS/equivalent ensures admins see everything, residents see only their house
@@ -125,21 +125,25 @@ Verified: RLS enabled + zero policies confirmed live; deployed shell renders cor
 
 Follow-up migration `20260906033502_schema_hardening.sql` also shipped (from code review): moved `pgcrypto` out of `public` into an `extensions` schema, closed a NULL loophole in the installment idempotency guard, added a trigger enforcing payment currency matches installment currency.
 
-### 🔲 Phase 2: Admin Authentication — CONTEXT + UI-SPEC DONE, NOT BUILT
+### ✅ Phase 2: Admin Authentication — COMPLETE
 **Goal:** Admins can securely sign up, verify, log in, and recover access to their accounts.
 **Depends on:** Phase 1 ✅
 
-**Decisions made:**
-- Signup is gated by a **single-email allowlist** (env var, server-only, no `NEXT_PUBLIC_` prefix) — matches the schema's `condo_communities.admin_id` single-FK design exactly. A second admin/treasurer account is explicitly out of scope (would need a schema change, its own future decision).
-- Non-allowlisted signup attempts get a clear "this app is invite-only" rejection — not a silent failure.
-- On successful signup, that account is what gets linked to `condo_communities.admin_id`.
-- UI design contract approved (Once UI components, copy in es/en, spacing/typography/color tokens) for: signup, verify-email holding page, login, password-reset request, password-reset completion.
+**Built:** All five auth screens (signup, verify-email holding page, login, forgot-password, reset-password) under `app/[locale]/(auth)/`, each a thin Server Component page delegating to a `'use client'` form in `components/auth/*Form.tsx` (react-hook-form + zod, matching the shared `Once UI` `error`/`errorMessage` contract). Server Actions in `lib/actions/auth.ts` (`signup`, `login`, `logout`, `resendVerificationEmail`, `forgotPassword`, `resetPassword`) call `lib/supabase/server.ts`'s cookie-based client — never `getSession()` as an authorization gate; `resetPassword` calls `getUser()` (network-verified) before the sensitive password write. `lib/auth/allowlist.ts` gates signup against the single-email `ADMIN_ALLOWLIST_EMAIL` env var (D-01..D-05); a non-allowlisted attempt gets the honest "invite-only" rejection, never a silent failure. `proxy.ts` now actually gates `(admin)/*` routes (currently just `/dashboard`, a placeholder page with a working "Cerrar sesión" button) — unauthenticated visitors are redirected to `/login` (locale-prefix-aware), still via the fast, local `getClaims()` check, never `getUser()` in middleware. Added `app/auth/confirm/route.ts`, a top-level Route Handler (outside `[locale]`, and excluded from `proxy.ts`'s matcher) implementing Supabase's standard `verifyOtp({ type, token_hash })` email-confirmation pattern — shared by both the signup-confirmation and password-recovery links. `messages/es.json`/`en.json` got their first real content (an `auth` + `dashboard` namespace, both locales, matching the UI-SPEC copy table verbatim).
 
-**Left to implementation discretion:** exact allowlist env var name, email-verification enforcement details (which routes reachable pre-verification), session persistence specifics, password-reset UI copy beyond what's in the UI-SPEC.
+**No new migration.** `condo_communities` has RLS enabled with zero policies (Phase 1's deny-by-default posture) and no seed row. Rather than add an RLS policy or a seed migration, `signup`'s community-linking step (D-05: link the first successful signup to `condo_communities.admin_id`) uses a new `lib/supabase/service.ts` service-role client (bypasses RLS entirely) to lazily create the single `condo_communities` row (name "ASOBARCELONA") on first signup, or link `admin_id` onto it if it already exists. This was necessary regardless of RLS: `supabase.auth.signUp()` returns a **null session** while "Confirm email" is enabled (confirmed against Supabase's own docs), so there is no `auth.uid()`-backed session yet at the moment of that write for any RLS policy to authorize — deny-by-default RLS on every other table is untouched, preserved for Phase 3+.
 
-**Not yet built:** any of the actual signup/login/verify/reset pages, Server Actions, or `proxy.ts` route-gating logic (currently a no-op `getClaims()` call from Phase 1).
+**Assumption made (needs confirmation):** the single `condo_communities` row is created lazily by the signup Server Action (name hardcoded to "ASOBARCELONA") rather than via a seed migration, since Phase 1 explicitly avoided seeding it and no later decision revisited that. If a different community name/address/phone is wanted, edit the row after first signup (Phase 8/Configuración screen, or directly in the dashboard) — not re-seeded automatically.
 
-**Reference docs still available if useful:** `.planning/phases/02-admin-authentication/02-CONTEXT.md`, `02-UI-SPEC.md`, `02-PATTERNS.md` (codebase analog mapping — e.g. `lib/supabase/server.ts` is the client factory to reuse, Once UI's `Input`/`PasswordInput` have a fixed `error`/`errorMessage` prop contract).
+**Action needed (live Supabase project, dashboard-only — cannot be done via migration or from this environment):**
+1. Set `ADMIN_ALLOWLIST_EMAIL` (the one real admin's email) in Vercel's env vars and your local `.env` — `.env.example` documents the shape.
+2. Confirm **Auth → Providers → Email → "Confirm email"** is enabled (required for AUTH-02's verification-before-access behavior).
+3. Under **Auth → Email Templates**, edit **"Confirm signup"** to link to `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/dashboard`, and **"Reset Password"** to link to `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password` (both replace Supabase's default confirmation-URL format with the token-hash + Route-Handler format `app/auth/confirm/route.ts` expects).
+4. Under **Auth → URL Configuration**, add the deployed origin (and `http://localhost:3000` for local dev) to the Redirect URLs allowlist, and set Site URL to the production origin.
+
+**Known minor gap, deferred:** the login screen's mockup (A1) includes a "¿Eres vecino? Entra con tu casa y PIN" link to resident login — omitted here since that route doesn't exist until Phase 3; add it when Phase 3 ships the resident login page. AUTH-07 (RLS ensures admins see everything, residents only their house) is intentionally left 🔲 — no admin-facing data tables exist to scope yet; Phase 3+ closes it as each feature area ships its own RLS policies.
+
+**Reference docs still available if useful:** `.planning/phases/02-admin-authentication/02-CONTEXT.md`, `02-UI-SPEC.md`, `02-PATTERNS.md` (codebase analog mapping this build followed).
 
 ### 🔲 Phase 3: Houses & Resident Access — NOT STARTED
 **Goal:** Admin manages houses/residents; residents log in independently via house + PIN.
@@ -238,4 +242,4 @@ Phase 1's migration put `pin_hash` on `condo_house_residents` (per-resident PIN)
 
 ## Next Step
 
-Build out Phase 2 (Admin Authentication) — signup, verify-email, login, password-reset — using the decisions and UI-SPEC above. No formal planning-doc process required going forward; work directly from this file and update the phase status here as things land.
+Build out Phase 3 (Houses & Resident Access) — the `pin_hash` schema correction (move it from `condo_house_residents` to `condo_houses`, per the "Schema Correction Needed in Phase 3" section above), houses/residents admin CRUD (A3/A3b screens), and the resident house+PIN login (Pattern A, custom signed cookie via `jose`, V1 screen). No formal planning-doc process required going forward; work directly from this file and update the phase status here as things land.

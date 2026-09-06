@@ -1,1 +1,54 @@
-{}
+{
+  "auth": {
+    "labels": {
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm password"
+    },
+    "signup": {
+      "heading": "Create account",
+      "cta": "Create account",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Log in"
+    },
+    "login": {
+      "heading": "Log in",
+      "cta": "Log in",
+      "forgotPassword": "Forgot your password?",
+      "noAccount": "Don't have an account?",
+      "signupLink": "Create one",
+      "resetSuccess": "Your password was updated successfully. You can now log in."
+    },
+    "forgotPassword": {
+      "heading": "Recover password",
+      "cta": "Send reset link",
+      "backToLogin": "Back to login"
+    },
+    "resetPassword": {
+      "heading": "Reset password",
+      "cta": "Reset password"
+    },
+    "verifyEmail": {
+      "heading": "Verify your email",
+      "body": "We sent a verification link to {email}. Open it to activate your account and access the admin dashboard.",
+      "resend": "Resend verification email",
+      "resendSent": "We sent the link again. Check your inbox.",
+      "backToLogin": "Back to login"
+    },
+    "errors": {
+      "allowlistRejected": "This app is invite-only. If you believe this is a mistake, contact the ASOBARCELONA administrator.",
+      "invalidCredentials": "Incorrect email or password. Check your details and try again.",
+      "unverifiedEmail": "Your email isn't verified yet. Check your inbox to activate your account.",
+      "expiredResetLink": "This reset link is no longer valid. Request a new one.",
+      "confirmError": "This link is no longer valid or has expired. Try logging in again or request a new one."
+    },
+    "success": {
+      "resetEmailSent": "If that email exists in our system, we've sent a reset link.",
+      "passwordUpdated": "Your password was updated successfully. You can now log in."
+    }
+  },
+  "dashboard": {
+    "placeholder": "Admin dashboard — phases 3 onward build the real content.",
+    "logout": "Log out"
+  }
+}
