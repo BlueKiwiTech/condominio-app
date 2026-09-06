@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --board-canvas:#e9e9ea;
+      --page-background:#fbfbfc;
+      --neutral-background-weak:#ffffff;
+      --neutral-background-medium:#f3f3f5;
+      --neutral-background-strong:#e4e4e8;
+      --neutral-alpha-weak:rgba(0,0,0,.035);
+      --neutral-alpha-medium:rgba(0,0,0,.06);
+      --neutral-border-weak:rgba(0,0,0,.07);
+      --neutral-border-medium:rgba(0,0,0,.12);
+      --neutral-border-strong:rgba(0,0,0,.2);
+      --neutral-on-background-weak:#8b8b92;
+      --neutral-on-background-medium:#62626b;
+      --neutral-on-background-strong:#18181b;
+      --neutral-solid-strong:#26262a;
+      --brand-background-weak:#eff5ff;
+      --brand-background-medium:#dce9fe;
+      --brand-border-medium:#bad3fd;
+      --brand-on-background-strong:#1a4fcd;
+      --brand-solid-strong:#2563eb;
+      --brand-on-solid-strong:#ffffff;
+      --accent-background-weak:#f2f0fe;
+      --accent-border-medium:#d8d2fb;
+      --accent-on-background-strong:#4b41c4;
+      --success-background-weak:#ecfdf3;
+      --success-border-medium:#a9e6c6;
+      --success-on-background-strong:#0a7345;
+      --success-solid-strong:#12894f;
+      --warning-background-weak:#fff8ea;
+      --warning-border-medium:#f4d489;
+      --warning-on-background-strong:#8a5a06;
+      --danger-background-weak:#fef1f1;
+      --danger-border-medium:#f5b6b6;
+      --danger-on-background-strong:#b3261e;
+      --danger-solid-strong:#dc2626;
+      --info-background-weak:#eef8ff;
+      --info-border-medium:#b6dcf6;
+      --info-on-background-strong:#0b6a9e;
+    }
+    :root[data-theme="dark"]{
+      --board-canvas:#08080a;
+      --page-background:#0d0d0f;
+      --neutral-background-weak:#161618;
+      --neutral-background-medium:#1e1e21;
+      --neutral-background-strong:#2b2b30;
+      --neutral-alpha-weak:rgba(255,255,255,.04);
+      --neutral-alpha-medium:rgba(255,255,255,.08);
+      --neutral-border-weak:rgba(255,255,255,.08);
+      --neutral-border-medium:rgba(255,255,255,.15);
+      --neutral-border-strong:rgba(255,255,255,.24);
+      --neutral-on-background-weak:#87878f;
+      --neutral-on-background-medium:#a8a8b1;
+      --neutral-on-background-strong:#f4f4f6;
+      --neutral-solid-strong:#ececef;
+      --brand-background-weak:#101c33;
+      --brand-background-medium:#16294b;
+      --brand-border-medium:#20447f;
+      --brand-on-background-strong:#8bb0ff;
+      --brand-solid-strong:#2f6feb;
+      --accent-background-weak:#171335;
+      --accent-border-medium:#2c2467;
+      --accent-on-background-strong:#a99cff;
+      --success-background-weak:#0b2118;
+      --success-border-medium:#1d5c3e;
+      --success-on-background-strong:#5fd39b;
+      --success-solid-strong:#12894f;
+      --warning-background-weak:#241a07;
+      --warning-border-medium:#5c4313;
+      --warning-on-background-strong:#f0c05a;
+      --danger-background-weak:#2a1213;
+      --danger-border-medium:#6b2323;
+      --danger-on-background-strong:#ff9b96;
+      --info-background-weak:#0a1e2b;
+      --info-border-medium:#194d6d;
+      --info-on-background-strong:#6fc0f0;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--board-canvas);font-family:Geist,ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+    a{color:var(--brand-on-background-strong);text-decoration:none}
+    a:hover{color:var(--brand-solid-strong);text-decoration:underline}
+    @keyframes shimmer{0%{opacity:.5}50%{opacity:1}100%{opacity:.5}}
+  </style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:56px 56px 96px;background:var(--board-canvas)">
+
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:32px;max-width:1280px">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <span style="font:500 11px/1 Geist,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--neutral-on-background-weak)">ASOBARCELONA · condominio-app</span>
+      <h1 style="margin:0;font:600 34px/1.15 Geist,sans-serif;letter-spacing:-.02em;color:var(--neutral-on-background-strong)">Gestión de cuotas y pagos</h1>
+      <p style="margin:0;max-width:620px;font:400 15px/1.6 Geist,sans-serif;color:var(--neutral-on-background-medium);text-wrap:pretty">14 pantallas en Once UI: panel de la junta en escritorio y panel del vecino en móvil. Cada cuota vive en su moneda —USD, Bs. o USDT— y nunca se convierte.</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button type="button" onClick="{{ toggleTema }}" style="display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border:1px solid var(--neutral-border-medium);border-radius:8px;background:var(--neutral-background-weak);color:var(--neutral-on-background-strong);font:500 13px/1 Geist,sans-serif;cursor:pointer" style-hover="background:var(--neutral-background-medium)">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5"></path></svg>
+        <span>{{ etiquetaTema }}</span>
+      </button>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;align-items:center;gap:14px">
+      <span style="font:600 13px/1 Geist,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--neutral-on-background-medium)">Panel Admin</span>
+      <span style="flex:1;height:1px;background:var(--neutral-border-medium)"></span>
+      <span style="font:400 12px/1 Geist,sans-serif;color:var(--neutral-on-background-weak)">Escritorio 1280 · Supabase auth</span>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start">
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <span style="font:600 14px/1 Geist,sans-serif;color:var(--neutral-on-background-strong)">A1 · Login Admin</span>
+          <span style="font:400 12px/1 Geist,sans-serif;color:var(--neutral-on-background-weak)">con estado de error</span>
+        </div>
+        <div style="width:1280px;height:720px;display:flex;background:var(--page-background);border:1px solid var(--neutral-border-medium);border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06)">
+          <div style="width:520px;flex:0 0 520px;padding:48px;display:flex;flex-direction:column;justify-content:space-between;background:var(--brand-background-weak);border-right:1px solid var(--brand-border-medium)">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:9px;background:var(--brand-solid-strong);color:#fff;display:flex;align-items:center;justify-content:center;font:700 12px/1 Geist,sans-serif">AB</div>
+              <span style="font:600 13px/1 Geist,sans-serif;letter-spacing:.05em;color:var(--brand-on-background-strong)">ASOBARCELONA</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <h2 style="margin:0;font:600 30px/1.2 Geist,sans-serif;letter-spacing:-.02em;color:var(--neutral-on-background-strong);text-wrap:balance">Las cuotas de la calle, en un solo lugar.</h2>
+              <p style="margin:0;max-width:340px;font:400 15px/1.6 Geist,sans-serif;color:var(--neutral-on-background-medium)">Registra pagos, mira quién debe y manda el reporte del mes sin perseguir a nadie por WhatsApp.</p>
+            </div>
+            <span style="font:400 12px/1 Geist,sans-serif;color:var(--neutral-on-background-weak)">10 casas · cuota mensual desde 2019</span>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:48px">
+            <div style="width:380px;display:flex;flex-direction:column;gap:20px">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <h3 style="margin:0;font:600 20px/1.3 Geist,sans-serif;color:var(--neutral-on-background-strong)">Entrar como junta</h3>
+                <span style="font:400 13px/1.5 Geist,sans-serif;color:var(--neutral-on-background-medium)">Solo la administradora y el tesorero tienen cuenta.</span>
+              </div>
+              <div style="display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border-radius:10px;background:var(--danger-background-weak);box-shadow:inset 0 0 0 1px var(--danger-border-medium)">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--danger-on-background-strong)" stroke-width="1.8" stroke-linecap="round" style="margin-top:1px;flex:0 0 16px" aria-hidden="true"><path d="M12 8v5M12 16.5v.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0"></path></svg>
+                <span style="font:400 12px/1.5 Geist,sans-serif;color:var(--danger-on-background-strong)">Contraseña incorrecta. Te quedan 3 intentos antes de bloquear la cuenta.</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <label for="a1-mail" style="font:500 12px/1 Geist,sans-serif;color:var(--neutral-on-background-medium)">Correo</label>
+                <input id="a1-mail" type="email" value="gladys@asobarcelona.org" readonly style="height:42px;padding:0 12px;border:1px solid var(--neutral-border-medium);border-radius:9px;background:var(--neutral-background-weak);color:var(--neutral-on-background-strong);font:400 14px/1 Geist,sans-serif;width:100%">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <label for="a1-pass" style="font:500 12px/1 Geist,sans-serif;color:var(--neutral-on-background-medium)">Contraseña</label>
+                <div style="position:relative;display:flex;align-items:center">
+                  <input id="a1-pass" type="password" value="123456789" readonly aria-invalid="true" style="height:42px;padding:0 40px 0 12px;border:1px solid var(--danger-border-medium);border-radius:9px;background:var(--danger-background-weak);color:var(--neutral-on-background-strong);font:400 14px/1 Geist,sans-serif;width:100%;box-shadow:0 0 0 3px rgba(220,38,38,.12)">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--neutral-on-background-weak)" stroke-width="1.7" stroke-linecap="round" style="position:absolute;right:12px" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 14.2a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4"></path></svg>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <label style="display:flex;align-items:center;gap:8px;font:400 13px/1 Geist,sans-serif;color:var(--neutral-on-background-medium);cursor:pointer">
+                  <span style="width:16px;height:16px;border-radius:5px;background:var(--brand-solid-strong);display:flex;align-items:center;justify-content:center">
+                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5 9.5 17.5 19.5 6.5"></path></svg>
+                  </span>
+                  <span>Mantener sesión</span>
+                </label>
+                <a href="#recuperar" style="font:500 13px/1 Geist,sans-serif">Olvidé mi contraseña</a>
+              </div>
+              <button type="button" style="height:44px;border:0;border-radius:9px;background:var(--brand-solid-strong);color:#fff;font:600 14px/1 Geist,sans-serif;cursor:pointer" style-hover="filter:brightness(1.08)">Entrar</button>
+              <span style="text-align:center;font:400 12px/1.5 Geist,sans-serif;color:var(--neutral-on-background-weak)">¿Eres vecino? <a href="#vecino">Entra con tu casa y PIN</a></span>
+            </div>
+          </div>
+        </div>
+        <span style="max-width:1280px;font:400 12px/1.6 Geist,sans-serif;color:var(--neutral-on-background-weak)">Error a nivel de formulario + campo inválido con anillo de foco rojo y <code style="font:400 11px/1 'Geist Mono',monospace">aria-invalid</code>.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <span style="font:600 14px/1 Geist,sans-serif;color:var(--neutral-on-background-strong)">A2 · Dashboard</span>
+          <span style="font:400 12px/1 Geist,sans-serif;color:var(--neutral-on-background-weak)">pantalla crítica</span>
+        </div>
+        <div style="width:1280px;display:flex;background:var(--page-background);border:1px solid var(--neutral-border-medium);border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06)">
+          <dc-import name="AdminNav" activo="panel" hint-size="232px,940px"></dc-import>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+            <div style="height:58px;flex:0 0 58px;display:flex;align-items:center;gap:16px;padding:0 24px;border-bottom:1px solid var(--neutral-border-weak);background:var(--neutral-background-weak)">
+              <span style="font:600 14px/1 Geist,sans-serif;color:var(--neutral-on-background-strong)">Panel</span>
+              <span style="display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:99px;background:var(--neutral-background-medium);font:500 12px/1 Geist,sans-serif;color:var(--neutral-on-background-medium)">Septiembre 2026</span>
+              <div style="flex:1"></div>
+              <div style="position:relative;display:flex;align-items:center;width:240px">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--neutral-on-background-weak)" stroke-width="1.8" stroke-linecap="round" style="position:absolute;left:11px" aria-hidden="true"><path d="M20 20l-3.6-3.6M17 11a6 6 0 1 1-12 0 6 6 0 0 1 12 0"></path></svg>
+                <input type="search" placeholder="Buscar casa, dueño o referencia" aria-label="Buscar" style="height:34px;width:100%;padding:0 12px 0 32px;border:1px solid var(--neutral-border-medium);border-radius:8px;background:var(--page-background);color:var(--neutral-on-background-strong);font:400 12px/1 Geist,sans-serif">
+              </div>
+              <div style="width:28px;height:28px;border-radius:99px;background:var(--accent-background-weak);color:var(--accent-on-background-strong);display:flex;align-items:center;justify-content:center;font:600 10px/1 Geist,sans-serif">GB</div>
+            </div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:20px">
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px">
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <h2 style="margin:0;font:600 22px/1.2 Geist,sans-serif;letter-spacing:-.01em;color:var(--neutral-on-background-strong)">Hola, Gladys</h2>
+                  <span style="font:400 13px/1 Geist,sans-serif;color:var(--neutral-on-background-medium)">Van 6 de 10 casas al día. Faltan 12 días para el cierre del mes.</span>
+                </div>
+                <div style="display:flex;gap:10px">
+                  <button type="button" style="display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border:1px solid var(--neutral-border-medium);border-radius:8px;background:var(--neutral-background-weak);color:var(--neutral-on-background-strong);font:500 13px/1 Geist,sans-serif;cursor:pointer" style-hover="background:var(--neutral-background-medium)">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                    <span>Registrar pago</span>
+                  </button>
+                  <button type="button" style="display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border:0;border-radius:8px;background:var(--brand-solid-strong);color:#fff;font:600 13px/1 Geist,sans-serif;cursor:pointer" style-hover="filter:brightness(1.08)">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                    <span>Nueva cuota</span>
+                  </button>
+                </div>
+              </div>
+
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+                <div style="padding:16px;border:1px solid var(--neutral-border-weak);border-radius:12px;background:var(--neutral-background-weak);display:flex;flex-direction:column;gap:12px">
+                  <span style="font:500 11px/1 Geist,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--neutral-on-background-weak)">Cobrado en septiembre</span>
+                  <div style="display:flex;flex-direction:column;gap:4px">
+                    <span style="font:600 24px/1.1 Geist,sans-serif;letter-spacing:-.01em;color:var(--neutral-on-background-strong)">$210,00</span>
+                    <span style="font:400 13px/1.4 'Geist Mono',monospace;color:var(--neutral-on-background-medium)">Bs 8.400,00</span>
+                    <span style="font:400 13px/1.4 'Geist Mono',monospace;color:var(--neutral-on-background-medium)">70,00 USDT</span>
+                  </div>
+                  <span style="display:inline-flex;align-items:center;gap:5px;width:fit-content;height:22px;padding:0 9px;border-radius:99px;background:var(--success-background-weak);color:var(--success-on-background-strong);box-shadow:inset 0 0 0 1px var(--success-border-medium);font:500 11px/1 Geist,sans-serif">+18% vs agosto</span>
+                </div>
+                <div style="padding:16px;border:1px solid var(--neutral-border-weak);border-radius:12px;background:var(--neutral-background-weak);display:flex;flex-direction:column;gap:12px">
+                  <span style="font:500 11px/1 Geist,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--neutral-on-background-weak)">Morosos</span>
+                  <div style="display:flex;align-items:baseline;gap:6px">
+                    <span style="font:600 24px/1.1 Geist,sans-serif;color:var(--danger-on-background-strong)">4</span>
+                    <span style="font:400 13px/1 Geist,sans-serif;color:var(--neutral-on-background-weak)">de 10 casas</span>
+                  </div>
+                  <div style="display:flex;gap:4px;height:8px">
+                    <span style="flex:6;border-radius:99px;background:var(--success-solid-strong)"></span>
+                    <span style="flex:4;border-radius:99px;background:var(--danger-solid-strong)"></span>
+                  </div>
+                  <span style="font:400 12px/1.4 Geist,sans-serif;color:var(--neutral-on-background-medium)">3 casas con más de 30 días de atraso</span>
+                </div>
+                <div style="padding:16px;border:1px solid var(--neutral-border-weak);border-radius:12px;background:var(--neutral-background-weak);display:flex;flex-direction:column;gap:12px">
+                  <span style="font:500 11px/1 Geist,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--neutral-on-background-weak)">Saldo pendiente</span>
+                  <div style="display:flex;flex-direction:column;gap:4px">
+                    <span style="font:600 24px/1.1 Geist,sans-serif;letter-spacing:-.01em;color:var(--neutral-on-background-strong)">$105,00</span>
+                    <span style="font:400 13px/1.4 'Geist Mono',monospace;color:var(--neutral-on-background-medium)">Bs 2.100,00</span>
+                    <span style="font:400 13px/1.4 'Geist Mono',monospace;color:var(--neutral-on-background-medium)">35,00 USDT</span>
+                  </div>
+                  <span style="font:400 12px/1.4 Geist,sans-serif;color:var(--neutral-on-background-weak)">Cada monto en su moneda original</span>
+                </div>
+                <div style="padding:16px;border:1px solid var(--success-border-medium);border-radius:12px;background:var(--success-background-weak);display:flex;flex-direction:column;gap:12px">
+                  <span style="font:500 11px/1 Geist,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--success-on-background-strong)">Saldo a favor</span>
+                  <div style="display:flex;flex-direction:column;gap:4px">
+                    <span style="font:600 24px/1.1 Geist,sans-serif;letter-spacing:-.01em;color:var(--success-on-background-strong)">+$70,00</span>
+                    <span style="font:400 13px/1.4 Geist,sans-serif;color:var(--success-on-background-strong)">Casa 20 · MILMANDA</span>
+                  </div>
+                  <span style="font:400 12px/1.4 Geist,sans-serif;color:var(--success-on-background-strong);opacity:.85">Pagó octubre y noviembre por adelantado</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;tema&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;\&quot;light\&quot; | \&quot;dark\&quot;&quot;,&quot;section&quot;:&quot;Tema&quot;}}">
+class Component extends DCLogic {
+  state = { tema: "light" };
+  componentDidMount() { this.aplicar(); }
+  aplicar() {
+    const tema = this.props.tema ?? this.state.tema;
+    document.documentElement.setAttribute("data-theme", tema);
+  }
+  renderVals() {
+    const tema = this.props.tema ?? this.state.tema;
+    return {
+      etiquetaTema: tema === "dark" ? "Modo claro" : "Modo oscuro",
+      toggleTema: () => this.setState((s) => ({ tema: s.tema === "dark" ? "light" : "dark" })),
+    };
+  }
+}
+</script>
+</body>
+</html>
+
+<!--
+NOTE (added by dev-master project setup, not part of the original Claude Design
+export): This file was truncated when archived into the repo -- it originally
+contained 14 full screens (A1 Login Admin, A2 Dashboard, A3 Casas y vecinos,
+A3b modal crear/editar casa, A4 Crear cuota especial, A4b Crear cuota
+recurrente, A5 Registrar pago, A6 Reporte mensual, A7 Historial de pagos, A7b
+Detalle de pago modal, A8 Configuración, V1-V6 resident/mobile screens, R1-R3
+responsive/component-states). Only A1 (Login Admin) and the top of A2
+(Dashboard) are preserved verbatim above as concrete Once UI token/copy
+examples. The full screen-by-screen breakdown and every field/copy/state
+shown in each screen is captured in PLAN.md's "Design Reference" section --
+consult that first for which screen maps to which phase, then treat the two
+screens preserved here as the authoritative style example (spacing, color
+token usage, Spanish copy tone, form/error patterns) to replicate across all
+other screens this file doesn't fully preserve.
+-->

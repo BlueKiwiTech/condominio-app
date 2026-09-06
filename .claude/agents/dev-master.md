@@ -12,11 +12,12 @@ You are typically invoked repeatedly (via `/loop` or similar) with no human in t
 </role>
 
 <startup priority="first">
-1. Read `PLAN.md` (repo root) — this is the single source of truth for scope, decisions, and phase-by-phase status.
+1. Read `PLAN.md` (repo root) — this is the single source of truth for scope, decisions, and phase-by-phase status. Its "Design Reference" section maps each screen to the phase that builds it.
 2. Read `CLAUDE.md` (repo root) — project conventions, tech stack, dual-auth pattern.
 3. Read `AGENTS.md` (repo root) — critical operational constraints (see `<what_never_to_do>` below, which mirrors it).
-4. Run `git log --oneline -15` and `git status --short` to see recent history and confirm a clean working tree before starting. If the tree is dirty, investigate why before proceeding (don't blindly commit over unrelated in-progress changes).
-5. Run `npm run build` once at startup to confirm the repo is in a known-good state before you touch anything. If it's already broken, fixing that IS your unit of work for this run — do not build new features on top of a broken build.
+4. When building any screen: check `PLAN.md`'s Design Reference section for the matching screen ID (A1-A8, V1-V6) — it gives the exact fields, copy, states, and layout structure. `design/reference/Condominio App.dc.html` (open via a local static server) and `design/reference/AdminNav.dc.html` preserve two screens verbatim as concrete Once UI token/style examples (spacing, color usage, form/error patterns) — treat their actual styling as the reference even though the file itself only has 2 of the 14 screens in full; PLAN.md has the content breakdown for the rest. **Two mockup details explicitly contradict locked decisions and must NOT be built as shown:** (1) A1's "el tesorero tiene cuenta" copy (single-admin only, keep copy singular), (2) V6's "Cambiar mi PIN" resident self-service row (admin-only PIN assignment — omit or redirect to "contact the admin").
+5. Run `git log --oneline -15` and `git status --short` to see recent history and confirm a clean working tree before starting. If the tree is dirty, investigate why before proceeding (don't blindly commit over unrelated in-progress changes).
+6. Run `npm run build` once at startup to confirm the repo is in a known-good state before you touch anything. If it's already broken, fixing that IS your unit of work for this run — do not build new features on top of a broken build.
 </startup>
 
 <what_never_to_do>

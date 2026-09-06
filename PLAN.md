@@ -188,7 +188,35 @@ Follow-up migration `20260906033502_schema_hardening.sql` also shipped (from cod
 
 ---
 
-## Key Architectural Corrections (from original handoff spec — already applied)
+## Design Reference
+
+A Claude Design canvas mockup (14 screens, Once UI, Spanish copy) exists at `design/reference/` — `Condominio App.dc.html` (only screens A1 and part of A2 preserved verbatim as concrete style examples; open it in a browser via a local static server to preview), `AdminNav.dc.html` (full, the admin sidebar), `support.js` (preview runtime only — not part of the app, don't import it). The full screen list and what each contains is captured below since the source file was trimmed for size — **use this as the UX/copy/layout reference when building each phase's screens.**
+
+**Admin (desktop 1280px):**
+- **A1 · Login Admin** (Phase 2) — email+password form, "Entrar como junta" heading, error state (wrong password, `aria-invalid`, "Te quedan 3 intentos"), "Mantener sesión" checkbox, "Olvidé mi contraseña" link, "¿Eres vecino? Entra con tu casa y PIN" link. *Ignore the mockup's "Solo la administradora y el tesorero tienen cuenta" copy — contradicts the locked single-admin-allowlist decision; keep copy singular.*
+- **A2 · Dashboard** (Phase 6, uses Phase 4/5 data) — greeting + days-to-close-of-month, "Registrar pago"/"Nueva cuota" buttons, 4 KPI cards (Cobrado en {mes} per-currency w/ %-change badge, Morosos count + progress bar, Saldo pendiente per-currency, Saldo a favor highlight), 6-month per-currency income chart (3 separate scales, never combined), "Casas con deuda" table, scrollable "Últimos pagos" list.
+- **A3 · Casas y vecinos** (Phase 3) — search + house/status filter chips, table (Casa, Nombre, Dueño, Teléfono, Email, Estado badge, edit/ver-pagos action icons).
+- **A3b · Modal crear/editar casa** (Phase 3) — Código, Número de casa, Nombre, Dueño, Teléfono, Moneda habitual, Email (opcional). *Mockup doesn't show a PIN field — add one per the locked house-level-PIN decision.*
+- **A4 · Crear cuota** (Phase 4) — Tipo de cuota (Recurrente/Única/Especial radio cards), Descripción, Monto + Moneda, "Dividir en cuotas" checkbox (Número de cuotas, Distribución Automática/Manual, Primera cuota date), Casas aplicables (Todas/Seleccionar chips), right-panel live preview (generated installments, total, non-conversion info banner, Resumen: cuotas generadas / recaudación esperada / cierre date).
+- **A4b · Crear cuota (variante Recurrente)** (Phase 4) — Cadencia (Semanal/Mensual/Anual), Fecha de inicio, Número de cuotas, Monto por cuota + Moneda, summary bar (date range + total + scope).
+- **A5 · Registrar pago** (Phase 5) — Casa selector, pending-cuotas checklist table, Monto recibido + Moneda, Fecha del pago (calendar widget), Referencia (opcional), Notas, right-panel "Resumen del pago" (line items, total, "Queda al día hasta {mes}" success box showing resulting saldo state, antes/después house status), toast confirmation on save.
+- **A6 · Reporte mensual** (Phase 6) — month picker, CSV/PDF export buttons, currency filter chips (Todas/USD/Bs/USDT — filters view only, never sums across them), status filter, table + a **separate footer total row per currency** (esperado/cobrado/pendiente/favor).
+- **A7 · Historial de pagos por casa** (Phase 6) — search + date-range + currency filters, "Pagado en {año}" + "Saldo a favor" stat tiles, payment table with a Detalle link.
+- **A7b · Detalle de pago** (modal, Phase 5/6) — payment header (date+amount), Casa, Cuotas cubiertas, Moneda, Referencia, Registrado por, notes quote, "Anular pago" (danger)/"Cerrar".
+- **A8 · Configuración** (Phase 2/3, admin profile+community settings) — Mi perfil, La comunidad (nombre/dirección/teléfono de la junta), Notificaciones toggles, "Cerrar sesión".
+
+**Resident (mobile 390px):**
+- **V1 · Login vecino** (Phase 3) — "Mi casa" selector (shows house code/name/owner for confirmation), "Mi PIN" 4-digit masked input, "Entrar" button, "¿Olvidaste tu PIN? Escríbele a Gladys al {tel}" (matches the locked admin-only-PIN-reset decision — contacting the admin, not self-service).
+- **V2 · Mi hogar** (Phase 7) — greeting, saldo a favor/pendiente highlight card, house info card, "Lo que viene" (upcoming installments), "Reportar un pago que hice" button, bottom tab bar.
+- **V3 · Mis cuotas** (Phase 7) — Pendientes/Histórico tabs, month-grid calendar color-coded (pagada/adelantada/pendiente/vencida), cuota especial list section.
+- **V3b · Cuota vencida state** (Phase 7) — red "Deuda acumulada" card, overdue items list, "Escribir a la junta" CTA.
+- **V4 · Mis pagos** (Phase 7) — period filter chips, payment history list, per-period total.
+- **V5 · Contactar a la junta** (out of v1 scope — NOTF-* is v2/deferred; do not build a messaging feature, this screen is aspirational in the mockup).
+- **V6 · Mi perfil** (Phase 7) — profile fields, "Cambiar mi PIN" row. *Contradicts the locked admin-only-PIN-assignment decision — do NOT build resident-initiated PIN change; keep this row out or make it link to "contact the admin" instead.*
+
+**Responsive/component reference (R1-R3):** same dashboard reflowed at 768px/390px, plus a components sheet (button variants, status badges, input states, loading skeletons, empty state, error toast) — useful as a general Once UI usage reference across all phases, not tied to one.
+
+
 
 1. **Cuotas need a template/instance split.** No `applicable_houses` array on a single cuota row — split into `condo_installment_templates` (definition) and `condo_installments` (per-house, per-installment payable instance, with `house_id`).
 2. **Payments need to support paying multiple cuotas at once.** One `condo_payments` row per paid installment, grouped under an optional shared `payment_batch_id` — not a singular FK.
