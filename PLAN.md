@@ -61,16 +61,16 @@ Legend: ✅ done · 🔲 not started
 - 🔲 **AUTH-02**: Admin receives email verification after signup
 - 🔲 **AUTH-03**: Admin can reset password via email link
 - 🔲 **AUTH-04**: Admin session persists across browser refresh
-- 🔲 **AUTH-05**: Resident can log in by house dropdown + PIN, no email
-- 🔲 **AUTH-06**: Resident PIN hashed at rest, login rate-limited against brute-force
+- 🔲 **AUTH-05**: Resident can log in by house number + the house's PIN, no email *(corrected: PIN is one-per-house, not one-per-resident — see Phase 3 decisions)*
+- 🔲 **AUTH-06**: House PIN hashed at rest, login rate-limited against brute-force (5 attempts → 15-min lockout, per house)
 - 🔲 **AUTH-07**: RLS/equivalent ensures admins see everything, residents see only their house
 
 ### Houses (HOUS) — Phase 3
-- 🔲 **HOUS-01**: Admin can create a house (number, name, owner name/phone/email)
-- 🔲 **HOUS-02**: Admin can edit a house
+- 🔲 **HOUS-01**: Admin can create a house (number, name, owner name/phone/email, **PIN** — PIN lives on the house, not per-resident)
+- 🔲 **HOUS-02**: Admin can edit a house (including resetting its PIN)
 - 🔲 **HOUS-03**: Admin can delete a house
 - 🔲 **HOUS-04**: Admin can view list of all houses
-- 🔲 **HOUS-05**: Admin can add residents (name, phone, PIN) to a house
+- 🔲 **HOUS-05**: Admin can add residents (name, phone — display/contact info only, no individual PIN) to a house
 
 ### Cuotas (CUOT) — Phase 4
 - 🔲 **CUOT-01**: Recurring cuota (name, cadence, amount, currency, start date, # installments, target houses)
@@ -145,21 +145,38 @@ Follow-up migration `20260906033502_schema_hardening.sql` also shipped (from cod
 **Goal:** Admin manages houses/residents; residents log in independently via house + PIN.
 **Depends on:** Phase 2
 
-**Known open decision (not yet resolved):** the resident auth mechanism defaults to **Pattern A** (custom signed session cookie, service-role-mediated reads, RLS as defense-in-depth — see dual-auth pattern above) vs. an RLS-native Pattern B alternative. This needs an explicit confirmation/spike before writing RLS policies or session code for residents — flagged specifically as "do not discover mid-build."
+**Decisions made (2026-09-06):**
+- **PIN is one-per-HOUSE, not one-per-resident.** Login = `house_number` + the house's single shared PIN. **Schema correction needed from Phase 1:** move `pin_hash` off `condo_house_residents` and onto `condo_houses` (residents keep name/phone as display/contact info only, no individual PIN). Update HOUS-05 accordingly: "Admin can add one or more residents (name, phone) to a house; the house itself has one PIN."
+- **Resident session mechanism: Pattern A confirmed** — custom signed httpOnly cookie (via `jose`), no Supabase Auth session for residents at all. A Route Handler verifies `{house_id, pin}` server-side via the service-role client (PIN hash comparison via `pgcrypto`), then mints the cookie carrying `{house_id}`. All resident reads go through a service-role client manually filtered by `house_id`. RLS stays enabled as a backstop, not the primary enforcement path.
+- **PIN lockout:** 5 failed attempts → 15-minute lockout, scoped per house.
+- **PIN assignment:** admin sets the PIN when creating/editing a house (no resident self-service PIN change in v1).
+- **Resident session duration:** long-lived (~30 days), "remember this device" style — minimize re-entry friction.
 
 ### 🔲 Phase 4: Cuota Engine — NOT STARTED
 **Goal:** Admin defines recurring and special cuotas generating correct per-house installments.
 **Depends on:** Phase 3
 
-**Known open decision:** month-end date-clamping behavior for recurring cuotas (e.g., a monthly cuota starting Jan 31 — what happens in February?) is not specified anywhere yet. Needs an explicit product decision during planning, not an engineering default.
+**Decisions made (2026-09-06):**
+- **Month-end dates:** recurring cuotas always land on the **1st of each month**, regardless of the start date's day-of-month. (Not a last-day-of-month clamp — always day 1.)
+- **New houses joining an existing recurring cuota:** **no** — a recurring cuota's applicable-houses list is fixed at creation time. A house added later needs its own new cuota (or the admin edits/recreates).
+- **Editing a cuota template:** the edit **updates all unpaid future installments** already generated from it (paid installments are untouched, preserved as historical record).
 
 ### 🔲 Phase 5: Payments — NOT STARTED
 **Goal:** Admin registers payments against pending cuotas; residents retrieve receipts.
 **Depends on:** Phase 4
 
+**Decisions made (2026-09-06):**
+- **Partial payment allocation:** oldest-cuota-first. If the payment doesn't cover all selected cuotas, the oldest gets paid first, the next becomes "partially paid" for the remainder.
+- **Overpayment:** the excess becomes **saldo a favor (credit)** on the house, **auto-applied to the next cuota** that becomes due (not something the admin has to manually remember to apply).
+- **Receipt numbering:** sequential receipt number (e.g. #0001, #0002...), community-wide.
+
 ### 🔲 Phase 6: Reporting & Delinquency — NOT STARTED
 **Goal:** Admin dashboard, morosos list, monthly reports — live, per-currency computation.
 **Depends on:** Phase 5
+
+**Decisions made (2026-09-06):**
+- **Grace period before "moroso":** configurable, not hardcoded — a setting (e.g. `grace_period_days`, admin-configurable, could be set to 0/1 for no effective grace) determines when a house with an unpaid past-due cuota gets flagged as delinquent. Default value TBD at implementation (0 or a small number) — the requirement is that it's a setting, not a fixed constant baked into the query.
+- **"Total collected this month" KPI basis:** by **payment_date** falling in the selected month — cash-basis, not accrual (a late October payment for a September cuota counts toward October's "collected" total, not September's).
 
 ### 🔲 Phase 7: Resident Portal — NOT STARTED
 **Goal:** Residents self-serve view their cuotas, saldo, and payment history.
@@ -175,6 +192,12 @@ Follow-up migration `20260906033502_schema_hardening.sql` also shipped (from cod
 
 1. **Cuotas need a template/instance split.** No `applicable_houses` array on a single cuota row — split into `condo_installment_templates` (definition) and `condo_installments` (per-house, per-installment payable instance, with `house_id`).
 2. **Payments need to support paying multiple cuotas at once.** One `condo_payments` row per paid installment, grouped under an optional shared `payment_batch_id` — not a singular FK.
+
+## Schema Correction Needed in Phase 3 (not yet applied)
+
+Phase 1's migration put `pin_hash` on `condo_house_residents` (per-resident PIN). The actual design is **one PIN per house** (see Phase 3 decisions above). Phase 3 must ship a migration that:
+- Adds `pin_hash` (and a lockout-tracking column or two, e.g. `failed_pin_attempts`, `pin_locked_until`) to `condo_houses`.
+- Drops `pin_hash` from `condo_house_residents` (residents keep `resident_name`, `resident_phone` only).
 
 ## Anti-Patterns to Avoid (from research, still relevant)
 
