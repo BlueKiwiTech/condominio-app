@@ -37,7 +37,7 @@ Plans:
 - [x] 01-02-PLAN.md — Wire next-intl [locale] routing + Once UI provider shell
 - [x] 01-03-PLAN.md — Author the corrected 7-table Supabase migration (RLS, zero policies)
 - [ ] 01-04-PLAN.md — Create Supabase project, push migration [BLOCKING], verify RLS + reproducibility
-- [ ] 01-05-PLAN.md — Supabase SSR client helpers (server/client/proxy.ts)
+- [x] 01-05-PLAN.md — Supabase SSR client helpers (server/client/proxy.ts)
 - [ ] 01-06-PLAN.md — Vercel deployment: env vars, deploy, smoke check, secret-leak verification
 **UI hint**: yes
 
