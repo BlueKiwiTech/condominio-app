@@ -42,10 +42,16 @@ completed: 2026-09-06
 - **Task 1:** `.env.example` created with the 3 real env var names (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — legacy naming per Plan 04), placeholder values only. Verified the anon-key name matches `lib/supabase/server.ts` exactly, and the service-role line carries no `NEXT_PUBLIC_` prefix.
 - **Task 3 (local half only):** `npm run build` succeeds. Grepped the actual `SUPABASE_SERVICE_ROLE_KEY` value from local `.env` against `.next/` build output — zero matches, confirming the secret never enters the client-servable build artifact.
 
-## NOT Completed (deferred to user)
+## Task 2 — Completed by user directly
 
-- **Task 2:** No Vercel project was created, git-connected, or had env vars set by this executor. The Vercel CLI on this machine is authenticated as `byagasocial` — the same account already found to lack GitHub push access to `BlueKiwiTech/condominio-app`, and the one that auto-created an unwanted Supabase project earlier in this phase. The user explicitly asked to handle all Vercel steps themselves rather than proceed under this account.
-- **Task 3 (remote half):** The deployed-URL smoke check (`scripts/smoke-check.sh <url>`) was not run — there is no deployment URL yet.
+The user created the Vercel project, wired env vars, and deployed to production themselves (not via executor, for the reasons below). Live URL: `https://condominio-app-sigma.vercel.app`.
+
+- `bash scripts/smoke-check.sh https://condominio-app-sigma.vercel.app/en` → **PASS** (HTTP 200, contains `ASOBARCELONA` marker).
+- Secret-value grep against the live response body → **PASS** (service-role key value not found).
+
+**Known visual issue (flagged, not fixed by this executor):** a screenshot of the live page shows the `ASOBARCELONA` `<Heading>` is not visibly rendering, even though it IS present in the server-rendered HTML (confirmed via `curl` and via local `.next/server/app/en.html` — same behavior in both, so this is not Vercel-specific). Neither the local nor deployed server-rendered `<html>` tag carries a `data-theme` attribute, which Once UI's `ThemeProvider` is expected to set for its CSS custom properties (`neutral-on-background-strong`, etc.) to resolve to actual colors. The `<Text>` subtitle (`neutral-on-background-weak`) does appear to render (visible gray text in the screenshot), but the `<Heading>` (`neutral-on-background-strong`) does not — needs browser devtools inspection (computed style / console errors) to root-cause; not diagnosable from server HTML alone. This does not fail the automated smoke check (which only checks text presence, not visual rendering) but may mean the phase's "shell renders" success criterion is only partially met in a strict visual sense.
+
+Vercel CLI on this machine is authenticated as `byagasocial` — the same account already found to lack GitHub push access to `BlueKiwiTech/condominio-app`, and the one that auto-created an unwanted Supabase project earlier in this phase. The user explicitly asked to handle all Vercel steps themselves rather than proceed under this account, which is why the executor did not perform `vercel link`/`vercel git connect`/`vercel env add`/`vercel --prod`.
 
 ## User Setup Required
 
@@ -68,5 +74,5 @@ Phase 1's schema/scaffold/client-helper deliverables (Plans 01, 02, 03, 05) are 
 - FOUND: .env.example
 - CONFIRMED: npm run build succeeds
 - CONFIRMED: secret value absent from .next/ build output
-- NOT PERFORMED: Vercel project creation/connect/env vars/deploy
-- NOT PERFORMED: deployed-URL smoke check
+- CONFIRMED: live deployment at https://condominio-app-sigma.vercel.app passes smoke-check and secret-leak grep
+- FLAGGED (unresolved): ASOBARCELONA heading not visibly rendering despite being present in server HTML — needs browser-devtools investigation
