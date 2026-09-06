@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Column, Button, Feedback, SmartLink } from '@once-ui-system/core';
 import { resendVerificationEmail } from '@/lib/actions/auth';
 
 export function VerifyEmailActions({ email }: { email: string }) {
   const t = useTranslations('auth');
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -14,7 +15,7 @@ export function VerifyEmailActions({ email }: { email: string }) {
   const handleResend = () => {
     setServerError(null);
     startTransition(async () => {
-      const result = await resendVerificationEmail(email);
+      const result = await resendVerificationEmail(email, locale);
       if (result?.error) {
         setServerError(result.error);
         return;

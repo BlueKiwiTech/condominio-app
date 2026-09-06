@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Column,
   Row,
@@ -35,6 +35,7 @@ export function PaymentFormClient({
   houseCredits: HouseCredit[];
 }) {
   const t = useTranslations('payments.new');
+  const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -132,15 +133,18 @@ export function PaymentFormClient({
     setServerError(null);
     if (!houseId || !currency) return;
     startTransition(async () => {
-      const result = await registerPayment({
-        house_id: houseId,
-        installment_ids: selectedIds,
-        currency,
-        amount_received: amountReceived,
-        payment_date: toDateOnly(paymentDate),
-        reference: reference || undefined,
-        notes: notes || undefined,
-      });
+      const result = await registerPayment(
+        {
+          house_id: houseId,
+          installment_ids: selectedIds,
+          currency,
+          amount_received: amountReceived,
+          payment_date: toDateOnly(paymentDate),
+          reference: reference || undefined,
+          notes: notes || undefined,
+        },
+        locale,
+      );
       if ('error' in result) {
         setServerError(result.error);
         return;

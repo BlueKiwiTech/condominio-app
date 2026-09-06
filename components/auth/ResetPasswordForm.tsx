@@ -3,25 +3,27 @@
 import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Column, PasswordInput, Button, Feedback } from '@once-ui-system/core';
 import { resetPasswordSchema, type ResetPasswordInput } from '@/lib/validation/auth';
 import { resetPassword } from '@/lib/actions/auth';
 
 export function ResetPasswordForm() {
   const t = useTranslations('auth');
+  const tv = useTranslations('validation.auth');
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ResetPasswordInput>({ resolver: zodResolver(resetPasswordSchema) });
+  } = useForm<ResetPasswordInput>({ resolver: zodResolver(resetPasswordSchema(tv)) });
 
   const onSubmit = (data: ResetPasswordInput) => {
     setServerError(null);
     startTransition(async () => {
-      const result = await resetPassword(data);
+      const result = await resetPassword(data, locale);
       if (result?.error) setServerError(result.error);
     });
   };

@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { createResidentSession, clearResidentSession } from '@/lib/auth/residentSession';
 import { residentLoginSchema, type ResidentLoginInput } from '@/lib/validation/residentAuth';
@@ -15,9 +16,14 @@ type VerifyPinResult = {
   attempts_remaining?: number;
 };
 
-export async function residentLogin(input: ResidentLoginInput): Promise<ActionResult> {
-  const parsed = residentLoginSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Datos inválidos.' };
+export async function residentLogin(input: ResidentLoginInput, locale: string): Promise<ActionResult> {
+  const [tv, tc, tr] = await Promise.all([
+    getTranslations({ locale, namespace: 'validation.residentAuth' }),
+    getTranslations({ locale, namespace: 'common' }),
+    getTranslations({ locale, namespace: 'residentAuth' }),
+  ]);
+  const parsed = residentLoginSchema(tv).safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
 
   // Service-role client: residents never get a Supabase Auth session (Pattern
   // A, PLAN.md Phase 3), so this verification happens entirely server-side
@@ -28,26 +34,23 @@ export async function residentLogin(input: ResidentLoginInput): Promise<ActionRe
     p_house_number: parsed.data.house_number,
     p_pin: parsed.data.pin,
   });
-  if (error) return { error: 'No se pudo verificar el PIN. Intenta de nuevo.' };
+  if (error) return { error: tr('errors.verifyFailed') };
 
   const result = data as VerifyPinResult;
 
   if (!result.success) {
     if (result.reason === 'locked') {
-      return {
-        error:
-          'Demasiados intentos fallidos. Esta casa quedó bloqueada por 15 minutos. Intenta más tarde o contacta al administrador.',
-      };
+      return { error: tr('errors.locked') };
     }
     if (result.reason === 'not_found' || result.reason === 'no_pin') {
-      return { error: 'Casa o PIN incorrectos.' };
+      return { error: tr('errors.invalidCredentials') };
     }
     const remaining = result.attempts_remaining;
     return {
       error:
         typeof remaining === 'number'
-          ? `PIN incorrecto. Te queda${remaining === 1 ? '' : 'n'} ${remaining} intento${remaining === 1 ? '' : 's'}.`
-          : 'PIN incorrecto.',
+          ? tr('errors.wrongPinAttempts', { remaining })
+          : tr('errors.wrongPin'),
     };
   }
 

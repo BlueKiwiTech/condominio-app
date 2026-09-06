@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Dialog, Column, Input, PasswordInput, Button, Feedback } from '@once-ui-system/core';
 import {
   createHouseSchema,
@@ -26,6 +26,8 @@ export function HouseFormDialog({
   onSaved: () => void;
 }) {
   const t = useTranslations('houses');
+  const tv = useTranslations('validation.houses');
+  const locale = useLocale();
   const isEdit = house !== null;
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export function HouseFormDialog({
     handleSubmit,
     formState: { errors },
   } = useForm<CreateHouseInput | UpdateHouseInput>({
-    resolver: zodResolver(isEdit ? updateHouseSchema : createHouseSchema),
+    resolver: zodResolver(isEdit ? updateHouseSchema(tv) : createHouseSchema(tv)),
     defaultValues: isEdit
       ? {
           house_number: house.house_number,
@@ -59,8 +61,8 @@ export function HouseFormDialog({
     setServerError(null);
     startTransition(async () => {
       const result = isEdit
-        ? await updateHouse(house.id, data as UpdateHouseInput)
-        : await createHouse(data as CreateHouseInput);
+        ? await updateHouse(house.id, data as UpdateHouseInput, locale)
+        : await createHouse(data as CreateHouseInput, locale);
       if ('error' in result) {
         setServerError(result.error);
         return;

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Column, Row, Button, Table, Feedback, type TableHeader } from '@once-ui-system/core';
 import { deleteHouse } from '@/lib/actions/houses';
 import { HouseFormDialog } from './HouseFormDialog';
@@ -11,6 +11,7 @@ import type { HouseWithResidents } from './types';
 // dialogState: undefined = closed, null = create mode, HouseWithResidents = edit mode.
 export function HousesPageClient({ initialHouses }: { initialHouses: HouseWithResidents[] }) {
   const t = useTranslations('houses');
+  const locale = useLocale();
   const router = useRouter();
   const [dialogState, setDialogState] = useState<HouseWithResidents | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export function HousesPageClient({ initialHouses }: { initialHouses: HouseWithRe
     }
     setError(null);
     startTransition(async () => {
-      const result = await deleteHouse(house.id);
+      const result = await deleteHouse(house.id, locale);
       if ('error' in result) {
         setError(result.error);
         return;

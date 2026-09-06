@@ -1,6 +1,6 @@
 # Condominio App — ASOBARCELONA — Project Plan & Status
 
-**Last updated:** 2026-09-06 (Phase 7 complete)
+**Last updated:** 2026-09-06 (Phase 8 in progress — locale switcher + validation/error-message localization built; English copy review and general polish pass still remaining)
 
 This file is the single source of truth for scope, decisions, and status going forward. It replaces the `.planning/` GSD structure for day-to-day tracking — historical detail from that process (per-plan summaries, verification reports, discussion logs) still lives under `.planning/` if needed for reference, but isn't required reading to pick up work.
 
@@ -253,9 +253,22 @@ Follow-up migration `20260906033502_schema_hardening.sql` also shipped (from cod
 
 **V6 (Mi perfil) intentionally NOT built**, per the Design Reference's standing note — no resident-initiated PIN-change UI exists anywhere. V5 (Contactar a la junta) also not built as its own screen — its only in-scope piece (a way to reach the board) is satisfied by the `tel:` links already on V2/V3b.
 
-### 🔲 Phase 8: Internationalization & Polish — NOT STARTED
+### 🔲 Phase 8: Internationalization & Polish — IN PROGRESS
 **Goal:** Full Spanish/English coverage across every screen, production-ready.
-**Depends on:** Phase 7
+**Depends on:** Phase 7 ✅
+
+**No new migration.**
+
+**Progress (2026-09-06):** Closed the two biggest I18N-01/I18N-02 gaps found during the audit pass — every screen's *static* UI copy already went through `messages/es.json`/`en.json` in Phases 1-7 (verified: both files still have full key parity, 296 keys each, checked programmatically), but two categories of user-facing text were hardcoded Spanish outside that system:
+- **Locale switching (I18N-02) didn't exist at all.** Added `i18n/navigation.ts` (next-intl's documented `createNavigation(routing)` wrapper — locale-aware `Link`/`useRouter`/`usePathname`) and `components/LocaleSwitcher.tsx` (a two-button ES/EN toggle using `router.replace({pathname, query}, {locale})`, next-intl's documented "change locale for the current page" pattern — preserves both the route and any query string, satisfying I18N-02's "doesn't lose the user's place"). Mounted in the three top-level shells: `(auth)/layout.tsx` (visible pre-login, covers login/signup/forgot-password/reset-password/verify-email/resident-login), `(resident)/layout.tsx`'s top bar, and the admin dashboard's nav row (`components/dashboard/DashboardPageClient.tsx`) — the other admin screens (houses/cuotas/pagos/reporte) don't have their own nav bar to begin with (only the dashboard does; navigating back to it is the existing pattern), so this isn't a new gap introduced here.
+- **Zod validation messages and Server Action error/success strings were hardcoded Spanish** in every `lib/validation/*.ts` and `lib/actions/*.ts` file — meaning an English-locale user would still see Spanish "El monto debe ser mayor a 0." field errors and Spanish "Tu sesión expiró..." Server Action errors, defeating I18N-01 for the entire form-validation and error-path surface (the happy-path static copy was fine; only these dynamic/validation messages were the gap). Fixed by converting every schema in `lib/validation/{auth,houses,cuotas,payments,residentAuth}.ts` into a **factory function** taking a translator (`(key: string) => string`, from a new `validation.<feature>` messages namespace) instead of a bare `z.object(...)` with baked-in strings — e.g. `loginSchema(t)` instead of `loginSchema`, with `type LoginInput = z.infer<ReturnType<typeof loginSchema>>` for the type export. Every Server Action in `lib/actions/{auth,houses,cuotas,payments,residentAuth}.ts` now takes an explicit `locale: string` parameter (next-intl's documented requirement for Server Actions — `getTranslations`/`getRequestConfig`'s automatic locale detection does not extend to Server Actions/Route Handlers, confirmed via context7 docs lookup — the locale must be passed explicitly from the client) and calls `getTranslations({ locale, namespace })` (new `common` namespace for generic cross-feature strings like "session expired"/"invalid data"/"community not found", plus new `errors.*` keys added to each feature's existing namespace, plus the new `validation.*` namespace for schema messages) instead of hardcoding Spanish. Every calling Client Component now grabs `useLocale()` (next-intl) and passes it through to both the schema factory (via a `useTranslations('validation.<feature>')` translator) and the Server Action call. Verified end-to-end: `npm run build` passes (strict TS catches any missed call-site argument), `npx eslint .` shows no new warnings, both `/login` and `/en/login` render correctly via a local dev-server smoke check with no `MISSING_MESSAGE` errors, and the `data-locale-switcher` marker renders on both auth and resident-login pages.
+- **Known minor gap, not fixed (low priority):** `lib/actions/cuotas.ts`'s auto-credit-sweep still writes a hardcoded Spanish payment note (`'Aplicado automáticamente desde saldo a favor.'`) into `condo_payments.notes` at cuota-creation time. This is stored data (not live-rendered UI copy), fixed at write time regardless of the viewer's later locale — same category of issue a real i18n system would solve via storing a translation key instead of literal text, but out of scope for this pass given it's an internal system-generated note, not admin/resident-authored content. Revisit only if bilingual audit trails become a real requirement.
+
+**Still remaining for this phase (next unit of work):**
+- A full **English-copy quality/tone review** of `messages/en.json` — it was written phase-by-phase alongside the Spanish original, not independently reviewed for naturalness.
+- **General polish pass**: loading states, empty states, mobile responsiveness for admin screens (built desktop-first per the mockup), a final look at the "Componentes" (R1-R3) reference sheet for under-used patterns (skeletons, toasts).
+- Revisit any of this project's standing "**Assumption made (needs confirmation)**" notes across Phases 2-7 if the user has weighed in.
+- Consider whether the admin screens (houses/cuotas/pagos/reporte) should get a shared nav/header (they currently rely on the dashboard as the only hub with cross-links) — noted here as a possible polish item, not a locked requirement.
 
 ---
 

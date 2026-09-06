@@ -1,29 +1,44 @@
 import { z } from 'zod';
 
-export const signupSchema = z.object({
-  email: z.string().email('Correo inválido.'),
-  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres.'),
-});
-export type SignupInput = z.infer<typeof signupSchema>;
+// Schemas are factories taking a translator scoped to the `validation.auth`
+// messages namespace (`useTranslations('validation.auth')` client-side,
+// `getTranslations({locale, namespace: 'validation.auth'})` in Server
+// Actions) so field-level error messages are localized (I18N-01) rather than
+// hardcoded Spanish strings baked into the schema at module scope.
+type Translator = (key: string) => string;
 
-export const loginSchema = z.object({
-  email: z.string().email('Correo inválido.'),
-  password: z.string().min(1, 'Ingresa tu contraseña.'),
-});
-export type LoginInput = z.infer<typeof loginSchema>;
-
-export const forgotPasswordSchema = z.object({
-  email: z.string().email('Correo inválido.'),
-});
-export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
-
-export const resetPasswordSchema = z
-  .object({
-    password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres.'),
-    confirmPassword: z.string(),
-  })
-  .refine((d) => d.password === d.confirmPassword, {
-    message: 'Las contraseñas no coinciden.',
-    path: ['confirmPassword'],
+export function signupSchema(t: Translator) {
+  return z.object({
+    email: z.string().email(t('invalidEmail')),
+    password: z.string().min(8, t('passwordMin')),
   });
-export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+}
+export type SignupInput = z.infer<ReturnType<typeof signupSchema>>;
+
+export function loginSchema(t: Translator) {
+  return z.object({
+    email: z.string().email(t('invalidEmail')),
+    password: z.string().min(1, t('passwordRequired')),
+  });
+}
+export type LoginInput = z.infer<ReturnType<typeof loginSchema>>;
+
+export function forgotPasswordSchema(t: Translator) {
+  return z.object({
+    email: z.string().email(t('invalidEmail')),
+  });
+}
+export type ForgotPasswordInput = z.infer<ReturnType<typeof forgotPasswordSchema>>;
+
+export function resetPasswordSchema(t: Translator) {
+  return z
+    .object({
+      password: z.string().min(8, t('passwordMin')),
+      confirmPassword: z.string(),
+    })
+    .refine((d) => d.password === d.confirmPassword, {
+      message: t('passwordMismatch'),
+      path: ['confirmPassword'],
+    });
+}
+export type ResetPasswordInput = z.infer<ReturnType<typeof resetPasswordSchema>>;

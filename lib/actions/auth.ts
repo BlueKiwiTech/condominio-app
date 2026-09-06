@@ -2,6 +2,7 @@
 
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { isAllowlistedAdminEmail } from '@/lib/auth/allowlist';
@@ -49,18 +50,20 @@ async function linkAdminToCommunity(userId: string) {
   }
 }
 
-export async function signup(input: SignupInput): Promise<ActionResult> {
-  const parsed = signupSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Datos inválidos.' };
+export async function signup(input: SignupInput, locale: string): Promise<ActionResult> {
+  const [tv, ta, tc] = await Promise.all([
+    getTranslations({ locale, namespace: 'validation.auth' }),
+    getTranslations({ locale, namespace: 'auth' }),
+    getTranslations({ locale, namespace: 'common' }),
+  ]);
+  const parsed = signupSchema(tv).safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
 
   const email = parsed.data.email.trim();
 
   // D-04: explicit, honest rejection — never silently fail or create an unusable account.
   if (!isAllowlistedAdminEmail(email)) {
-    return {
-      error:
-        'Este sistema es solo por invitación. Si crees que esto es un error, contacta al administrador de ASOBARCELONA.',
-    };
+    return { error: ta('errors.allowlistRejected') };
   }
 
   const supabase = await createClient();
@@ -69,26 +72,29 @@ export async function signup(input: SignupInput): Promise<ActionResult> {
     password: parsed.data.password,
   });
   if (error) return { error: error.message };
-  if (!data.user) return { error: 'No se pudo crear la cuenta. Intenta de nuevo.' };
+  if (!data.user) return { error: ta('errors.signupFailed') };
 
   await linkAdminToCommunity(data.user.id);
 
   redirect(`/verify-email?email=${encodeURIComponent(email)}`);
 }
 
-export async function login(input: LoginInput): Promise<ActionResult> {
-  const parsed = loginSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Datos inválidos.' };
+export async function login(input: LoginInput, locale: string): Promise<ActionResult> {
+  const [tv, ta, tc] = await Promise.all([
+    getTranslations({ locale, namespace: 'validation.auth' }),
+    getTranslations({ locale, namespace: 'auth' }),
+    getTranslations({ locale, namespace: 'common' }),
+  ]);
+  const parsed = loginSchema(tv).safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
     if (error.code === 'email_not_confirmed') {
-      return {
-        error: 'Tu correo aún no está verificado. Revisa tu bandeja de entrada para activar tu cuenta.',
-      };
+      return { error: ta('errors.unverifiedEmail') };
     }
-    return { error: 'Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.' };
+    return { error: ta('errors.invalidCredentials') };
   }
 
   redirect('/dashboard');
@@ -100,16 +106,21 @@ export async function logout(): Promise<void> {
   redirect('/login');
 }
 
-export async function resendVerificationEmail(email: string): Promise<ActionResult> {
-  if (!email) return { error: 'Falta el correo.' };
+export async function resendVerificationEmail(email: string, locale: string): Promise<ActionResult> {
+  const ta = await getTranslations({ locale, namespace: 'auth' });
+  if (!email) return { error: ta('errors.missingEmail') };
   const supabase = await createClient();
   const { error } = await supabase.auth.resend({ type: 'signup', email });
   if (error) return { error: error.message };
 }
 
-export async function forgotPassword(input: ForgotPasswordInput): Promise<ActionResult> {
-  const parsed = forgotPasswordSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Datos inválidos.' };
+export async function forgotPassword(input: ForgotPasswordInput, locale: string): Promise<ActionResult> {
+  const [tv, tc] = await Promise.all([
+    getTranslations({ locale, namespace: 'validation.auth' }),
+    getTranslations({ locale, namespace: 'common' }),
+  ]);
+  const parsed = forgotPasswordSchema(tv).safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
 
   const origin = await getOrigin();
   const supabase = await createClient();
@@ -122,9 +133,14 @@ export async function forgotPassword(input: ForgotPasswordInput): Promise<Action
   });
 }
 
-export async function resetPassword(input: ResetPasswordInput): Promise<ActionResult> {
-  const parsed = resetPasswordSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Datos inválidos.' };
+export async function resetPassword(input: ResetPasswordInput, locale: string): Promise<ActionResult> {
+  const [tv, ta, tc] = await Promise.all([
+    getTranslations({ locale, namespace: 'validation.auth' }),
+    getTranslations({ locale, namespace: 'auth' }),
+    getTranslations({ locale, namespace: 'common' }),
+  ]);
+  const parsed = resetPasswordSchema(tv).safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
 
   const supabase = await createClient();
   // Relies on the recovery session already established by /auth/confirm's
@@ -133,7 +149,7 @@ export async function resetPassword(input: ResetPasswordInput): Promise<ActionRe
   // identity is attached before this sensitive write.
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) {
-    return { error: 'Este enlace de recuperación ya no es válido. Solicita uno nuevo.' };
+    return { error: ta('errors.expiredResetLink') };
   }
 
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });

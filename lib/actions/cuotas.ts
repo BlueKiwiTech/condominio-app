@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import {
   createTemplateSchema,
@@ -23,11 +24,11 @@ type ActionResult = { error: string } | { success: true };
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 /** Network-verified — never getSession() as an authorization gate (CLAUDE.md). */
-async function requireAdmin() {
+async function requireAdmin(tc: Awaited<ReturnType<typeof getTranslations>>) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) {
-    return { error: 'Tu sesión expiró. Inicia sesión de nuevo.' as const, supabase: null, userId: null };
+    return { error: tc('sessionExpired'), supabase: null, userId: null };
   }
   return { error: null, supabase, userId: data.user.id };
 }
@@ -47,16 +48,21 @@ function dueDateModeFor(input: CreateTemplateInput): DueDateMode {
   return input.is_divided ? { kind: 'special-divided' } : { kind: 'special-single' };
 }
 
-export async function createInstallmentTemplate(input: CreateTemplateInput): Promise<ActionResult> {
-  const parsed = createTemplateSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Datos inválidos.' };
+export async function createInstallmentTemplate(input: CreateTemplateInput, locale: string): Promise<ActionResult> {
+  const [tv, tc, tq] = await Promise.all([
+    getTranslations({ locale, namespace: 'validation.cuotas' }),
+    getTranslations({ locale, namespace: 'common' }),
+    getTranslations({ locale, namespace: 'cuotas' }),
+  ]);
+  const parsed = createTemplateSchema(tv).safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
   const data = parsed.data;
 
-  const { error: authError, supabase, userId } = await requireAdmin();
+  const { error: authError, supabase, userId } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
   const communityId = await getCommunityId(supabase);
-  if (!communityId) return { error: 'No se encontró la comunidad. Contacta soporte.' };
+  if (!communityId) return { error: tc('communityNotFound') };
 
   // Resolve target houses — empty selection ("Todas") snapshots the FULL
   // house list at creation time (PLAN.md Phase 4 decision: a template's
@@ -68,7 +74,7 @@ export async function createInstallmentTemplate(input: CreateTemplateInput): Pro
     if (housesError) return { error: housesError.message };
     houseIds = (allHouses ?? []).map((h) => h.id as string);
   }
-  if (houseIds.length === 0) return { error: 'No hay casas registradas para asignar esta cuota.' };
+  if (houseIds.length === 0) return { error: tq('errors.noHousesAvailable') };
 
   const isDivided = data.installment_type === 'special' && data.is_divided;
   const count = data.installment_type === 'recurring' ? data.number_of_installments : isDivided ? data.number_of_installments : 1;
@@ -96,7 +102,7 @@ export async function createInstallmentTemplate(input: CreateTemplateInput): Pro
     .select('id')
     .single();
 
-  if (templateError || !template) return { error: templateError?.message ?? 'No se pudo crear la cuota.' };
+  if (templateError || !template) return { error: templateError?.message ?? tq('errors.createFailed') };
 
   const rows = buildInstallmentRows({
     name: data.name,
@@ -160,12 +166,21 @@ export async function createInstallmentTemplate(input: CreateTemplateInput): Pro
   return { success: true };
 }
 
-export async function updateInstallmentTemplate(templateId: string, input: UpdateTemplateInput): Promise<ActionResult> {
-  const parsed = updateTemplateSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Datos inválidos.' };
+export async function updateInstallmentTemplate(
+  templateId: string,
+  input: UpdateTemplateInput,
+  locale: string,
+): Promise<ActionResult> {
+  const [tv, tc, tq] = await Promise.all([
+    getTranslations({ locale, namespace: 'validation.cuotas' }),
+    getTranslations({ locale, namespace: 'common' }),
+    getTranslations({ locale, namespace: 'cuotas' }),
+  ]);
+  const parsed = updateTemplateSchema(tv).safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
   const data = parsed.data;
 
-  const { error: authError, supabase } = await requireAdmin();
+  const { error: authError, supabase } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
   const { data: template, error: fetchError } = await supabase
@@ -174,7 +189,7 @@ export async function updateInstallmentTemplate(templateId: string, input: Updat
     .eq('id', templateId)
     .maybeSingle();
   if (fetchError) return { error: fetchError.message };
-  if (!template) return { error: 'Cuota no encontrada.' };
+  if (!template) return { error: tq('errors.notFound') };
 
   // Divided special cuotas have per-installment fractional amounts (see
   // lib/validation/cuotas.ts's updateTemplateSchema comment) — re-splitting
@@ -212,8 +227,12 @@ export async function updateInstallmentTemplate(templateId: string, input: Updat
   return { success: true };
 }
 
-export async function deleteInstallmentTemplate(templateId: string): Promise<ActionResult> {
-  const { error: authError, supabase } = await requireAdmin();
+export async function deleteInstallmentTemplate(templateId: string, locale: string): Promise<ActionResult> {
+  const [tc, tq] = await Promise.all([
+    getTranslations({ locale, namespace: 'common' }),
+    getTranslations({ locale, namespace: 'cuotas' }),
+  ]);
+  const { error: authError, supabase } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
   // CUOT-06: only allowed before any payment exists against it.
@@ -231,7 +250,7 @@ export async function deleteInstallmentTemplate(templateId: string): Promise<Act
       .in('installment_id', ids);
     if (paymentsError) return { error: paymentsError.message };
     if (count && count > 0) {
-      return { error: 'No se puede eliminar: esta cuota ya tiene pagos registrados.' };
+      return { error: tq('errors.hasPayments') };
     }
   }
 

@@ -1,4 +1,42 @@
 {
+  "common": {
+    "sessionExpired": "Your session expired. Log in again.",
+    "invalidData": "Invalid data.",
+    "communityNotFound": "Community not found. Contact support."
+  },
+  "validation": {
+    "auth": {
+      "invalidEmail": "Invalid email.",
+      "passwordMin": "Password must be at least 8 characters.",
+      "passwordRequired": "Enter your password.",
+      "passwordMismatch": "Passwords don't match."
+    },
+    "houses": {
+      "pinFormat": "PIN must be 4 digits.",
+      "houseNumberRequired": "House number is required.",
+      "invalidEmail": "Invalid email.",
+      "residentNameRequired": "Name is required."
+    },
+    "cuotas": {
+      "invalidDate": "Invalid date.",
+      "nameRequired": "Description is required.",
+      "amountPositive": "Amount must be greater than 0.",
+      "minInstallments": "There must be at least 1 installment.",
+      "maxInstallments": "Number of installments is too high."
+    },
+    "payments": {
+      "invalidDate": "Invalid date.",
+      "houseRequired": "Select a house.",
+      "installmentsRequired": "Select at least one cuota.",
+      "amountPositive": "Amount received must be greater than 0.",
+      "referenceTooLong": "Reference is too long.",
+      "notesTooLong": "Notes are too long."
+    },
+    "residentAuth": {
+      "houseRequired": "Select your house.",
+      "pinFormat": "PIN must be 4 digits."
+    }
+  },
   "auth": {
     "labels": {
       "email": "Email",
@@ -41,7 +79,9 @@
       "invalidCredentials": "Incorrect email or password. Check your details and try again.",
       "unverifiedEmail": "Your email isn't verified yet. Check your inbox to activate your account.",
       "expiredResetLink": "This reset link is no longer valid. Request a new one.",
-      "confirmError": "This link is no longer valid or has expired. Try logging in again or request a new one."
+      "confirmError": "This link is no longer valid or has expired. Try logging in again or request a new one.",
+      "signupFailed": "Couldn't create the account. Try again.",
+      "missingEmail": "Email is missing."
     },
     "success": {
       "resetEmailSent": "If that email exists in our system, we've sent a reset link.",
@@ -135,6 +175,11 @@
       "nameLabel": "Name",
       "phoneLabel": "Phone",
       "add": "Add"
+    },
+    "errors": {
+      "pinProcessingFailed": "Couldn't process the PIN. Try again.",
+      "duplicateHouseNumber": "A house with that number already exists.",
+      "hasReferences": "Can't delete: this house has cuotas or payments registered."
     }
   },
   "cuotas": {
@@ -208,7 +253,11 @@
       "noConversionNote": "Amounts are never converted between currencies — each installment is recorded and collected in the selected currency."
     },
     "errors": {
-      "invalid": "Invalid data. Check the form."
+      "invalid": "Invalid data. Check the form.",
+      "noHousesAvailable": "No houses registered to assign this cuota to.",
+      "createFailed": "Couldn't create the cuota.",
+      "notFound": "Cuota not found.",
+      "hasPayments": "Can't delete: this cuota already has payments registered."
     }
   },
   "payments": {
@@ -221,6 +270,13 @@
     "viewDetail": "View detail",
     "cuotaSingular": "cuota",
     "cuotaPlural": "cuotas",
+    "errors": {
+      "installmentsGone": "One or more selected cuotas no longer exist.",
+      "mixedHouses": "All cuotas must belong to the same house.",
+      "currencyMismatch": "The payment currency must match the cuotas' currency.",
+      "alreadyPaid": "One of the selected cuotas is already paid.",
+      "insufficientAmount": "The amount received doesn't cover any selected cuota."
+    },
     "table": {
       "date": "Date",
       "receipt": "Receipt",
@@ -282,6 +338,13 @@
     "labels": {
       "house": "My house",
       "pin": "My PIN"
+    },
+    "errors": {
+      "verifyFailed": "Couldn't verify the PIN. Try again.",
+      "locked": "Too many failed attempts. This house is locked for 15 minutes. Try again later or contact the administrator.",
+      "invalidCredentials": "Incorrect house or PIN.",
+      "wrongPin": "Incorrect PIN.",
+      "wrongPinAttempts": "Incorrect PIN. {remaining, plural, one {You have # attempt left.} other {You have # attempts left.}}"
     }
   },
   "residentNav": {

@@ -2,6 +2,7 @@
 
 import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
+import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { registerPaymentSchema, type RegisterPaymentInput } from '@/lib/validation/payments';
 import { allocateFunds, sortOldestFirst, type AllocatableInstallment } from '@/lib/payments/allocate';
@@ -10,11 +11,11 @@ import { getHouseCredit, setHouseCredit } from '@/lib/payments/creditSweep';
 type ActionResult = { error: string } | { success: true; batchId: string; receiptNumber: number };
 
 /** Network-verified — never getSession() as an authorization gate (CLAUDE.md). */
-async function requireAdmin() {
+async function requireAdmin(tc: Awaited<ReturnType<typeof getTranslations>>) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) {
-    return { error: 'Tu sesión expiró. Inicia sesión de nuevo.' as const, supabase: null, userId: null };
+    return { error: tc('sessionExpired'), supabase: null, userId: null };
   }
   return { error: null, supabase, userId: data.user.id };
 }
@@ -46,12 +47,17 @@ async function requireAdmin() {
  * to-succeed write, so a later failure leaves the ledger intact even if the
  * derived installment/credit state needs manual reconciliation.
  */
-export async function registerPayment(input: RegisterPaymentInput): Promise<ActionResult> {
-  const parsed = registerPaymentSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Datos inválidos.' };
+export async function registerPayment(input: RegisterPaymentInput, locale: string): Promise<ActionResult> {
+  const [tv, tc, tp] = await Promise.all([
+    getTranslations({ locale, namespace: 'validation.payments' }),
+    getTranslations({ locale, namespace: 'common' }),
+    getTranslations({ locale, namespace: 'payments' }),
+  ]);
+  const parsed = registerPaymentSchema(tv).safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
   const data = parsed.data;
 
-  const { error: authError, supabase, userId } = await requireAdmin();
+  const { error: authError, supabase, userId } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
   // Fetch the selected installments fresh from the DB — never trust
@@ -64,12 +70,12 @@ export async function registerPayment(input: RegisterPaymentInput): Promise<Acti
 
   const installments = rawInstallments ?? [];
   if (installments.length !== data.installment_ids.length) {
-    return { error: 'Una o más cuotas seleccionadas ya no existen.' };
+    return { error: tp('errors.installmentsGone') };
   }
   for (const inst of installments) {
-    if (inst.house_id !== data.house_id) return { error: 'Todas las cuotas deben pertenecer a la misma casa.' };
-    if (inst.currency !== data.currency) return { error: 'La moneda del pago debe coincidir con la de las cuotas.' };
-    if (inst.status === 'paid') return { error: 'Una de las cuotas seleccionadas ya está pagada.' };
+    if (inst.house_id !== data.house_id) return { error: tp('errors.mixedHouses') };
+    if (inst.currency !== data.currency) return { error: tp('errors.currencyMismatch') };
+    if (inst.status === 'paid') return { error: tp('errors.alreadyPaid') };
   }
 
   const existingCredit = await getHouseCredit(supabase, data.house_id, data.currency);
@@ -79,7 +85,7 @@ export async function registerPayment(input: RegisterPaymentInput): Promise<Acti
   const { allocations, leftoverCents } = allocateFunds(sorted, fundsAvailable);
 
   if (allocations.length === 0) {
-    return { error: 'El monto recibido no cubre ninguna cuota seleccionada.' };
+    return { error: tp('errors.insufficientAmount') };
   }
 
   const { data: receiptData, error: receiptError } = await supabase.rpc('condo_next_receipt_number');

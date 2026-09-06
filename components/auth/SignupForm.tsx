@@ -3,25 +3,27 @@
 import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Column, Input, PasswordInput, Button, Feedback, SmartLink, Text } from '@once-ui-system/core';
 import { signupSchema, type SignupInput } from '@/lib/validation/auth';
 import { signup } from '@/lib/actions/auth';
 
 export function SignupForm() {
   const t = useTranslations('auth');
+  const tv = useTranslations('validation.auth');
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<SignupInput>({ resolver: zodResolver(signupSchema) });
+  } = useForm<SignupInput>({ resolver: zodResolver(signupSchema(tv)) });
 
   const onSubmit = (data: SignupInput) => {
     setServerError(null);
     startTransition(async () => {
-      const result = await signup(data);
+      const result = await signup(data, locale);
       if (result?.error) setServerError(result.error);
     });
   };

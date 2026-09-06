@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Column, Row, Button, Table, Tag, Feedback, SmartLink, type TableHeader } from '@once-ui-system/core';
 import { deleteInstallmentTemplate } from '@/lib/actions/cuotas';
 import { summarizeTemplate } from '@/lib/cuotas/status';
@@ -11,6 +11,7 @@ import type { TemplateWithInstallments } from './types';
 
 export function CuotasPageClient({ initialTemplates }: { initialTemplates: TemplateWithInstallments[] }) {
   const t = useTranslations('cuotas');
+  const locale = useLocale();
   const router = useRouter();
   const [editing, setEditing] = useState<TemplateWithInstallments | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +28,7 @@ export function CuotasPageClient({ initialTemplates }: { initialTemplates: Templ
     }
     setError(null);
     startTransition(async () => {
-      const result = await deleteInstallmentTemplate(template.id);
+      const result = await deleteInstallmentTemplate(template.id, locale);
       if ('error' in result) {
         setError(result.error);
         return;

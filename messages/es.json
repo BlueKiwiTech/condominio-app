@@ -1,4 +1,42 @@
 {
+  "common": {
+    "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
+    "invalidData": "Datos inválidos.",
+    "communityNotFound": "No se encontró la comunidad. Contacta soporte."
+  },
+  "validation": {
+    "auth": {
+      "invalidEmail": "Correo inválido.",
+      "passwordMin": "La contraseña debe tener al menos 8 caracteres.",
+      "passwordRequired": "Ingresa tu contraseña.",
+      "passwordMismatch": "Las contraseñas no coinciden."
+    },
+    "houses": {
+      "pinFormat": "El PIN debe tener 4 dígitos.",
+      "houseNumberRequired": "El número de casa es obligatorio.",
+      "invalidEmail": "Correo inválido.",
+      "residentNameRequired": "El nombre es obligatorio."
+    },
+    "cuotas": {
+      "invalidDate": "Fecha inválida.",
+      "nameRequired": "La descripción es obligatoria.",
+      "amountPositive": "El monto debe ser mayor a 0.",
+      "minInstallments": "Debe haber al menos 1 cuota.",
+      "maxInstallments": "Número de cuotas demasiado alto."
+    },
+    "payments": {
+      "invalidDate": "Fecha inválida.",
+      "houseRequired": "Selecciona una casa.",
+      "installmentsRequired": "Selecciona al menos una cuota.",
+      "amountPositive": "El monto recibido debe ser mayor a 0.",
+      "referenceTooLong": "La referencia es demasiado larga.",
+      "notesTooLong": "Las notas son demasiado largas."
+    },
+    "residentAuth": {
+      "houseRequired": "Selecciona tu casa.",
+      "pinFormat": "El PIN debe tener 4 dígitos."
+    }
+  },
   "auth": {
     "labels": {
       "email": "Correo",
@@ -41,7 +79,9 @@
       "invalidCredentials": "Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.",
       "unverifiedEmail": "Tu correo aún no está verificado. Revisa tu bandeja de entrada para activar tu cuenta.",
       "expiredResetLink": "Este enlace de recuperación ya no es válido. Solicita uno nuevo.",
-      "confirmError": "Este enlace ya no es válido o expiró. Intenta iniciar sesión de nuevo o solicita uno nuevo."
+      "confirmError": "Este enlace ya no es válido o expiró. Intenta iniciar sesión de nuevo o solicita uno nuevo.",
+      "signupFailed": "No se pudo crear la cuenta. Intenta de nuevo.",
+      "missingEmail": "Falta el correo."
     },
     "success": {
       "resetEmailSent": "Si el correo existe en nuestro sistema, enviamos un enlace de recuperación.",
@@ -135,6 +175,11 @@
       "nameLabel": "Nombre",
       "phoneLabel": "Teléfono",
       "add": "Agregar"
+    },
+    "errors": {
+      "pinProcessingFailed": "No se pudo procesar el PIN. Intenta de nuevo.",
+      "duplicateHouseNumber": "Ya existe una casa con ese número.",
+      "hasReferences": "No se puede eliminar: esta casa tiene cuotas o pagos registrados."
     }
   },
   "cuotas": {
@@ -208,7 +253,11 @@
       "noConversionNote": "Los montos no se convierten entre monedas — cada cuota se registra y se cobra en la moneda seleccionada."
     },
     "errors": {
-      "invalid": "Datos inválidos. Revisa el formulario."
+      "invalid": "Datos inválidos. Revisa el formulario.",
+      "noHousesAvailable": "No hay casas registradas para asignar esta cuota.",
+      "createFailed": "No se pudo crear la cuota.",
+      "notFound": "Cuota no encontrada.",
+      "hasPayments": "No se puede eliminar: esta cuota ya tiene pagos registrados."
     }
   },
   "payments": {
@@ -221,6 +270,13 @@
     "viewDetail": "Ver detalle",
     "cuotaSingular": "cuota",
     "cuotaPlural": "cuotas",
+    "errors": {
+      "installmentsGone": "Una o más cuotas seleccionadas ya no existen.",
+      "mixedHouses": "Todas las cuotas deben pertenecer a la misma casa.",
+      "currencyMismatch": "La moneda del pago debe coincidir con la de las cuotas.",
+      "alreadyPaid": "Una de las cuotas seleccionadas ya está pagada.",
+      "insufficientAmount": "El monto recibido no cubre ninguna cuota seleccionada."
+    },
     "table": {
       "date": "Fecha",
       "receipt": "Recibo",
@@ -282,6 +338,13 @@
     "labels": {
       "house": "Mi casa",
       "pin": "Mi PIN"
+    },
+    "errors": {
+      "verifyFailed": "No se pudo verificar el PIN. Intenta de nuevo.",
+      "locked": "Demasiados intentos fallidos. Esta casa quedó bloqueada por 15 minutos. Intenta más tarde o contacta al administrador.",
+      "invalidCredentials": "Casa o PIN incorrectos.",
+      "wrongPin": "PIN incorrecto.",
+      "wrongPinAttempts": "PIN incorrecto. {remaining, plural, one {Te queda # intento.} other {Te quedan # intentos.}}"
     }
   },
   "residentNav": {

@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Column, Select, PasswordInput, Button, Feedback, Text } from '@once-ui-system/core';
 import { residentLoginSchema, type ResidentLoginInput } from '@/lib/validation/residentAuth';
 import { residentLogin } from '@/lib/actions/residentAuth';
@@ -16,6 +16,8 @@ type HouseOption = {
 
 export function ResidentLoginForm({ houses }: { houses: HouseOption[] }) {
   const t = useTranslations('residentAuth');
+  const tv = useTranslations('validation.residentAuth');
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   const {
@@ -23,7 +25,7 @@ export function ResidentLoginForm({ houses }: { houses: HouseOption[] }) {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ResidentLoginInput>({ resolver: zodResolver(residentLoginSchema) });
+  } = useForm<ResidentLoginInput>({ resolver: zodResolver(residentLoginSchema(tv)) });
 
   const options = houses.map((h) => ({
     label: [h.house_number, h.house_name, h.owner_name].filter(Boolean).join(' — '),
@@ -33,7 +35,7 @@ export function ResidentLoginForm({ houses }: { houses: HouseOption[] }) {
   const onSubmit = (data: ResidentLoginInput) => {
     setServerError(null);
     startTransition(async () => {
-      const result = await residentLogin(data);
+      const result = await residentLogin(data, locale);
       if (result?.error) setServerError(result.error);
     });
   };

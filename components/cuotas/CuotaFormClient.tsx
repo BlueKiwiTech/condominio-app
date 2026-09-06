@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Row,
   Column,
@@ -44,6 +44,8 @@ type FormValues = {
 
 export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
   const t = useTranslations('cuotas');
+  const tv = useTranslations('validation.cuotas');
+  const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -116,14 +118,14 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
             number_of_installments: data.is_divided ? data.number_of_installments : 1,
           };
 
-    const parsed = createTemplateSchema.safeParse(payload);
+    const parsed = createTemplateSchema(tv).safeParse(payload);
     if (!parsed.success) {
       setServerError(parsed.error.issues[0]?.message ?? t('errors.invalid'));
       return;
     }
 
     startTransition(async () => {
-      const result = await createInstallmentTemplate(parsed.data);
+      const result = await createInstallmentTemplate(parsed.data, locale);
       if ('error' in result) {
         setServerError(result.error);
         return;

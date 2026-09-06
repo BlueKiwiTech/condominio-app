@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Column, Row, Input, Button, Text, Feedback } from '@once-ui-system/core';
 import { residentSchema, type ResidentInput } from '@/lib/validation/houses';
 import { addResident, deleteResident } from '@/lib/actions/houses';
@@ -17,6 +17,8 @@ export function ResidentsManager({
   initialResidents: HouseResident[];
 }) {
   const t = useTranslations('houses');
+  const tv = useTranslations('validation.houses');
+  const locale = useLocale();
   const [residents, setResidents] = useState(initialResidents);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -25,12 +27,12 @@ export function ResidentsManager({
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<ResidentInput>({ resolver: zodResolver(residentSchema) });
+  } = useForm<ResidentInput>({ resolver: zodResolver(residentSchema(tv)) });
 
   const onSubmit = (data: ResidentInput) => {
     setError(null);
     startTransition(async () => {
-      const result = await addResident(houseId, data);
+      const result = await addResident(houseId, data, locale);
       if (result && 'error' in result) {
         setError(result.error);
         return;
@@ -46,7 +48,7 @@ export function ResidentsManager({
   const handleDelete = (residentId: string) => {
     setError(null);
     startTransition(async () => {
-      const result = await deleteResident(residentId);
+      const result = await deleteResident(residentId, locale);
       if (result && 'error' in result) {
         setError(result.error);
         return;

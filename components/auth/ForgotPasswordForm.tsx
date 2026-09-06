@@ -3,13 +3,15 @@
 import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Column, Input, Button, Feedback, SmartLink } from '@once-ui-system/core';
 import { forgotPasswordSchema, type ForgotPasswordInput } from '@/lib/validation/auth';
 import { forgotPassword } from '@/lib/actions/auth';
 
 export function ForgotPasswordForm() {
   const t = useTranslations('auth');
+  const tv = useTranslations('validation.auth');
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -17,12 +19,12 @@ export function ForgotPasswordForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ForgotPasswordInput>({ resolver: zodResolver(forgotPasswordSchema) });
+  } = useForm<ForgotPasswordInput>({ resolver: zodResolver(forgotPasswordSchema(tv)) });
 
   const onSubmit = (data: ForgotPasswordInput) => {
     setServerError(null);
     startTransition(async () => {
-      const result = await forgotPassword(data);
+      const result = await forgotPassword(data, locale);
       if (result?.error) {
         setServerError(result.error);
         return;
