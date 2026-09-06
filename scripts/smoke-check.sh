@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Usage: scripts/smoke-check.sh <deployed-url>
-# Confirms the deployed URL returns HTTP 200 and renders the expected shell
-# marker (DPLY-01). The marker string must match app/[locale]/page.tsx exactly.
+# Confirms the deployed URL returns HTTP 200 and renders the expected page
+# (DPLY-01). Root now redirects to /login for anonymous visitors (see
+# app/[locale]/page.tsx), so the marker checks for /login's own heading
+# instead of the old static homepage text.
 set -euo pipefail
 
 URL="${1:?Usage: scripts/smoke-check.sh <deployed-url>}"
-MARKER="ASOBARCELONA"
+MARKER="Iniciar sesión"
 BODY_FILE="$(mktemp)"
 trap 'rm -f "$BODY_FILE"' EXIT
 
