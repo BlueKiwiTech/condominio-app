@@ -284,9 +284,65 @@
       "pin": "My PIN"
     }
   },
-  "residentHome": {
-    "placeholder": "My home — phase 7 builds the real content (balance, upcoming dues, history).",
+  "residentNav": {
+    "home": "My home",
+    "cuotas": "My cuotas",
+    "payments": "My payments",
     "logout": "Log out"
+  },
+  "residentHome": {
+    "greeting": "Hi, {house}",
+    "subtitle": "Here you can check your balance, upcoming cuotas, and payment history.",
+    "upToDate": "You're up to date. Thank you!",
+    "creditLabel": "Credit balance",
+    "debtLabel": "You owe since {date}",
+    "houseInfo": {
+      "heading": "My house",
+      "houseNumber": "House",
+      "owner": "Owner",
+      "phone": "Phone",
+      "email": "Email",
+      "residents": "Residents"
+    },
+    "upcoming": {
+      "heading": "Coming up",
+      "empty": "You have no upcoming cuotas."
+    },
+    "reportPayment": "Report a payment I made",
+    "logout": "Log out"
+  },
+  "residentCuotas": {
+    "heading": "My cuotas",
+    "tabs": {
+      "pending": "Pending",
+      "history": "History"
+    },
+    "overdueCard": {
+      "heading": "Accumulated debt",
+      "since": "Since {date}",
+      "contact": "Write to the board"
+    },
+    "recurringHeading": "This month's cuotas",
+    "specialHeading": "Special cuotas",
+    "empty": {
+      "pending": "You have no pending cuotas.",
+      "history": "You don't have any payment history yet."
+    },
+    "status": {
+      "paid": "Paid",
+      "advance": "Advance",
+      "partial": "Partial",
+      "pending": "Pending",
+      "overdue": "Overdue"
+    }
+  },
+  "residentPayments": {
+    "heading": "My payments",
+    "filterAll": "All",
+    "empty": "You don't have any payments registered yet.",
+    "totalFor": "Total {period}",
+    "receipt": "No receipt",
+    "cuotas": "Cuotas"
   },
   "reports": {
     "heading": "Monthly report",

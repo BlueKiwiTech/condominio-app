@@ -12,8 +12,8 @@ const handleI18nRouting = createMiddleware(routing);
 const PROTECTED_PATHS = ['/dashboard', '/houses', '/cuotas', '/pagos', '/reporte'];
 
 // Resident-only routes — gated by the signed jose cookie (Pattern A), never
-// Supabase Auth. Phase 7 will add more entries as the resident portal lands.
-const RESIDENT_PROTECTED_PATHS = ['/mi-hogar'];
+// Supabase Auth.
+const RESIDENT_PROTECTED_PATHS = ['/mi-hogar', '/mis-cuotas', '/mis-pagos'];
 
 function stripLocalePrefix(pathname: string): { localePrefix: string; path: string } {
   const match = pathname.match(/^\/(es|en)(?=\/|$)/);

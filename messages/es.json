@@ -284,9 +284,65 @@
       "pin": "Mi PIN"
     }
   },
-  "residentHome": {
-    "placeholder": "Mi hogar — la fase 7 construye el contenido real (saldo, próximas cuotas, historial).",
+  "residentNav": {
+    "home": "Mi hogar",
+    "cuotas": "Mis cuotas",
+    "payments": "Mis pagos",
     "logout": "Cerrar sesión"
+  },
+  "residentHome": {
+    "greeting": "Hola, {house}",
+    "subtitle": "Aquí puedes ver tu saldo, tus próximas cuotas y tu historial de pagos.",
+    "upToDate": "Estás al día. ¡Gracias!",
+    "creditLabel": "Saldo a favor",
+    "debtLabel": "Debes desde {date}",
+    "houseInfo": {
+      "heading": "Mi casa",
+      "houseNumber": "Casa",
+      "owner": "Dueño",
+      "phone": "Teléfono",
+      "email": "Email",
+      "residents": "Vecinos"
+    },
+    "upcoming": {
+      "heading": "Lo que viene",
+      "empty": "No tienes cuotas próximas."
+    },
+    "reportPayment": "Reportar un pago que hice",
+    "logout": "Cerrar sesión"
+  },
+  "residentCuotas": {
+    "heading": "Mis cuotas",
+    "tabs": {
+      "pending": "Pendientes",
+      "history": "Histórico"
+    },
+    "overdueCard": {
+      "heading": "Deuda acumulada",
+      "since": "Desde {date}",
+      "contact": "Escribir a la junta"
+    },
+    "recurringHeading": "Cuotas del mes",
+    "specialHeading": "Cuotas especiales",
+    "empty": {
+      "pending": "No tienes cuotas pendientes.",
+      "history": "Aún no tienes historial de pagos."
+    },
+    "status": {
+      "paid": "Pagada",
+      "advance": "Adelantada",
+      "partial": "Parcial",
+      "pending": "Pendiente",
+      "overdue": "Vencida"
+    }
+  },
+  "residentPayments": {
+    "heading": "Mis pagos",
+    "filterAll": "Todos",
+    "empty": "Aún no tienes pagos registrados.",
+    "totalFor": "Total {period}",
+    "receipt": "Sin recibo",
+    "cuotas": "Cuotas"
   },
   "reports": {
     "heading": "Reporte mensual",

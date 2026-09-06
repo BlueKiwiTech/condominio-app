@@ -1,6 +1,6 @@
 # Condominio App — ASOBARCELONA — Project Plan & Status
 
-**Last updated:** 2026-09-06 (Phase 6 complete)
+**Last updated:** 2026-09-06 (Phase 7 complete)
 
 This file is the single source of truth for scope, decisions, and status going forward. It replaces the `.planning/` GSD structure for day-to-day tracking — historical detail from that process (per-plan summaries, verification reports, discussion logs) still lives under `.planning/` if needed for reference, but isn't required reading to pick up work.
 
@@ -99,9 +99,9 @@ Legend: ✅ done · 🔲 not started
 - ✅ **RPRT-05**: Calendar-day-safe date math in a fixed timezone (never raw UTC splitting)
 
 ### Resident Portal (RSDT) — Phase 7
-- 🔲 **RSDT-01**: Resident views own cuotas as calendar/grid, color-coded by status
-- 🔲 **RSDT-02**: Resident views own saldo — "credit" (positive) or "debt since [date]" (negative)
-- 🔲 **RSDT-03**: Resident views own payment history
+- ✅ **RSDT-01**: Resident views own cuotas as calendar/grid, color-coded by status
+- ✅ **RSDT-02**: Resident views own saldo — "credit" (positive) or "debt since [date]" (negative)
+- ✅ **RSDT-03**: Resident views own payment history
 
 ### Internationalization (I18N) — Phase 8
 - 🔲 **I18N-01**: All admin/resident UI text available in Spanish (default) and English
@@ -236,9 +236,22 @@ Follow-up migration `20260906033502_schema_hardening.sql` also shipped (from cod
 
 **Assumption made (needs confirmation):** `grace_period_days` defaults to **0** (a house is "moroso" the instant any installment is one calendar day past due and unpaid, with no forgiveness window) since no specific default was locked — change the value directly on the `condo_communities` row (no admin settings UI for it yet; that's a natural Phase 8/Configuración addition) if a grace window is actually wanted.
 
-### 🔲 Phase 7: Resident Portal — NOT STARTED
+### ✅ Phase 7: Resident Portal — COMPLETE
 **Goal:** Residents self-serve view their cuotas, saldo, and payment history.
-**Depends on:** Phase 3, Phase 6
+**Depends on:** Phase 3 ✅, Phase 6 ✅
+
+**No new migration** — every table this phase reads (`condo_houses`, `condo_house_residents`, `condo_installments`, `condo_installment_templates`, `condo_payments`, `condo_house_credits`, `condo_communities`) already existed from Phases 1-6. All resident reads go through the service-role client (`lib/supabase/service.ts`), manually filtered by `house_id` — never RLS/the anon client — per Phase 3's locked Pattern A, so no new resident-facing RLS policy was needed either.
+
+**Built:** V2/V3/V4 (RSDT-01..03), reusing Phase 6's per-currency reporting math re-scoped from "every house" to the signed-in resident's one house, plus the Server-Action/Server-Component/Client-Component split established in every prior phase.
+- **`lib/resident/queries.ts`** — `getResidentPortalData(houseId)`, the single service-role fetch (house, residents, installments joined with their template's `installment_type`, payments, credits, community) shared by all three resident pages — a small enough per-house dataset that one shared, slightly-overfetching helper beat three narrower ones.
+- **`lib/resident/portal.ts`** — pure helpers: `displayStatus` (derives the mockup's four color-coded states — pagada/adelantada/pendiente/vencida — plus a `partial` bucket the V3 mockup predates but the rest of this codebase already surfaces separately since Phase 5), `upcomingInstallments` ("Lo que viene" — next non-paid, non-overdue, soonest-first), `groupByDueMonth` (V3's month-grid grouping key).
+- **`app/[locale]/(resident)/layout.tsx`** — new shared shell for all three resident pages: a top bar with "Cerrar sesión" (moved out of the old mi-hogar placeholder) and **`components/resident/ResidentTabBar.tsx`**, the mockup's bottom tab bar (Mi hogar / Mis cuotas / Mis pagos, active-route highlighted).
+- **`app/[locale]/(resident)/mi-hogar/page.tsx`** + **`components/resident/MiHogarClient.tsx`** (V2, replacing the Phase 3 placeholder) — greeting, per-currency saldo cards (credit via `creditsByCurrency`, debt-since-date via `computeMorosos` scoped to `[house]` — RSDT-02), house info card (contact fields + residents list), "Lo que viene" upcoming list, a "Reportar un pago que hice" button that's a `tel:` link to the community's phone (per PLAN.md's standing note: no in-app payment-reporting workflow, NOTF-* is deferred).
+- **`app/[locale]/(resident)/mis-cuotas/page.tsx`** + **`components/resident/MisCuotasClient.tsx`** (V3 + V3b) — Pendientes/Histórico `SegmentedControl`; a red "Deuda acumulada" card (V3b) rendered only when `computeMorosos` returns rows, with per-currency owed/owed-since, the overdue line items, and a `tel:` "Escribir a la junta" CTA; a month-grouped `Grid` of pending recurring-cuota cards; a separate "Cuotas especiales" list for pending special-cuota installments (split via the joined template's `installment_type`); Histórico tab lists paid installments newest-first.
+- **`app/[locale]/(resident)/mis-pagos/page.tsx`** + **`components/resident/MisPagosClient.tsx`** (V4) — year `Chip` filter (derived from the resident's own payment dates, plus "Todos") + per-currency period totals, reusing Phase 5's `groupPaymentsByBatch` helper (`components/payments/types.ts`) directly rather than re-deriving batch/receipt grouping logic.
+- `proxy.ts`'s `RESIDENT_PROTECTED_PATHS` now also gates `/mis-cuotas` and `/mis-pagos`; `messages/es.json`/`en.json` got a new `residentNav` namespace plus full `residentHome` (replacing the Phase 3 placeholder copy), `residentCuotas`, and `residentPayments` namespaces (both locales, verified key-parity between them).
+
+**V6 (Mi perfil) intentionally NOT built**, per the Design Reference's standing note — no resident-initiated PIN-change UI exists anywhere. V5 (Contactar a la junta) also not built as its own screen — its only in-scope piece (a way to reach the board) is satisfied by the `tel:` links already on V2/V3b.
 
 ### 🔲 Phase 8: Internationalization & Polish — NOT STARTED
 **Goal:** Full Spanish/English coverage across every screen, production-ready.
@@ -296,18 +309,12 @@ Phase 1's migration put `pin_hash` on `condo_house_residents` (per-resident PIN)
 
 ## Next Step
 
-Build out Phase 7 (Resident Portal) — residents self-serve view their cuotas, saldo, and payment history, per the V2/V3/V3b/V4 mockups:
-- **V2 · Mi hogar** (replacing the current `(resident)/mi-hogar` placeholder): greeting, saldo a favor/pendiente highlight card, house info card, "Lo que viene" (upcoming installments), "Reportar un pago que hice" button (out of v1 scope per NOTF-*, but the button/CTA itself can just link to a contact method — don't build an actual reporting workflow), bottom tab bar.
-- **V3 · Mis cuotas** (RSDT-01): Pendientes/Histórico tabs, month-grid calendar color-coded by status (pagada/adelantada/pendiente/vencida), cuota especial list section.
-- **V3b · Cuota vencida state**: red "Deuda acumulada" card, overdue items list, "Escribir a la junta" CTA (a mailto:/tel: link to the community's contact info is enough — no in-app messaging, NOTF-* is deferred).
-- **V4 · Mis pagos** (RSDT-03): period filter chips, payment history list, per-period total.
-- **RSDT-02** (saldo — "credit" or "debt since [date]"): reuse `lib/reporting/morosos.ts`'s per-currency owed/owed-since computation and `condo_house_credits` (already exist from Phases 5-6) — same pure functions, just scoped to a single house instead of every house.
-- All resident reads must go through the **service-role client, manually filtered by `house_id`** (Pattern A, locked in Phase 3 — residents never get RLS-backed access). Reuse `lib/auth/residentSession.ts`'s cookie-verification helper (already used by the `(resident)/mi-hogar` placeholder) to get the current `house_id` server-side before querying.
-- **V6 · Mi perfil is explicitly OUT of this build** per the Design Reference's standing note — do not add a resident-initiated "Cambiar mi PIN" row; if a profile screen is built at all, keep PIN changes admin-only (link to "contact the admin" instead).
-- V5 (Contactar a la junta) is out of v1 scope — do not build a messaging feature.
+Build out Phase 8 (Internationalization & Polish) — the last remaining phase:
+- **I18N-01**: audit every admin/resident screen for hardcoded copy or English-only strings; `messages/es.json`/`en.json` already have full namespaces for every phase 1-7 screen (checked for key-parity between locales throughout this project), so this is mostly a verification pass plus a real English-copy quality review (much of `en.json` was written phase-by-phase alongside its Spanish counterpart, not separately reviewed for tone/naturalness).
+- **I18N-02**: verify locale switching (`/es/...` <-> `/en/...`) preserves the current route/query state — check next-intl's `localePrefix: 'as-needed'` config and any locale-switcher UI (none built yet — this phase likely needs to add one, e.g. to the admin dashboard header and/or the resident layout's top bar).
+- General polish pass: loading states, empty states, mobile responsiveness for admin screens (built desktop-first per the mockup), error-message consistency, and a final look at the "Componentes" (R1-R3) reference sheet for anything under-used (skeletons, toasts) that would improve perceived quality.
+- This is also the natural place to revisit any of this project's standing "**Assumption made (needs confirmation)**" notes if the user has weighed in by the time this phase starts (grep PLAN.md for that heading across Phases 2-7).
 
-Depends on Phase 3 (resident auth, ✅) and Phase 6 (per-currency reporting math, ✅ — this phase's `lib/reporting/*` pure functions are directly reusable, just re-scoped from "every house" to "the signed-in resident's one house").
-
-**Before starting Phase 7:** push Phase 3's migration (`supabase/migrations/20260906120000_phase3_house_pin_and_rls.sql`), Phase 4's migration (`supabase/migrations/20260906130000_phase4_cuota_rls.sql`), Phase 5's migration (`supabase/migrations/20260906140000_phase5_payments.sql`), and Phase 6's migration (`supabase/migrations/20260906150000_phase6_reporting.sql`) — see each phase's "Action needed" note above. Also set `RESIDENT_SESSION_SECRET` (Phase 3) if not already done.
+**Before starting Phase 8:** push every still-pending migration if not already done — Phase 3 (`supabase/migrations/20260906120000_phase3_house_pin_and_rls.sql`), Phase 4 (`supabase/migrations/20260906130000_phase4_cuota_rls.sql`), Phase 5 (`supabase/migrations/20260906140000_phase5_payments.sql`), Phase 6 (`supabase/migrations/20260906150000_phase6_reporting.sql`) — see each phase's "Action needed" note above (Phase 7 needed no new migration). Also set `RESIDENT_SESSION_SECRET` (Phase 3) if not already done.
 
 No formal planning-doc process required going forward; work directly from this file and update the phase status here as things land.
