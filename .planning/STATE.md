@@ -10,15 +10,16 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 1 of 8 (Foundation & Deployment)
-Plan: 6 plans (01-01 through 01-06), 4 waves — Wave 1 complete (01-01, 01-03), Wave 2 mostly complete (01-02 done, 01-04 partial — see open items), Wave 3 complete (01-05), Wave 4 next (01-06)
-Status: Executing — 01-04 has two unresolved verification items (see open items); 01-06 (Vercel deployment) not yet started
-Last activity: 2026-09-06 — 01-05 (Supabase SSR client helpers: server.ts, client.ts, proxy.ts) executed and merged, build passes with proxy.ts wired in as the sole root interceptor. 01-04's Task 1 (validation scripts) merged; Task 2/3 (live project push/verify) is being run manually by the user against their own Supabase project, not via executor agent — the auto-created "condominio-app" project (ref leefqkmddzokgpqnvshw, org AGA Social LLC) was abandoned mid-task when the user redirected to their own instance and is still live/unused (user chose to leave it for now). Schema was also amended post-merge (see Decisions below): all 7 tables now carry a condo_ prefix and "cuota" was renamed to "installment" in all SQL identifiers.
+Plan: 6 plans (01-01 through 01-06), 4 waves — all 4 waves executed; 01-04 and 01-06 both partial (Vercel/live-infra portions deferred to user)
+Status: Executing — phase not yet fully verified; several open items require user action before /gsd-verify-work or phase completion
+Last activity: 2026-09-06 — 01-06 Task 1 (.env.example) and the local half of Task 3 (secret-leak grep, PASS) completed. Task 2 (Vercel project/git-connect/env vars/deploy) and the remote half of Task 3 (deployed-URL smoke check) are deferred — user is handling all Vercel actions directly, since the locally authenticated Vercel CLI account (byagasocial) is the same identity already found to lack GitHub push access and to have auto-created an unwanted Supabase project earlier in this phase.
 
-Open items (01-04, tracked in 01-04-SUMMARY.md): (1) zero-policies query result not yet confirmed by user, (2) fresh-project migration reproducibility check never run against the user's actual project.
+Open items:
+- 01-04 (tracked in 01-04-SUMMARY.md): (1) zero-policies query result not yet confirmed by user, (2) fresh-project migration reproducibility check never run against the user's actual project.
+- 01-06 (tracked in 01-06-SUMMARY.md): Vercel project creation/connect/env vars/deploy not done — user handling directly. `git push origin main` is also blocked by a GitHub 403 (account byagasocial lacks push access to BlueKiwiTech/condominio-app) — user is resolving GitHub access themselves; will tell orchestrator when ready to push.
+- Commit authorship: all Phase 1 commits before this point were authored as byagasocial@gmail.com (git config has since been corrected to gabrielvega@bluekiwi.tech). User asked for history to be rewritten — now safe to do since no worktree agents remain in-progress.
 
-Pending: user wants all Phase 1 commit authorship rewritten from byagasocial@gmail.com to gabrielvega@bluekiwi.tech (git config already fixed for future commits) — to be done once Wave 4 (01-06) finishes, since rewriting history mid-wave risks breaking an in-progress worktree.
-
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 58%
 
 ## Performance Metrics
 
