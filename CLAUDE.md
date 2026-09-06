@@ -52,18 +52,11 @@ Full detail: `.planning/research/ARCHITECTURE.md` and `.planning/research/PITFAL
 No project skills found. Add skills to any of: `.claude/skills/`, `.agents/skills/`, `.cursor/skills/`, or `.github/skills/` with a `SKILL.md` index file.
 <!-- GSD:skills-end -->
 
-<!-- GSD:workflow-start source:GSD defaults -->
-## GSD Workflow Enforcement
+## Project Workflow
 
-Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
+This project no longer uses GSD (`/gsd-*`) commands for day-to-day work — the user explicitly opted out (2026-09-06). Do not route file edits through GSD commands or require planning artifacts before making changes.
 
-Use these entry points:
-- `/gsd-quick` for small fixes, doc updates, and ad-hoc tasks
-- `/gsd-debug` for investigation and bug fixing
-- `/gsd-execute-phase` for planned phase work
-
-Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
-<!-- GSD:workflow-end -->
+**Source of truth for scope, decisions, and phase status:** `PLAN.md` at the repo root. Read it before starting work and update the relevant phase's status/decisions there as work completes — it replaces `.planning/ROADMAP.md`/`STATE.md`/`REQUIREMENTS.md` for tracking purposes. The `.planning/` directory still holds historical detail (past phase plans, verification reports) if deeper context on already-completed work is ever needed, but nothing there requires updating going forward.
 
 <!-- GSD:profile-start -->
 ## Developer Profile
