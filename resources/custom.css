@@ -1,1 +1,11 @@
 /* Once UI token overrides — none yet, added as screens are designed in later phases */
+
+/* Once UI ships color tokens (e.g. neutral-on-background-strong resolves to a
+   near-white in dark theme) but never paints an actual background on body/html
+   itself -- without this, "strong" text renders as light-on-unstyled-white,
+   i.e. invisible. --page-background is the token Once UI's own components use
+   for this via the `background="page"` prop; applying it globally here means
+   every future page gets it without repeating the prop everywhere. */
+body {
+  background: var(--page-background);
+}
