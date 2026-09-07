@@ -217,6 +217,7 @@
     "confirmDelete": "Delete cuota \"{name}\"? This action cannot be undone.",
     "editDividedAmountLocked": "This cuota is split into several installments — the amount can't be edited here. Delete it and create a new one if you need to change the amount.",
     "editCascadeNote": "Changes apply to all pending generated installments (already-paid ones are left untouched).",
+    "effectiveFromHelp": "If you pick a date, the new amount only applies to pending installments due on or after it. Earlier pending ones (e.g. an overdue installment) keep the old amount. Leave it blank to apply to every pending installment.",
     "table": {
       "name": "Name",
       "type": "Type",
@@ -247,7 +248,9 @@
       "name": "Description",
       "description": "Notes (optional)",
       "currency": "Currency",
-      "amount": "Amount"
+      "amount": "Amount",
+      "effectiveFrom": "Apply starting from (optional)",
+      "effectiveFromPlaceholder": "All pending installments"
     },
     "new": {
       "heading": "New cuota"

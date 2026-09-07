@@ -217,6 +217,7 @@
     "confirmDelete": "¿Eliminar la cuota \"{name}\"? Esta acción no se puede deshacer.",
     "editDividedAmountLocked": "Esta cuota está dividida en varias cuotas — el monto no se puede editar aquí. Elimínala y crea una nueva si necesitas cambiar el monto.",
     "editCascadeNote": "Los cambios se aplican a todas las cuotas pendientes generadas (las ya pagadas no se modifican).",
+    "effectiveFromHelp": "Si eliges una fecha, el nuevo monto solo se aplica a las cuotas pendientes con vencimiento en esa fecha o después. Las pendientes anteriores (por ejemplo, una cuota atrasada) mantienen el monto anterior. Déjalo vacío para aplicar a todas las pendientes.",
     "table": {
       "name": "Nombre",
       "type": "Tipo",
@@ -247,7 +248,9 @@
       "name": "Descripción",
       "description": "Notas (opcional)",
       "currency": "Moneda",
-      "amount": "Monto"
+      "amount": "Monto",
+      "effectiveFrom": "Aplicar desde (opcional)",
+      "effectiveFromPlaceholder": "Todas las pendientes"
     },
     "new": {
       "heading": "Nueva cuota"

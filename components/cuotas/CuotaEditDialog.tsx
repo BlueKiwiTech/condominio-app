@@ -5,9 +5,10 @@ import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
-import { Dialog, Column, Input, Textarea, Select, Button, Feedback, Text } from '@once-ui-system/core';
+import { Dialog, Column, Input, Textarea, Select, DateInput, Button, Feedback, Text } from '@once-ui-system/core';
 import { updateTemplateSchema, type UpdateTemplateInput } from '@/lib/validation/cuotas';
 import { updateInstallmentTemplate } from '@/lib/actions/cuotas';
+import { toDateOnly } from '@/lib/cuotas/generate';
 import type { TemplateWithInstallments } from './types';
 
 const CURRENCY_OPTIONS = [
@@ -33,6 +34,10 @@ export function CuotaEditDialog({
   const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
+  // Not a form field (DateInput works with Date, the schema field is a
+  // string) -- kept separate and merged in at submit time, same pattern
+  // PaymentFormClient uses for its own date input.
+  const [effectiveFrom, setEffectiveFrom] = useState<Date | undefined>(undefined);
 
   const {
     register,
@@ -52,7 +57,8 @@ export function CuotaEditDialog({
   const onSubmit = (data: UpdateTemplateInput) => {
     setServerError(null);
     startTransition(async () => {
-      const result = await updateInstallmentTemplate(template.id, data, locale);
+      const payload = { ...data, effective_from: effectiveFrom ? toDateOnly(effectiveFrom) : '' };
+      const result = await updateInstallmentTemplate(template.id, payload, locale);
       if ('error' in result) {
         setServerError(result.error);
         return;
@@ -126,6 +132,20 @@ export function CuotaEditDialog({
             />
           )}
         />
+        {!template.is_divided && (
+          <>
+            <DateInput
+              id="effective_from"
+              label={t('fields.effectiveFrom')}
+              placeholder={t('fields.effectiveFromPlaceholder')}
+              value={effectiveFrom}
+              onChange={(date) => setEffectiveFrom(date)}
+            />
+            <Text variant="label-default-s" onBackground="neutral-weak">
+              {t('effectiveFromHelp')}
+            </Text>
+          </>
+        )}
         <Text variant="label-default-s" onBackground="neutral-weak">
           {t('editCascadeNote')}
         </Text>

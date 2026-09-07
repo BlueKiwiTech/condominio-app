@@ -66,12 +66,22 @@ export type CreateTemplateInput = z.infer<ReturnType<typeof createTemplateSchema
 // creation to avoid re-deriving/reconciling already-generated rows. Deleting
 // and recreating covers that case, same as the locked "new houses joining"
 // decision already treats re-creation as the answer).
+//
+// effective_from (optional): a mid-cycle amount change (e.g. "starting in
+// July the monthly fee goes up") shouldn't touch an installment from BEFORE
+// the increase that's still unpaid (a moroso) just because it happens to
+// share "unpaid" status with the future ones. Filtering by due_date instead
+// of installment_number matches how an admin actually thinks about it
+// ("starting next month"), and both land on the same row either way since
+// installment_number and due_date move together for a given template.
+// Left blank, behavior is unchanged: applies to every unpaid installment.
 export function updateTemplateSchema(t: Translator) {
   return z.object({
     name: z.string().trim().min(1, t('nameRequired')),
     description: z.string().trim().optional(),
     currency: currencySchema,
     amount: z.coerce.number().positive(t('amountPositive')),
+    effective_from: z.union([isoDate(t), z.literal('')]).optional(),
   });
 }
 export type UpdateTemplateInput = z.infer<ReturnType<typeof updateTemplateSchema>>;

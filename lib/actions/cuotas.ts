@@ -215,12 +215,19 @@ export async function updateInstallmentTemplate(
 
   // PLAN.md Phase 4 decision: editing a template "updates all unpaid future
   // installments already generated from it (paid installments are
-  // untouched, preserved as historical record)".
-  const { error: installmentsUpdateError } = await supabase
+  // untouched, preserved as historical record)". When effective_from is
+  // given (a mid-cycle amount change), also require due_date >=
+  // effective_from so an unpaid installment from BEFORE the change (a
+  // moroso) keeps its old amount instead of silently jumping to the new one.
+  let installmentsQuery = supabase
     .from('condo_installments')
     .update(installmentPatch)
     .eq('template_id', templateId)
     .neq('status', 'paid');
+  if (data.effective_from) {
+    installmentsQuery = installmentsQuery.gte('due_date', data.effective_from);
+  }
+  const { error: installmentsUpdateError } = await installmentsQuery;
   if (installmentsUpdateError) return { error: installmentsUpdateError.message };
 
   revalidatePath('/cuotas');
