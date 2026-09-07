@@ -40,7 +40,6 @@ export function CuotaEditDialog({
   const [effectiveFrom, setEffectiveFrom] = useState<Date | undefined>(undefined);
 
   const {
-    register,
     handleSubmit,
     control,
     formState: { errors },
@@ -88,17 +87,33 @@ export function CuotaEditDialog({
         {template.is_divided && (
           <Feedback variant="info" description={t('editDividedAmountLocked')} />
         )}
-        <Input
-          id="name"
-          label={t('fields.name')}
-          {...register('name')}
-          error={!!errors.name}
-          errorMessage={errors.name?.message}
+        <Controller
+          control={control}
+          name="name"
+          render={({ field }) => (
+            <Input
+              id="name"
+              label={t('fields.name')}
+              value={field.value ?? ''}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={!!errors.name}
+              errorMessage={errors.name?.message}
+            />
+          )}
         />
-        <Textarea
-          id="description"
-          label={t('fields.description')}
-          {...register('description')}
+        <Controller
+          control={control}
+          name="description"
+          render={({ field }) => (
+            <Textarea
+              id="description"
+              label={t('fields.description')}
+              value={field.value ?? ''}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+            />
+          )}
         />
         <Controller
           control={control}

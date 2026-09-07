@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
 import { Dialog, Column, Input, PasswordInput, Button, Feedback } from '@once-ui-system/core';
@@ -35,6 +35,7 @@ export function HouseFormDialog({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<CreateHouseInput | UpdateHouseInput>({
     resolver: zodResolver(isEdit ? updateHouseSchema(tv) : createHouseSchema(tv)),
@@ -89,41 +90,81 @@ export function HouseFormDialog({
     >
       <Column as="form" onSubmit={handleSubmit(onSubmit)} gap="16" fillWidth>
         {serverError && <Feedback variant="danger" description={serverError} />}
-        <Input
-          id="house_number"
-          label={t('fields.houseNumber')}
-          {...register('house_number')}
-          error={!!errors.house_number}
-          errorMessage={errors.house_number?.message}
+        <Controller
+          control={control}
+          name="house_number"
+          render={({ field }) => (
+            <Input
+              id="house_number"
+              label={t('fields.houseNumber')}
+              value={field.value ?? ''}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={!!errors.house_number}
+              errorMessage={errors.house_number?.message}
+            />
+          )}
         />
-        <Input
-          id="house_name"
-          label={t('fields.houseName')}
-          {...register('house_name')}
-          error={!!errors.house_name}
-          errorMessage={errors.house_name?.message}
+        <Controller
+          control={control}
+          name="house_name"
+          render={({ field }) => (
+            <Input
+              id="house_name"
+              label={t('fields.houseName')}
+              value={field.value ?? ''}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={!!errors.house_name}
+              errorMessage={errors.house_name?.message}
+            />
+          )}
         />
-        <Input
-          id="owner_name"
-          label={t('fields.ownerName')}
-          {...register('owner_name')}
-          error={!!errors.owner_name}
-          errorMessage={errors.owner_name?.message}
+        <Controller
+          control={control}
+          name="owner_name"
+          render={({ field }) => (
+            <Input
+              id="owner_name"
+              label={t('fields.ownerName')}
+              value={field.value ?? ''}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={!!errors.owner_name}
+              errorMessage={errors.owner_name?.message}
+            />
+          )}
         />
-        <Input
-          id="owner_phone"
-          label={t('fields.ownerPhone')}
-          {...register('owner_phone')}
-          error={!!errors.owner_phone}
-          errorMessage={errors.owner_phone?.message}
+        <Controller
+          control={control}
+          name="owner_phone"
+          render={({ field }) => (
+            <Input
+              id="owner_phone"
+              label={t('fields.ownerPhone')}
+              value={field.value ?? ''}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={!!errors.owner_phone}
+              errorMessage={errors.owner_phone?.message}
+            />
+          )}
         />
-        <Input
-          id="owner_email"
-          type="email"
-          label={t('fields.ownerEmail')}
-          {...register('owner_email')}
-          error={!!errors.owner_email}
-          errorMessage={errors.owner_email?.message}
+        <Controller
+          control={control}
+          name="owner_email"
+          render={({ field }) => (
+            <Input
+              id="owner_email"
+              type="email"
+              label={t('fields.ownerEmail')}
+              value={field.value ?? ''}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={!!errors.owner_email}
+              errorMessage={errors.owner_email?.message}
+            />
+          )}
         />
         <PasswordInput
           id="pin"
