@@ -1,15 +1,21 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
-import { Dialog, Column, Input, Textarea, Select, DateInput, Button, Feedback, Text } from '@once-ui-system/core';
+import { format } from 'date-fns';
+import { es, enUS } from 'date-fns/locale';
+import { Dialog, Column, Row, Input, Textarea, Select, DateInput, Button, Feedback, Text } from '@once-ui-system/core';
 import { updateTemplateSchema, type UpdateTemplateInput } from '@/lib/validation/cuotas';
-import { updateInstallmentTemplate } from '@/lib/actions/cuotas';
+import { updateInstallmentTemplate, getPriceHistory, type PriceHistoryEntry } from '@/lib/actions/cuotas';
 import { toDateOnly } from '@/lib/cuotas/generate';
 import type { TemplateWithInstallments } from './types';
+
+function formatAmount(amount: number, currency: string): string {
+  return `${amount.toFixed(2)} ${currency}`;
+}
 
 const CURRENCY_OPTIONS = [
   { label: 'USD', value: 'USD' },
@@ -32,12 +38,25 @@ export function CuotaEditDialog({
   const t = useTranslations('cuotas');
   const tv = useTranslations('validation.cuotas');
   const locale = useLocale();
+  const dateLocale = locale === 'en' ? enUS : es;
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   // Not a form field (DateInput works with Date, the schema field is a
   // string) -- kept separate and merged in at submit time, same pattern
   // PaymentFormClient uses for its own date input.
   const [effectiveFrom, setEffectiveFrom] = useState<Date | undefined>(undefined);
+  const [priceHistory, setPriceHistory] = useState<PriceHistoryEntry[] | null>(null);
+
+  useEffect(() => {
+    if (template.is_divided) return;
+    let cancelled = false;
+    getPriceHistory(template.id, locale).then((result) => {
+      if (!cancelled && 'entries' in result) setPriceHistory(result.entries);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [template.id, template.is_divided, locale]);
 
   const {
     handleSubmit,
@@ -164,6 +183,32 @@ export function CuotaEditDialog({
         <Text variant="label-default-s" onBackground="neutral-weak">
           {t('editCascadeNote')}
         </Text>
+        {!template.is_divided && priceHistory && priceHistory.length > 0 && (
+          <Column gap="8" fillWidth paddingTop="8" style={{ borderTop: '1px solid var(--neutral-border-weak)' }}>
+            <Text variant="label-strong-s">{t('priceHistory.heading')}</Text>
+            <Column gap="8" fillWidth style={{ maxHeight: '9rem', overflowY: 'auto' }}>
+              {priceHistory.map((entry) => (
+                <Row key={entry.id} horizontal="between" vertical="center" gap="8" fillWidth>
+                  <Column gap="2">
+                    <Text variant="body-default-s">
+                      {formatAmount(entry.old_amount, template.currency)} → {formatAmount(entry.new_amount, template.currency)}
+                    </Text>
+                    <Text variant="label-default-s" onBackground="neutral-weak">
+                      {entry.effective_from
+                        ? t('priceHistory.effectiveFrom', {
+                            date: format(new Date(entry.effective_from), 'dd/MM/yyyy', { locale: dateLocale }),
+                          })
+                        : t('priceHistory.effectiveFromAll')}
+                    </Text>
+                  </Column>
+                  <Text variant="label-default-s" onBackground="neutral-weak">
+                    {format(new Date(entry.changed_at), 'dd/MM/yyyy', { locale: dateLocale })}
+                  </Text>
+                </Row>
+              ))}
+            </Column>
+          </Column>
+        )}
       </Column>
     </Dialog>
   );

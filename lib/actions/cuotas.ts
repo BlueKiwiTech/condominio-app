@@ -180,12 +180,12 @@ export async function updateInstallmentTemplate(
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
   const data = parsed.data;
 
-  const { error: authError, supabase } = await requireAdmin(tc);
+  const { error: authError, supabase, userId } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
   const { data: template, error: fetchError } = await supabase
     .from('condo_installment_templates')
-    .select('id, is_divided')
+    .select('id, is_divided, amount')
     .eq('id', templateId)
     .maybeSingle();
   if (fetchError) return { error: fetchError.message };
@@ -230,8 +230,49 @@ export async function updateInstallmentTemplate(
   const { error: installmentsUpdateError } = await installmentsQuery;
   if (installmentsUpdateError) return { error: installmentsUpdateError.message };
 
+  // Bitácora de cambios de precio: log every actual amount change instead of
+  // silently overwriting it, so the admin can see when/why a cuota's price
+  // moved. Best-effort -- the amount change itself already succeeded above,
+  // so a failure here shouldn't surface as if the edit failed.
+  if (!template.is_divided && data.amount !== template.amount) {
+    await supabase.from('condo_installment_price_history').insert({
+      template_id: templateId,
+      old_amount: template.amount,
+      new_amount: data.amount,
+      effective_from: data.effective_from || null,
+      changed_by: userId,
+    });
+  }
+
   revalidatePath('/cuotas');
   return { success: true };
+}
+
+export type PriceHistoryEntry = {
+  id: string;
+  old_amount: number;
+  new_amount: number;
+  effective_from: string | null;
+  changed_at: string;
+};
+
+/** Read-only: powers CuotaEditDialog's "Historial de cambios" list. */
+export async function getPriceHistory(
+  templateId: string,
+  locale: string,
+): Promise<{ error: string } | { success: true; entries: PriceHistoryEntry[] }> {
+  const tc = await getTranslations({ locale, namespace: 'common' });
+  const { error: authError, supabase } = await requireAdmin(tc);
+  if (authError || !supabase) return { error: authError! };
+
+  const { data, error } = await supabase
+    .from('condo_installment_price_history')
+    .select('id, old_amount, new_amount, effective_from, changed_at')
+    .eq('template_id', templateId)
+    .order('changed_at', { ascending: false });
+  if (error) return { error: error.message };
+
+  return { success: true, entries: (data ?? []) as PriceHistoryEntry[] };
 }
 
 export async function deleteInstallmentTemplate(templateId: string, locale: string): Promise<ActionResult> {

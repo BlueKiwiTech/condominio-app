@@ -255,6 +255,11 @@
     "new": {
       "heading": "Nueva cuota"
     },
+    "priceHistory": {
+      "heading": "Historial de cambios de precio",
+      "effectiveFrom": "Desde el {date}",
+      "effectiveFromAll": "Aplicado a todas las pendientes"
+    },
     "form": {
       "typeRecurring": "Recurrente",
       "typeSpecial": "Especial",
