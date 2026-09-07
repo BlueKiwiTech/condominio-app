@@ -7,12 +7,12 @@ import { es, enUS } from 'date-fns/locale';
 import {
   Column,
   Row,
+  Grid,
   Card,
   Heading,
   Text,
   Button,
   Tag,
-  ProgressBar,
   Table,
   LineChart,
   SmartLink,
@@ -136,8 +136,8 @@ export function DashboardPageClient({
         </Row>
       </Row>
 
-      <Row gap="16" wrap fillWidth>
-        <Card padding="24" radius="l" background="neutral-alpha-weak" flex={1} minWidth={16}>
+      <Grid columns="4" m={{ columns: 2 }} s={{ columns: 1 }} gap="16" fillWidth>
+        <Card padding="24" radius="l" background="neutral-alpha-weak">
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('kpis.collected.title', { month: monthLabel })}
@@ -156,20 +156,19 @@ export function DashboardPageClient({
           </Column>
         </Card>
 
-        <Card padding="24" radius="l" background="neutral-alpha-weak" flex={1} minWidth={16}>
+        <Card padding="24" radius="l" background="neutral-alpha-weak">
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('kpis.morosos.title')}
             </Text>
             <Text variant="heading-strong-m">{t('kpis.morosos.count', { count: morososHouseCount })}</Text>
-            <ProgressBar value={morososHouseCount} min={0} max={Math.max(houses.length, 1)} />
             <Text variant="body-default-xs" onBackground="neutral-weak">
               {t('kpis.morosos.of', { total: houses.length })}
             </Text>
           </Column>
         </Card>
 
-        <Card padding="24" radius="l" background="neutral-alpha-weak" flex={1} minWidth={16}>
+        <Card padding="24" radius="l" background="neutral-alpha-weak">
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('kpis.outstanding.title')}
@@ -178,7 +177,7 @@ export function DashboardPageClient({
           </Column>
         </Card>
 
-        <Card padding="24" radius="l" background="success-alpha-weak" flex={1} minWidth={16}>
+        <Card padding="24" radius="l" background="success-alpha-weak">
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('kpis.credit.title')}
@@ -186,7 +185,7 @@ export function DashboardPageClient({
             <CurrencyAmountList amounts={favorTotals} emptyLabel={t('kpis.credit.empty')} />
           </Column>
         </Card>
-      </Row>
+      </Grid>
 
       <Column gap="16" fillWidth>
         <Heading variant="heading-strong-s">{t('chart.heading')}</Heading>
