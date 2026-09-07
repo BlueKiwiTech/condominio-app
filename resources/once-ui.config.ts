@@ -8,11 +8,11 @@ const code = Geist_Mono({ variable: "--font-code", subsets: ["latin"], display: 
 export const fonts = { heading, body, label, code };
 
 export const style = {
-  theme: "dark",
+  theme: "light",
   brand: "blue",
   accent: "blue",
   neutral: "gray",
-  solid: "contrast",
+  solid: "color",
   solidStyle: "flat",
   border: "playful",
   surface: "translucent",
