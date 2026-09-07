@@ -137,7 +137,7 @@ export function DashboardPageClient({
       </Row>
 
       <Grid columns="4" m={{ columns: 2 }} s={{ columns: 1 }} gap="16" fillWidth>
-        <Card padding="24" radius="l" background="neutral-alpha-weak">
+        <Card padding="24" radius="l" background="neutral-alpha-weak" fillWidth>
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('kpis.collected.title', { month: monthLabel })}
@@ -156,7 +156,7 @@ export function DashboardPageClient({
           </Column>
         </Card>
 
-        <Card padding="24" radius="l" background="neutral-alpha-weak">
+        <Card padding="24" radius="l" background="neutral-alpha-weak" fillWidth>
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('kpis.morosos.title')}
@@ -168,7 +168,7 @@ export function DashboardPageClient({
           </Column>
         </Card>
 
-        <Card padding="24" radius="l" background="neutral-alpha-weak">
+        <Card padding="24" radius="l" background="neutral-alpha-weak" fillWidth>
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('kpis.outstanding.title')}
@@ -177,7 +177,7 @@ export function DashboardPageClient({
           </Column>
         </Card>
 
-        <Card padding="24" radius="l" background="success-alpha-weak">
+        <Card padding="24" radius="l" background="success-alpha-weak" fillWidth>
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('kpis.credit.title')}
