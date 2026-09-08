@@ -26,6 +26,15 @@ async function requireAdmin(tc: Awaited<ReturnType<typeof getTranslations>>) {
  *
  * - Oldest-cuota-first allocation among the SELECTED installments (PMNT-03's
  *   "adjustable, supports partial payment").
+ * - The payment's currency does NOT have to match the selected cuotas' own
+ *   currency (user decision, 2026-09-08) -- a cuota's amount is denominated
+ *   in one currency, but it can be paid in any currency the resident
+ *   actually hands over; there's no FX-conversion feature here, so
+ *   reconciling the exchange rate is the admin's own job. `amount_received`
+ *   is applied as a plain number against each installment's own numeric
+ *   balance regardless of either currency label -- this was already true
+ *   of allocateFunds()'s arithmetic; only a since-removed DB trigger and a
+ *   validation check here ever enforced the two matching.
  * - Any pre-existing saldo a favor (credit) for this house+currency is netted
  *   in as additional available funds BEFORE allocating — this is the
  *   "auto-applied... not something the admin has to manually remember"
@@ -74,7 +83,6 @@ export async function registerPayment(input: RegisterPaymentInput, locale: strin
   }
   for (const inst of installments) {
     if (inst.house_id !== data.house_id) return { error: tp('errors.mixedHouses') };
-    if (inst.currency !== data.currency) return { error: tp('errors.currencyMismatch') };
     if (inst.status === 'paid') return { error: tp('errors.alreadyPaid') };
   }
 

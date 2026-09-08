@@ -314,7 +314,6 @@
     "errors": {
       "installmentsGone": "Una o más cuotas seleccionadas ya no existen.",
       "mixedHouses": "Todas las cuotas deben pertenecer a la misma casa.",
-      "currencyMismatch": "La moneda del pago debe coincidir con la de las cuotas.",
       "alreadyPaid": "Una de las cuotas seleccionadas ya está pagada.",
       "insufficientAmount": "El monto recibido no cubre ninguna cuota seleccionada."
     },
@@ -360,6 +359,7 @@
       "noHouses": "No hay casas registradas.",
       "noPendingInstallments": "Esta casa no tiene cuotas pendientes.",
       "existingCredit": "Esta casa tiene un saldo a favor de {amount} {currency}, que se aplicará automáticamente a este pago.",
+      "currencyFreeHint": "La moneda del pago no tiene que coincidir con la de las cuotas seleccionadas — cada quien hace su propia conversión.",
       "submit": "Registrar pago",
       "cancel": "Cancelar",
       "toastSuccess": "Pago registrado correctamente.",
@@ -462,6 +462,7 @@
       "removeScreenshot": "Quitar",
       "invalidFileType": "Debe ser una imagen (foto o captura de pantalla).",
       "fileTooLarge": "La imagen es muy pesada (máximo 5 MB).",
+      "currencyFreeHint": "La moneda del pago no tiene que coincidir con la de las cuotas — cada quien hace su propia conversión.",
       "submit": "Enviar reporte",
       "cancel": "Cancelar",
       "close": "Cerrar",

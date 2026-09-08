@@ -10,7 +10,6 @@ import {
   Textarea,
   DateInput,
   Select,
-  Chip,
   Checkbox,
   Button,
   Feedback,
@@ -24,7 +23,7 @@ import {
 import { registerPayment } from '@/lib/actions/payments';
 import { allocateFunds, sortOldestFirst } from '@/lib/payments/allocate';
 import { toDateOnly } from '@/lib/cuotas/generate';
-import { currencyLabel } from '@/lib/currency';
+import { currencyLabel, CURRENCY_SELECT_OPTIONS } from '@/lib/currency';
 import type { HouseOption, PendingInstallment, HouseCredit, Currency } from './types';
 
 export function PaymentFormClient({
@@ -61,21 +60,18 @@ export function PaymentFormClient({
   const suggestedAmountFor = (ids: string[], installments: PendingInstallment[]) =>
     installments.filter((i) => ids.includes(i.id)).reduce((sum, i) => sum + balanceDue(i), 0);
 
+  // Not filtered by currency -- a payment can be received in any currency
+  // regardless of what currency the selected cuota(s) are denominated in
+  // (user decision, 2026-09-08). All of a house's pending installments are
+  // selectable together; each row still shows its own currency so the
+  // admin can see exactly what they're mixing.
   const houseInstallments = useMemo(
-    () => pendingInstallments.filter((i) => i.house_id === houseId),
+    () => sortOldestFirst(pendingInstallments.filter((i) => i.house_id === houseId)),
     [pendingInstallments, houseId],
   );
-  const availableCurrencies = useMemo(
-    () => Array.from(new Set(houseInstallments.map((i) => i.currency))),
-    [houseInstallments],
-  );
-  const currencyInstallments = useMemo(
-    () => sortOldestFirst(houseInstallments.filter((i) => i.currency === currency)),
-    [houseInstallments, currency],
-  );
   const selectedInstallments = useMemo(
-    () => currencyInstallments.filter((i) => selectedIds.includes(i.id)),
-    [currencyInstallments, selectedIds],
+    () => houseInstallments.filter((i) => selectedIds.includes(i.id)),
+    [houseInstallments, selectedIds],
   );
 
   const existingCredit = useMemo(
@@ -90,33 +86,20 @@ export function PaymentFormClient({
   }, [selectedInstallments, amountReceived, existingCredit]);
 
   // Every selection change below is handled imperatively (event handlers),
-  // not via useEffect + setState — the currency/selection/amount reset that
-  // follows a house or currency change is a direct consequence of that one
-  // user action, not something to "synchronize" reactively.
+  // not via useEffect + setState — the selection/amount reset that follows
+  // a house change is a direct consequence of that one user action, not
+  // something to "synchronize" reactively.
 
-  // House change: default the currency chip to that house's (first) pending
-  // currency, and default every installment in it to checked — the common
-  // case is "pay everything currently due"; the admin can uncheck some
-  // (PMNT-03: adjustable, supports partial payment).
+  // House change: default every pending installment (any currency) to
+  // checked — the common case is "pay everything currently due"; the admin
+  // can uncheck some (PMNT-03: adjustable, supports partial payment).
+  // Currency defaults to the oldest installment's own currency as a
+  // starting point, but is freely changeable regardless of selection.
   const handleHouseSelect = (id: string) => {
     setHouseId(id);
-    const nextHouseInstallments = pendingInstallments.filter((i) => i.house_id === id);
-    const currencies = Array.from(new Set(nextHouseInstallments.map((i) => i.currency)));
-    const nextCurrency = currencies[0] ?? null;
-    const nextInstallments = nextCurrency
-      ? sortOldestFirst(nextHouseInstallments.filter((i) => i.currency === nextCurrency))
-      : [];
+    const nextInstallments = sortOldestFirst(pendingInstallments.filter((i) => i.house_id === id));
     const nextIds = nextInstallments.map((i) => i.id);
-    setCurrency(nextCurrency);
-    setSelectedIds(nextIds);
-    setAmountEdited(false);
-    setAmountReceived(suggestedAmountFor(nextIds, nextInstallments));
-  };
-
-  const handleCurrencySelect = (c: Currency) => {
-    setCurrency(c);
-    const nextInstallments = sortOldestFirst(houseInstallments.filter((i) => i.currency === c));
-    const nextIds = nextInstallments.map((i) => i.id);
+    setCurrency(nextInstallments[0]?.currency ?? null);
     setSelectedIds(nextIds);
     setAmountEdited(false);
     setAmountReceived(suggestedAmountFor(nextIds, nextInstallments));
@@ -125,7 +108,7 @@ export function PaymentFormClient({
   const toggleInstallment = (id: string) => {
     setSelectedIds((prev) => {
       const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      if (!amountEdited) setAmountReceived(suggestedAmountFor(next, currencyInstallments));
+      if (!amountEdited) setAmountReceived(suggestedAmountFor(next, houseInstallments));
       return next;
     });
   };
@@ -165,7 +148,7 @@ export function PaymentFormClient({
     { key: 'status', content: t('table.status') },
   ];
 
-  const rows = currencyInstallments.map((inst) => [
+  const rows = houseInstallments.map((inst) => [
     <Checkbox
       key={`check-${inst.id}`}
       isChecked={selectedIds.includes(inst.id)}
@@ -192,25 +175,12 @@ export function PaymentFormClient({
           emptyState={t('noHouses')}
         />
 
-        {houseId && availableCurrencies.length === 0 && (
+        {houseId && houseInstallments.length === 0 && (
           <Feedback variant="info" description={t('noPendingInstallments')} />
         )}
 
-        {houseId && availableCurrencies.length > 0 && (
+        {houseId && houseInstallments.length > 0 && (
           <>
-            {availableCurrencies.length > 1 && (
-              <Column gap="8">
-                <Text variant="label-default-s" onBackground="neutral-weak">
-                  {t('fields.currency')}
-                </Text>
-                <Row gap="8" wrap>
-                  {availableCurrencies.map((c) => (
-                    <Chip key={c} label={currencyLabel(c)} selected={currency === c} onClick={() => handleCurrencySelect(c)} />
-                  ))}
-                </Row>
-              </Column>
-            )}
-
             {existingCredit > 0 && (
               <Feedback
                 variant="success"
@@ -231,8 +201,17 @@ export function PaymentFormClient({
                   setAmountReceived(e.target.valueAsNumber);
                 }}
               />
-              <Input id="currency-display" label={t('fields.currency')} value={currency ? currencyLabel(currency) : ''} disabled readOnly />
+              <Select
+                id="currency"
+                label={t('fields.currency')}
+                options={CURRENCY_SELECT_OPTIONS}
+                value={currency ?? undefined}
+                onSelect={(value) => setCurrency((Array.isArray(value) ? value[0] : value) as Currency)}
+              />
             </Row>
+            <Text variant="body-default-xs" onBackground="neutral-weak">
+              {t('currencyFreeHint')}
+            </Text>
 
             <DateInput
               id="payment_date"

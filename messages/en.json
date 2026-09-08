@@ -314,7 +314,6 @@
     "errors": {
       "installmentsGone": "One or more selected cuotas no longer exist.",
       "mixedHouses": "All cuotas must belong to the same house.",
-      "currencyMismatch": "The payment currency must match the cuotas' currency.",
       "alreadyPaid": "One of the selected cuotas is already paid.",
       "insufficientAmount": "The amount received doesn't cover any selected cuota."
     },
@@ -360,6 +359,7 @@
       "noHouses": "No houses registered.",
       "noPendingInstallments": "This house has no pending cuotas.",
       "existingCredit": "This house has a credit balance of {amount} {currency}, which will be applied automatically to this payment.",
+      "currencyFreeHint": "The payment's currency doesn't have to match the selected cuotas' currency — each side works out their own conversion.",
       "submit": "Register payment",
       "cancel": "Cancel",
       "toastSuccess": "Payment registered successfully.",
@@ -462,6 +462,7 @@
       "removeScreenshot": "Remove",
       "invalidFileType": "Must be an image (photo or screenshot).",
       "fileTooLarge": "The image is too large (max 5 MB).",
+      "currencyFreeHint": "The payment's currency doesn't have to match the cuotas' currency — each side works out their own conversion.",
       "submit": "Send report",
       "cancel": "Cancel",
       "close": "Close",

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { format, parseISO } from 'date-fns';
 import {
@@ -44,11 +44,7 @@ export function ReportPaymentDialog({
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const availableCurrencies = useMemo(
-    () => Array.from(new Set(pendingInstallments.map((i) => i.currency))),
-    [pendingInstallments],
-  );
-  const [currency, setCurrency] = useState<Currency>(availableCurrencies[0] ?? 'USD');
+  const [currency, setCurrency] = useState<Currency>(pendingInstallments[0]?.currency ?? 'USD');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [amount, setAmount] = useState<number | ''>('');
   const [amountEdited, setAmountEdited] = useState(false);
@@ -94,14 +90,14 @@ export function ReportPaymentDialog({
     setScreenshotPreviewUrl(null);
   };
 
-  const currencyInstallments = useMemo(
-    () => pendingInstallments.filter((i) => i.currency === currency),
-    [pendingInstallments, currency],
-  );
-
+  // Not filtered by currency -- reporting a payment doesn't require it to
+  // match the tagged cuota(s)' own currency (user decision, 2026-09-08): a
+  // cuota's amount is denominated in one currency, but residents pay with
+  // whatever they have (cash, Bs transfer, USDT). Every pending cuota is
+  // selectable regardless of currency; each checkbox still shows its own.
   const balanceDue = (i: ResidentInstallment) => i.amount - i.amount_paid;
   const suggestedAmount = (ids: string[]) =>
-    currencyInstallments.filter((i) => ids.includes(i.id)).reduce((sum, i) => sum + balanceDue(i), 0);
+    pendingInstallments.filter((i) => ids.includes(i.id)).reduce((sum, i) => sum + balanceDue(i), 0);
 
   const toggleInstallment = (id: string) => {
     setSelectedIds((prev) => {
@@ -112,11 +108,7 @@ export function ReportPaymentDialog({
   };
 
   const handleCurrencySelect = (value: string | string[]) => {
-    const c = (Array.isArray(value) ? value[0] : value) as Currency;
-    setCurrency(c);
-    setSelectedIds([]);
-    setAmountEdited(false);
-    setAmount('');
+    setCurrency((Array.isArray(value) ? value[0] : value) as Currency);
   };
 
   const canSubmit = amount !== '' && amount > 0 && paymentDate;
@@ -181,18 +173,8 @@ export function ReportPaymentDialog({
               <Text variant="label-default-s" onBackground="neutral-weak">
                 {t('whichCuotas')}
               </Text>
-              {availableCurrencies.length > 1 && (
-                <Select
-                  id="currency"
-                  label={t('fields.currency')}
-                  options={CURRENCY_SELECT_OPTIONS.filter((o) => availableCurrencies.includes(o.value as Currency))}
-                  value={currency}
-                  onSelect={handleCurrencySelect}
-                  fillWidth
-                />
-              )}
               <Column gap="8" fillWidth>
-                {currencyInstallments.map((inst) => (
+                {pendingInstallments.map((inst) => (
                   <Checkbox
                     key={inst.id}
                     isChecked={selectedIds.includes(inst.id)}
@@ -216,18 +198,17 @@ export function ReportPaymentDialog({
                 setAmount(e.target.valueAsNumber || 0);
               }}
             />
-            {pendingInstallments.length === 0 ? (
-              <Select
-                id="currency"
-                label={t('fields.currency')}
-                options={CURRENCY_SELECT_OPTIONS}
-                value={currency}
-                onSelect={handleCurrencySelect}
-              />
-            ) : (
-              <Input id="currency-display" label={t('fields.currency')} value={currencyLabel(currency)} disabled readOnly />
-            )}
+            <Select
+              id="currency"
+              label={t('fields.currency')}
+              options={CURRENCY_SELECT_OPTIONS}
+              value={currency}
+              onSelect={handleCurrencySelect}
+            />
           </Row>
+          <Text variant="body-default-xs" onBackground="neutral-weak">
+            {t('currencyFreeHint')}
+          </Text>
 
           <DateInput
             id="payment_date"
