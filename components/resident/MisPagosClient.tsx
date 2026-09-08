@@ -3,16 +3,26 @@
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { format } from 'date-fns';
-import { Column, Row, Card, Heading, Text, Chip } from '@once-ui-system/core';
+import { Column, Row, Card, Heading, Text, Chip, Button } from '@once-ui-system/core';
 import { groupPaymentsByBatch, type PaymentRow } from '@/components/payments/types';
 import { currencyLabel } from '@/lib/currency';
+import { ReportPaymentDialog } from './ReportPaymentDialog';
+import type { ResidentInstallment } from '@/lib/resident/queries';
 
 function formatAmount(amount: number, currency: string): string {
   return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
 }
 
-export function MisPagosClient({ payments }: { payments: PaymentRow[] }) {
+export function MisPagosClient({
+  payments,
+  pendingInstallments,
+}: {
+  payments: PaymentRow[];
+  pendingInstallments: ResidentInstallment[];
+}) {
   const t = useTranslations('residentPayments');
+  const tHome = useTranslations('residentHome');
+  const [reportOpen, setReportOpen] = useState(false);
 
   const batches = useMemo(() => groupPaymentsByBatch(payments), [payments]);
 
@@ -38,7 +48,12 @@ export function MisPagosClient({ payments }: { payments: PaymentRow[] }) {
 
   return (
     <Column fillWidth gap="24" paddingY="32" paddingX="32">
-      <Heading variant="display-strong-s">{t('heading')}</Heading>
+      <Row horizontal="between" vertical="center" fillWidth wrap gap="8">
+        <Heading variant="display-strong-s">{t('heading')}</Heading>
+        <Button type="button" variant="secondary" size="s" onClick={() => setReportOpen(true)}>
+          {tHome('reportPayment')}
+        </Button>
+      </Row>
 
       <Row gap="8" wrap>
         <Chip label={t('filterAll')} selected={yearFilter === 'all'} onClick={() => setYearFilter('all')} />
@@ -90,6 +105,10 @@ export function MisPagosClient({ payments }: { payments: PaymentRow[] }) {
             </Card>
           ))}
         </Column>
+      )}
+
+      {reportOpen && (
+        <ReportPaymentDialog pendingInstallments={pendingInstallments} onClose={() => setReportOpen(false)} />
       )}
     </Column>
   );

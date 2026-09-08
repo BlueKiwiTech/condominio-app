@@ -132,7 +132,12 @@ export function MiHogarClient({ data }: { data: ResidentPortalData }) {
       </Card>
 
       <Column gap="12" fillWidth>
-        <Heading variant="heading-strong-s">{t('upcoming.heading')}</Heading>
+        <Row horizontal="between" vertical="center" fillWidth wrap gap="8">
+          <Heading variant="heading-strong-s">{t('upcoming.heading')}</Heading>
+          <Button type="button" variant="secondary" size="s" onClick={() => setReportOpen(true)}>
+            {t('reportPayment')}
+          </Button>
+        </Row>
         {upcoming.length === 0 ? (
           <Text variant="body-default-s" onBackground="neutral-weak">
             {t('upcoming.empty')}
@@ -153,10 +158,6 @@ export function MiHogarClient({ data }: { data: ResidentPortalData }) {
           </Column>
         )}
       </Column>
-
-      <Button type="button" variant="secondary" onClick={() => setReportOpen(true)}>
-        {t('reportPayment')}
-      </Button>
 
       {reportOpen && (
         <ReportPaymentDialog pendingInstallments={pendingInstallments} onClose={() => setReportOpen(false)} />

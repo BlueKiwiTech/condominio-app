@@ -12,5 +12,7 @@ export default async function MisPagosPage() {
   const data = await getResidentPortalData(session.house_id);
   if (!data.house) redirect('/resident-login');
 
-  return <MisPagosClient payments={data.payments} />;
+  const pendingInstallments = data.installments.filter((i) => i.status !== 'paid');
+
+  return <MisPagosClient payments={data.payments} pendingInstallments={pendingInstallments} />;
 }
