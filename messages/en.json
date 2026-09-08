@@ -171,6 +171,21 @@
       "heading": "Recent payments",
       "empty": "No payments registered yet.",
       "viewAll": "View all payments"
+    },
+    "exchangeRate": {
+      "heading": "Exchange rate (reference)",
+      "bcv": "BCV",
+      "binance": "Binance (USDT)",
+      "fieldLabel": "Bs. per USD",
+      "rateValue": "{rate} Bs.",
+      "updatedAt": "Updated {date}",
+      "stale": "Outdated (over 24h) — value hidden.",
+      "noData": "No rate recorded yet.",
+      "edit": "Edit",
+      "setNow": "Set now",
+      "save": "Save",
+      "cancel": "Cancel",
+      "invalidValue": "Enter a number greater than 0."
     }
   },
   "houses": {

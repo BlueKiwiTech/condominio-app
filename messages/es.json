@@ -171,6 +171,21 @@
       "heading": "Últimos pagos",
       "empty": "Aún no hay pagos registrados.",
       "viewAll": "Ver todos los pagos"
+    },
+    "exchangeRate": {
+      "heading": "Tasa de cambio (referencia)",
+      "bcv": "BCV",
+      "binance": "Binance (USDT)",
+      "fieldLabel": "Bs. por USD",
+      "rateValue": "{rate} Bs.",
+      "updatedAt": "Actualizado {date}",
+      "stale": "Desactualizada (más de 24h) — no se muestra el valor.",
+      "noData": "Sin tasa registrada todavía.",
+      "edit": "Editar",
+      "setNow": "Establecer ahora",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "invalidValue": "Ingresa un número mayor a 0."
     }
   },
   "houses": {

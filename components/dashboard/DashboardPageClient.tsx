@@ -31,6 +31,8 @@ import { groupPaymentsByBatch } from '@/components/payments/types';
 import { CURRENCIES, type DashboardCredit, type DashboardHouse, type DashboardInstallment, type PaymentRow } from './types';
 import { subMonths } from 'date-fns';
 import { currencyLabel } from '@/lib/currency';
+import { ExchangeRateCard } from './ExchangeRateCard';
+import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
 
 function formatAmount(amount: number, currency: string): string {
   return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
@@ -68,12 +70,14 @@ export function DashboardPageClient({
   credits,
   payments,
   gracePeriodDays,
+  exchangeRates,
 }: {
   installments: DashboardInstallment[];
   houses: DashboardHouse[];
   credits: DashboardCredit[];
   payments: PaymentRow[];
   gracePeriodDays: number;
+  exchangeRates: Record<ExchangeRateType, ExchangeRateRow | null>;
 }) {
   const t = useTranslations('dashboard');
   const locale = useLocale();
@@ -187,6 +191,8 @@ export function DashboardPageClient({
           </Column>
         </Card>
       </Grid>
+
+      <ExchangeRateCard rates={exchangeRates} />
 
       <Column gap="16" fillWidth>
         <Heading variant="heading-strong-s">{t('chart.heading')}</Heading>

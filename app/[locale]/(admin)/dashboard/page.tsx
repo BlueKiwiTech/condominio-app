@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { getLatestExchangeRates } from '@/lib/actions/exchangeRate';
 import { DashboardPageClient } from '@/components/dashboard/DashboardPageClient';
 import type { DashboardCredit, DashboardHouse, DashboardInstallment } from '@/components/dashboard/types';
 import type { PaymentRow } from '@/components/payments/types';
@@ -11,7 +12,7 @@ import type { PaymentRow } from '@/components/payments/types';
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const [{ data: installments }, { data: houses }, { data: credits }, { data: payments }, { data: community }] =
+  const [{ data: installments }, { data: houses }, { data: credits }, { data: payments }, { data: community }, exchangeRates] =
     await Promise.all([
       supabase.from('condo_installments').select('house_id, due_date, status, amount, amount_paid, currency'),
       supabase.from('condo_houses').select('id, house_number, house_name, owner_name').order('house_number'),
@@ -23,6 +24,7 @@ export default async function DashboardPage() {
         )
         .order('created_at', { ascending: false }),
       supabase.from('condo_communities').select('grace_period_days').limit(1).maybeSingle(),
+      getLatestExchangeRates(),
     ]);
 
   return (
@@ -32,6 +34,7 @@ export default async function DashboardPage() {
       credits={(credits as DashboardCredit[] | null) ?? []}
       payments={(payments as unknown as PaymentRow[] | null) ?? []}
       gracePeriodDays={community?.grace_period_days ?? 0}
+      exchangeRates={exchangeRates}
     />
   );
 }
