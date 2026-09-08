@@ -1,8 +1,6 @@
 import { redirect } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
-import { Column, Row, Button } from '@once-ui-system/core';
+import { Column, Row } from '@once-ui-system/core';
 import { getResidentSession } from '@/lib/auth/residentSession';
-import { residentLogout } from '@/lib/actions/residentAuth';
 import { ResidentTabBar } from '@/components/resident/ResidentTabBar';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 
@@ -15,8 +13,6 @@ export default async function ResidentLayout({ children }: { children: React.Rea
   const session = await getResidentSession();
   if (!session) redirect('/resident-login');
 
-  const t = await getTranslations('residentNav');
-
   // Mobile-first shell (390px per the Design Reference) — on wider viewports
   // the whole app (header + content + tab bar) sits centered as one narrow
   // column with a side border instead of stretching edge-to-edge, so it
@@ -24,22 +20,28 @@ export default async function ResidentLayout({ children }: { children: React.Rea
   // in a sea of whitespace. maxWidth matches the individual pages' own
   // root Column (MiHogarClient/MisCuotasClient/MisPagosClient all already
   // use maxWidth={32}) so header/content/tab-bar line up exactly.
+  //
+  // Below 1024px this is a real phone-ish viewport -- the panel stays pinned
+  // to the full device height so the tab bar sits glued to the very bottom
+  // the way every mobile app's nav bar does, regardless of how much content
+  // is on screen. At 1024px+ that same "always 100vh" rule was the actual
+  // bug reported: a short page (e.g. one paid cuota) left a huge dead gap
+  // between the content and a tab bar pinned to the bottom of a full desktop
+  // monitor. .resident-app-panel (resources/custom.css) caps the panel's
+  // height there instead (bounded to roughly one phone screen's worth),
+  // keeping the same pinned-header/scrollable-middle/pinned-tab-bar
+  // mechanics but bounding how much empty space a sparse page can ever show.
   return (
-    <Column fillWidth horizontal="center" background="neutral-weak" style={{ minHeight: '100vh' }}>
+    <Column fillWidth horizontal="center" vertical="center" background="neutral-weak" style={{ minHeight: '100vh' }}>
       <Column
+        className="resident-app-panel"
         fillWidth
         maxWidth={32}
         background="page"
         border="neutral-alpha-weak"
-        style={{ minHeight: '100vh' }}
       >
-        <Row fillWidth horizontal="between" vertical="center" paddingX="16" paddingY="8" border="neutral-alpha-weak">
+        <Row fillWidth horizontal="start" vertical="center" paddingX="16" paddingY="8" border="neutral-alpha-weak">
           <LocaleSwitcher />
-          <form action={residentLogout}>
-            <Button type="submit" variant="tertiary" size="s">
-              {t('logout')}
-            </Button>
-          </form>
         </Row>
         <Column fillWidth flex={1} style={{ overflowY: 'auto' }}>
           {children}

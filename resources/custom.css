@@ -9,3 +9,24 @@
 body {
   background: var(--page-background);
 }
+
+/* Resident portal shell (app/[locale]/(resident)/layout.tsx): full device
+   height below 1024px so the bottom tab bar sits glued to the real bottom
+   of the screen like any mobile app's nav, regardless of how little content
+   is on screen. At 1024px+ that same "always 100vh" rule was the actual bug
+   reported -- a short page left a huge dead gap between the content and a
+   tab bar pinned to the bottom of a full desktop monitor. Bounded to
+   roughly one phone screen's worth there instead.
+   (Once UI's breakpoint props -- e.g. m={{ style: {...} }} -- only apply via
+   its JS runtime path, which is skipped entirely under the default
+   breakpoint config this app uses; a plain media query is the reliable way
+   to get this that doesn't depend on that opting-in.) */
+.resident-app-panel {
+  min-height: 100vh;
+}
+@media (min-width: 1024px) {
+  .resident-app-panel {
+    min-height: 0;
+    height: min(47rem, 90vh);
+  }
+}

@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Row, Column, SmartLink, Icon, Text, type IconName } from '@once-ui-system/core';
+import { residentLogout } from '@/lib/actions/residentAuth';
 
 const TABS: { href: string; icon: IconName; labelKey: 'home' | 'cuotas' | 'payments' }[] = [
   { href: '/mi-hogar', icon: 'person', labelKey: 'home' },
@@ -15,6 +16,12 @@ const TABS: { href: string; icon: IconName; labelKey: 'home' | 'cuotas' | 'payme
 // content on very short viewports; usePathname (not next-intl's locale-aware
 // routing helpers) is enough here since we only need a same-locale suffix
 // match to highlight the active tab.
+//
+// "Cerrar sesión" lives here as a 4th tab-styled item (a <form> submit
+// button, not a Link) instead of a separate button in the top header --
+// keeps the header down to just the locale switcher and gives every
+// resident action one consistent home at the bottom, matching how the
+// other 3 destinations are presented.
 export function ResidentTabBar() {
   const pathname = usePathname();
   const t = useTranslations('residentNav');
@@ -44,6 +51,16 @@ export function ResidentTabBar() {
           </SmartLink>
         );
       })}
+      <form action={residentLogout} style={{ display: 'contents' }}>
+        <button type="submit" className="reset-button-styles" style={{ width: '100%', cursor: 'pointer' }}>
+          <Column horizontal="center" gap="4" paddingY="4">
+            <Icon name="logout" size="s" onBackground="neutral-weak" />
+            <Text variant="label-default-xs" onBackground="neutral-weak">
+              {t('logout')}
+            </Text>
+          </Column>
+        </button>
+      </form>
     </Row>
   );
 }
