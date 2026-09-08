@@ -35,6 +35,12 @@
     "residentAuth": {
       "houseRequired": "Select your house.",
       "pinFormat": "PIN must be 4 digits."
+    },
+    "residentPayments": {
+      "invalidDate": "Invalid date.",
+      "amountPositive": "The amount must be greater than 0.",
+      "referenceTooLong": "The reference is too long.",
+      "notesTooLong": "The notes are too long."
     }
   },
   "auth": {
@@ -405,7 +411,23 @@
       "empty": "You have no upcoming cuotas."
     },
     "reportPayment": "Report a payment I made",
-    "logout": "Log out"
+    "logout": "Log out",
+    "reportPaymentDialog": {
+      "heading": "Report a payment",
+      "intro": "Let the board know you already made a payment. This doesn't mark your cuota as paid instantly — the board reviews and confirms it.",
+      "whichCuotas": "Which cuotas is this for? (optional)",
+      "fields": {
+        "currency": "Currency",
+        "amount": "Amount",
+        "paymentDate": "Payment date",
+        "reference": "Reference (optional)",
+        "notes": "Notes (optional)"
+      },
+      "submit": "Send report",
+      "cancel": "Cancel",
+      "close": "Close",
+      "successMessage": "Done! Your report was sent. The board will review and confirm it."
+    }
   },
   "residentCuotas": {
     "heading": "My cuotas",

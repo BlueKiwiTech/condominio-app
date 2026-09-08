@@ -35,6 +35,12 @@
     "residentAuth": {
       "houseRequired": "Selecciona tu casa.",
       "pinFormat": "El PIN debe tener 4 dígitos."
+    },
+    "residentPayments": {
+      "invalidDate": "Fecha inválida.",
+      "amountPositive": "El monto debe ser mayor a 0.",
+      "referenceTooLong": "La referencia es demasiado larga.",
+      "notesTooLong": "Las notas son demasiado largas."
     }
   },
   "auth": {
@@ -405,7 +411,23 @@
       "empty": "No tienes cuotas próximas."
     },
     "reportPayment": "Reportar un pago que hice",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "reportPaymentDialog": {
+      "heading": "Reportar un pago",
+      "intro": "Cuéntale a la junta que ya hiciste un pago. Esto no marca tu cuota como pagada al instante — la junta lo revisa y lo confirma.",
+      "whichCuotas": "¿A qué cuotas corresponde? (opcional)",
+      "fields": {
+        "currency": "Moneda",
+        "amount": "Monto",
+        "paymentDate": "Fecha del pago",
+        "reference": "Referencia (opcional)",
+        "notes": "Notas (opcional)"
+      },
+      "submit": "Enviar reporte",
+      "cancel": "Cancelar",
+      "close": "Cerrar",
+      "successMessage": "¡Listo! Tu reporte fue enviado. La junta lo va a revisar y confirmar."
+    }
   },
   "residentCuotas": {
     "heading": "Mis cuotas",

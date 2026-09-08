@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { format, parseISO } from 'date-fns';
-import { Column, Row, Card, Heading, Text, Tag, SmartLink, Button } from '@once-ui-system/core';
+import { Column, Row, Card, Heading, Text, Tag, Button } from '@once-ui-system/core';
 import { computeMorosos } from '@/lib/reporting/morosos';
 import { creditsByCurrency } from '@/lib/reporting/dashboard';
 import { upcomingInstallments } from '@/lib/resident/portal';
+import { ReportPaymentDialog } from './ReportPaymentDialog';
 import type { ResidentPortalData } from '@/lib/resident/queries';
 
 function formatAmount(amount: number, currency: string): string {
@@ -17,6 +18,9 @@ export function MiHogarClient({ data }: { data: ResidentPortalData }) {
   const t = useTranslations('residentHome');
   const house = data.house!;
   const today = useMemo(() => new Date(), []);
+  const [reportOpen, setReportOpen] = useState(false);
+
+  const pendingInstallments = useMemo(() => data.installments.filter((i) => i.status !== 'paid'), [data.installments]);
 
   const houseLabel = house.house_name ? `${house.house_number} · ${house.house_name}` : house.house_number;
 
@@ -149,12 +153,12 @@ export function MiHogarClient({ data }: { data: ResidentPortalData }) {
         )}
       </Column>
 
-      {data.community?.phone && (
-        <SmartLink href={`tel:${data.community.phone}`} unstyled fillWidth>
-          <Button type="button" variant="secondary" fillWidth>
-            {t('reportPayment')}
-          </Button>
-        </SmartLink>
+      <Button type="button" variant="secondary" fillWidth onClick={() => setReportOpen(true)}>
+        {t('reportPayment')}
+      </Button>
+
+      {reportOpen && (
+        <ReportPaymentDialog pendingInstallments={pendingInstallments} onClose={() => setReportOpen(false)} />
       )}
     </Column>
   );
