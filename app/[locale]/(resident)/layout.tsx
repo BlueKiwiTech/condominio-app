@@ -17,20 +17,35 @@ export default async function ResidentLayout({ children }: { children: React.Rea
 
   const t = await getTranslations('residentNav');
 
+  // Mobile-first shell (390px per the Design Reference) — on wider viewports
+  // the whole app (header + content + tab bar) sits centered as one narrow
+  // column with a side border instead of stretching edge-to-edge, so it
+  // reads as an intentional app panel rather than a mobile layout stranded
+  // in a sea of whitespace. maxWidth matches the individual pages' own
+  // root Column (MiHogarClient/MisCuotasClient/MisPagosClient all already
+  // use maxWidth={32}) so header/content/tab-bar line up exactly.
   return (
-    <Column fillWidth style={{ minHeight: '100vh' }}>
-      <Row fillWidth horizontal="between" vertical="center" paddingX="16" paddingY="8" border="neutral-alpha-weak">
-        <LocaleSwitcher />
-        <form action={residentLogout}>
-          <Button type="submit" variant="tertiary" size="s">
-            {t('logout')}
-          </Button>
-        </form>
-      </Row>
-      <Column fillWidth flex={1} style={{ overflowY: 'auto' }}>
-        {children}
+    <Column fillWidth horizontal="center" background="neutral-weak" style={{ minHeight: '100vh' }}>
+      <Column
+        fillWidth
+        maxWidth={32}
+        background="page"
+        border="neutral-alpha-weak"
+        style={{ minHeight: '100vh' }}
+      >
+        <Row fillWidth horizontal="between" vertical="center" paddingX="16" paddingY="8" border="neutral-alpha-weak">
+          <LocaleSwitcher />
+          <form action={residentLogout}>
+            <Button type="submit" variant="tertiary" size="s">
+              {t('logout')}
+            </Button>
+          </form>
+        </Row>
+        <Column fillWidth flex={1} style={{ overflowY: 'auto' }}>
+          {children}
+        </Column>
+        <ResidentTabBar />
       </Column>
-      <ResidentTabBar />
     </Column>
   );
 }
