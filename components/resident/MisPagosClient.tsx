@@ -5,9 +5,10 @@ import { useTranslations } from 'next-intl';
 import { format } from 'date-fns';
 import { Column, Row, Card, Heading, Text, Chip } from '@once-ui-system/core';
 import { groupPaymentsByBatch, type PaymentRow } from '@/components/payments/types';
+import { currencyLabel } from '@/lib/currency';
 
 function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currency}`;
+  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
 }
 
 export function MisPagosClient({ payments }: { payments: PaymentRow[] }) {

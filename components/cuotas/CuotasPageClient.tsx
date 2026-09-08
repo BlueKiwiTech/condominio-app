@@ -7,6 +7,7 @@ import { Column, Row, Button, Table, Tag, Feedback, SmartLink, type TableHeader 
 import { deleteInstallmentTemplate } from '@/lib/actions/cuotas';
 import { summarizeTemplate } from '@/lib/cuotas/status';
 import { CuotaEditDialog } from './CuotaEditDialog';
+import { currencyLabel } from '@/lib/currency';
 import type { TemplateWithInstallments } from './types';
 
 export function CuotasPageClient({ initialTemplates }: { initialTemplates: TemplateWithInstallments[] }) {
@@ -58,7 +59,7 @@ export function CuotasPageClient({ initialTemplates }: { initialTemplates: Templ
     return [
       template.name,
       typeLabel,
-      `${summary.totalAmount.toFixed(2)} ${template.currency}`,
+      `${summary.totalAmount.toFixed(2)} ${currencyLabel(template.currency)}`,
       String(summary.housesCount),
       <Row key={`status-${template.id}`} gap="8" wrap>
         {summary.pendingCount > 0 && <Tag variant="info" label={t('status.pending', { count: summary.pendingCount })} />}

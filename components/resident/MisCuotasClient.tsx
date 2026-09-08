@@ -8,9 +8,10 @@ import { Column, Row, Grid, Card, Heading, Text, Tag, SegmentedControl, SmartLin
 import { computeMorosos } from '@/lib/reporting/morosos';
 import { displayStatus, groupByDueMonth, type DisplayStatus } from '@/lib/resident/portal';
 import type { ResidentPortalData, ResidentInstallment } from '@/lib/resident/queries';
+import { currencyLabel } from '@/lib/currency';
 
 function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currency}`;
+  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
 }
 
 function statusVariant(status: DisplayStatus): 'success' | 'info' | 'warning' | 'neutral' | 'danger' {

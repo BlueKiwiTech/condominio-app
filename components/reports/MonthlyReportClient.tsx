@@ -14,6 +14,7 @@ import {
   type CreditForReport,
   type Currency,
 } from '@/lib/reporting/monthlyReport';
+import { currencyLabel } from '@/lib/currency';
 
 const CURRENCIES: Currency[] = ['USD', 'Bs', 'USDT'];
 const STATUSES: MonthlyReportStatus[] = ['pending', 'partial', 'paid', 'overdue'];
@@ -26,7 +27,7 @@ function statusVariant(status: MonthlyReportStatus): 'info' | 'warning' | 'succe
 }
 
 function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currency}`;
+  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
 }
 
 export function MonthlyReportClient({
@@ -88,7 +89,7 @@ export function MonthlyReportClient({
 
   const rows = filteredRows.map((row) => [
     row.house_name ? `${row.house_number} · ${row.house_name}` : row.house_number,
-    row.currency,
+    currencyLabel(row.currency),
     row.expected.toFixed(2),
     row.paid.toFixed(2),
     row.pending.toFixed(2),
@@ -115,7 +116,7 @@ export function MonthlyReportClient({
           <Row gap="8" wrap>
             <Chip label={t('all')} selected={currencyFilter === 'all'} onClick={() => setCurrencyFilter('all')} />
             {CURRENCIES.map((c) => (
-              <Chip key={c} label={c} selected={currencyFilter === c} onClick={() => setCurrencyFilter(c)} />
+              <Chip key={c} label={currencyLabel(c)} selected={currencyFilter === c} onClick={() => setCurrencyFilter(c)} />
             ))}
           </Row>
         </Column>
@@ -137,7 +138,7 @@ export function MonthlyReportClient({
           {totals.map((total) => (
             <Card key={total.currency} padding="16" radius="l" background="neutral-alpha-weak" flex={1} minWidth={12}>
               <Column gap="4">
-                <Text variant="label-strong-s">{t('totalsFor', { currency: total.currency })}</Text>
+                <Text variant="label-strong-s">{t('totalsFor', { currency: currencyLabel(total.currency) })}</Text>
                 <Text variant="body-default-xs" onBackground="neutral-weak">
                   {t('table.expected')}: {formatAmount(total.expected, total.currency)}
                 </Text>

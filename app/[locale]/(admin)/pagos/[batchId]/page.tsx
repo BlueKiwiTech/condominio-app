@@ -4,6 +4,7 @@ import { Column, Row, Heading, Text, Card, SmartLink, Icon } from '@once-ui-syst
 import { createClient } from '@/lib/supabase/server';
 import type { PaymentRow } from '@/components/payments/types';
 import { groupPaymentsByBatch } from '@/components/payments/types';
+import { currencyLabel } from '@/lib/currency';
 
 export default async function PaymentDetailPage({ params }: { params: Promise<{ batchId: string }> }) {
   const { batchId } = await params;
@@ -46,7 +47,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
               </Text>
             </Column>
             <Text variant="heading-strong-l">
-              {batch.totalAmount.toFixed(2)} {batch.currency}
+              {batch.totalAmount.toFixed(2)} {currencyLabel(batch.currency)}
             </Text>
           </Row>
 
@@ -66,7 +67,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
                 <Row key={row.id} horizontal="between" fillWidth>
                   <Text variant="body-default-s">{row.condo_installments?.name ?? '—'}</Text>
                   <Text variant="body-default-s">
-                    {row.amount_paid.toFixed(2)} {row.currency}
+                    {row.amount_paid.toFixed(2)} {currencyLabel(row.currency)}
                   </Text>
                 </Row>
               ))}
@@ -78,7 +79,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
               <Text variant="label-default-s" onBackground="neutral-weak">
                 {t('currency')}
               </Text>
-              <Text variant="body-default-m">{batch.currency}</Text>
+              <Text variant="body-default-m">{currencyLabel(batch.currency)}</Text>
             </Column>
             <Column gap="4">
               <Text variant="label-default-s" onBackground="neutral-weak">

@@ -30,9 +30,10 @@ import { daysToCloseOfMonth } from '@/lib/reporting/dateMath';
 import { groupPaymentsByBatch } from '@/components/payments/types';
 import { CURRENCIES, type DashboardCredit, type DashboardHouse, type DashboardInstallment, type PaymentRow } from './types';
 import { subMonths } from 'date-fns';
+import { currencyLabel } from '@/lib/currency';
 
 function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currency}`;
+  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
 }
 
 function CurrencyAmountList({
@@ -148,8 +149,8 @@ export function DashboardPageClient({
               return (
                 <Text key={c} variant="body-default-xs" onBackground={change !== null && change >= 0 ? 'success-weak' : 'danger-weak'}>
                   {change === null
-                    ? t('kpis.collected.noPrior', { currency: c })
-                    : t('kpis.collected.change', { percent: `${change >= 0 ? '+' : ''}${change.toFixed(1)}`, currency: c })}
+                    ? t('kpis.collected.noPrior', { currency: currencyLabel(c) })
+                    : t('kpis.collected.change', { percent: `${change >= 0 ? '+' : ''}${change.toFixed(1)}`, currency: currencyLabel(c) })}
                 </Text>
               );
             })}
@@ -195,7 +196,7 @@ export function DashboardPageClient({
             return (
               <Card key={currency} padding="24" radius="l" background="neutral-alpha-weak" flex={1} minWidth={16}>
                 <Column gap="12">
-                  <Text variant="label-strong-s">{currency}</Text>
+                  <Text variant="label-strong-s">{currencyLabel(currency)}</Text>
                   {hasData ? (
                     <LineChart
                       series={{ key: currency }}
@@ -205,7 +206,7 @@ export function DashboardPageClient({
                     />
                   ) : (
                     <Text variant="body-default-s" onBackground="neutral-weak">
-                      {t('chart.empty', { currency })}
+                      {t('chart.empty', { currency: currencyLabel(currency) })}
                     </Text>
                   )}
                 </Column>

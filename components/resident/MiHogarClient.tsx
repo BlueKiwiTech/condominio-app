@@ -8,10 +8,11 @@ import { computeMorosos } from '@/lib/reporting/morosos';
 import { creditsByCurrency } from '@/lib/reporting/dashboard';
 import { upcomingInstallments } from '@/lib/resident/portal';
 import { ReportPaymentDialog } from './ReportPaymentDialog';
+import { currencyLabel } from '@/lib/currency';
 import type { ResidentPortalData } from '@/lib/resident/queries';
 
 function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currency}`;
+  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
 }
 
 export function MiHogarClient({ data }: { data: ResidentPortalData }) {

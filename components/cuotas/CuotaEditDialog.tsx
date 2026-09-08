@@ -11,17 +11,12 @@ import { Dialog, Column, Row, Input, Textarea, Select, DateInput, Button, Feedba
 import { updateTemplateSchema, type UpdateTemplateInput } from '@/lib/validation/cuotas';
 import { updateInstallmentTemplate, getPriceHistory, type PriceHistoryEntry } from '@/lib/actions/cuotas';
 import { toDateOnly } from '@/lib/cuotas/generate';
+import { CURRENCY_SELECT_OPTIONS, currencyLabel } from '@/lib/currency';
 import type { TemplateWithInstallments } from './types';
 
 function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currency}`;
+  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
 }
-
-const CURRENCY_OPTIONS = [
-  { label: 'USD', value: 'USD' },
-  { label: 'Bs', value: 'Bs' },
-  { label: 'USDT', value: 'USDT' },
-];
 
 // Edit is intentionally narrow — see lib/validation/cuotas.ts's
 // updateTemplateSchema comment: structural fields (cadence, dates,
@@ -141,7 +136,7 @@ export function CuotaEditDialog({
             <Select
               id="currency"
               label={t('fields.currency')}
-              options={CURRENCY_OPTIONS}
+              options={CURRENCY_SELECT_OPTIONS}
               value={field.value}
               onSelect={(value) => field.onChange(Array.isArray(value) ? value[0] : value)}
               error={!!errors.currency}

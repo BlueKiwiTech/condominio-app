@@ -22,13 +22,8 @@ import {
 import { createTemplateSchema, type CreateTemplateInput, type Cadence } from '@/lib/validation/cuotas';
 import { createInstallmentTemplate } from '@/lib/actions/cuotas';
 import { buildPreview, toDateOnly, type DueDateMode } from '@/lib/cuotas/generate';
+import { CURRENCY_SELECT_OPTIONS, currencyLabel } from '@/lib/currency';
 import type { HouseOption } from './types';
-
-const CURRENCY_OPTIONS = [
-  { label: 'USD', value: 'USD' },
-  { label: 'Bs', value: 'Bs' },
-  { label: 'USDT', value: 'USDT' },
-];
 
 type FormValues = {
   installment_type: 'recurring' | 'special';
@@ -187,7 +182,7 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
               <Select
                 id="currency"
                 label={t('fields.currency')}
-                options={CURRENCY_OPTIONS}
+                options={CURRENCY_SELECT_OPTIONS}
                 value={field.value}
                 onSelect={(value) => field.onChange(Array.isArray(value) ? value[0] : value)}
               />
@@ -308,7 +303,7 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
                 <Row key={idx} horizontal="between">
                   <Text variant="body-default-s">{toDateOnly(date)}</Text>
                   <Text variant="body-default-s">
-                    {preview.amounts[idx].toFixed(2)} {values.currency}
+                    {preview.amounts[idx].toFixed(2)} {currencyLabel(values.currency)}
                   </Text>
                 </Row>
               ))}
@@ -318,7 +313,7 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
                 {t('preview.totalPerHouse')}
               </Text>
               <Text variant="label-strong-s">
-                {preview.totalPerHouse.toFixed(2)} {values.currency}
+                {preview.totalPerHouse.toFixed(2)} {currencyLabel(values.currency)}
               </Text>
             </Row>
             <Row horizontal="between">
@@ -332,7 +327,7 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
                 {t('preview.expectedTotal')}
               </Text>
               <Text variant="label-strong-s">
-                {(preview.totalPerHouse * selectedHouseCount).toFixed(2)} {values.currency}
+                {(preview.totalPerHouse * selectedHouseCount).toFixed(2)} {currencyLabel(values.currency)}
               </Text>
             </Row>
             <Feedback variant="info" description={t('preview.noConversionNote')} />

@@ -24,6 +24,7 @@ import {
 import { registerPayment } from '@/lib/actions/payments';
 import { allocateFunds, sortOldestFirst } from '@/lib/payments/allocate';
 import { toDateOnly } from '@/lib/cuotas/generate';
+import { currencyLabel } from '@/lib/currency';
 import type { HouseOption, PendingInstallment, HouseCredit, Currency } from './types';
 
 export function PaymentFormClient({
@@ -172,7 +173,7 @@ export function PaymentFormClient({
     />,
     inst.name,
     inst.due_date,
-    `${balanceDue(inst).toFixed(2)} ${inst.currency}`,
+    `${balanceDue(inst).toFixed(2)} ${currencyLabel(inst.currency)}`,
     <Tag key={`status-${inst.id}`} variant={inst.status === 'partial' ? 'warning' : 'info'} label={t(`status.${inst.status}`)} />,
   ]);
 
@@ -204,7 +205,7 @@ export function PaymentFormClient({
                 </Text>
                 <Row gap="8" wrap>
                   {availableCurrencies.map((c) => (
-                    <Chip key={c} label={c} selected={currency === c} onClick={() => handleCurrencySelect(c)} />
+                    <Chip key={c} label={currencyLabel(c)} selected={currency === c} onClick={() => handleCurrencySelect(c)} />
                   ))}
                 </Row>
               </Column>
@@ -213,7 +214,7 @@ export function PaymentFormClient({
             {existingCredit > 0 && (
               <Feedback
                 variant="success"
-                description={t('existingCredit', { amount: existingCredit.toFixed(2), currency: currency ?? '' })}
+                description={t('existingCredit', { amount: existingCredit.toFixed(2), currency: currency ? currencyLabel(currency) : '' })}
               />
             )}
 
@@ -230,7 +231,7 @@ export function PaymentFormClient({
                   setAmountReceived(e.target.valueAsNumber);
                 }}
               />
-              <Input id="currency-display" label={t('fields.currency')} value={currency ?? ''} disabled readOnly />
+              <Input id="currency-display" label={t('fields.currency')} value={currency ? currencyLabel(currency) : ''} disabled readOnly />
             </Row>
 
             <DateInput
@@ -270,7 +271,7 @@ export function PaymentFormClient({
                   <Text variant="body-default-s">{inst.name}</Text>
                   <Row gap="8" vertical="center">
                     <Text variant="body-default-s">
-                      {a.amountApplied.toFixed(2)} {currency}
+                      {a.amountApplied.toFixed(2)} {currency ? currencyLabel(currency) : ''}
                     </Text>
                     <Tag variant={a.newStatus === 'paid' ? 'success' : 'warning'} label={t(`status.${a.newStatus}`)} />
                   </Row>
@@ -282,7 +283,7 @@ export function PaymentFormClient({
                 {t('summary.total')}
               </Text>
               <Text variant="label-strong-s">
-                {amountReceived.toFixed(2)} {currency}
+                {amountReceived.toFixed(2)} {currency ? currencyLabel(currency) : ''}
               </Text>
             </Row>
             {existingCredit > 0 && (
@@ -291,7 +292,7 @@ export function PaymentFormClient({
                   {t('summary.creditUsed')}
                 </Text>
                 <Text variant="label-strong-s">
-                  {existingCredit.toFixed(2)} {currency}
+                  {existingCredit.toFixed(2)} {currency ? currencyLabel(currency) : ''}
                 </Text>
               </Row>
             )}
@@ -300,7 +301,7 @@ export function PaymentFormClient({
                 variant="info"
                 description={t('summary.resultingCredit', {
                   amount: (preview.leftoverCents / 100).toFixed(2),
-                  currency: currency ?? '',
+                  currency: currency ? currencyLabel(currency) : '',
                 })}
               />
             )}

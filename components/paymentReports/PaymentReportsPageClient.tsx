@@ -6,10 +6,11 @@ import { useTranslations, useLocale } from 'next-intl';
 import { format, parseISO } from 'date-fns';
 import { Column, Row, Card, Text, Tag, Button, SegmentedControl, Feedback } from '@once-ui-system/core';
 import { updateReportStatus, getReportScreenshotUrl } from '@/lib/actions/paymentReports';
+import { currencyLabel } from '@/lib/currency';
 import type { PaymentReportRow, InstallmentLookup, ReportStatus } from './types';
 
 function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currency}`;
+  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
 }
 
 function statusVariant(status: ReportStatus): 'warning' | 'success' | 'danger' {
