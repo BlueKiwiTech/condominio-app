@@ -23,6 +23,7 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: '/cuotas', icon: 'calendar', labelKey: 'items.cuotas' },
       { href: '/pagos/nuevo', icon: 'plus', labelKey: 'items.registerPayment' },
+      { href: '/pagos-reportados', icon: 'checkbox', labelKey: 'items.paymentReports' },
     ],
   },
   {

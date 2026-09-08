@@ -40,7 +40,9 @@
       "invalidDate": "Fecha inválida.",
       "amountPositive": "El monto debe ser mayor a 0.",
       "referenceTooLong": "La referencia es demasiado larga.",
-      "notesTooLong": "Las notas son demasiado largas."
+      "notesTooLong": "Las notas son demasiado largas.",
+      "invalidFileType": "Debe ser una imagen (foto o captura de pantalla).",
+      "fileTooLarge": "La imagen es muy pesada (máximo 5 MB)."
     }
   },
   "auth": {
@@ -109,6 +111,7 @@
       "houses": "Casas y vecinos",
       "cuotas": "Cuotas",
       "registerPayment": "Registrar pago",
+      "paymentReports": "Pagos reportados",
       "report": "Reporte mensual",
       "paymentsHistory": "Historial de pagos"
     },
@@ -370,6 +373,29 @@
       }
     }
   },
+  "paymentReports": {
+    "heading": "Pagos reportados",
+    "tabs": {
+      "pending": "Pendientes ({count})",
+      "all": "Todos"
+    },
+    "empty": "No hay reportes de pago por ahora.",
+    "reportedAt": "Reportado el {date}",
+    "paidOn": "Pagado el {date}",
+    "fields": {
+      "reference": "Referencia",
+      "notes": "Notas",
+      "cuotas": "Cuotas relacionadas"
+    },
+    "viewScreenshot": "Ver captura",
+    "confirm": "Confirmar",
+    "reject": "Rechazar",
+    "status": {
+      "pending": "Pendiente",
+      "confirmed": "Confirmado",
+      "rejected": "Rechazado"
+    }
+  },
   "residentAuth": {
     "heading": "Entra con tu casa y PIN",
     "cta": "Entrar",
@@ -421,8 +447,13 @@
         "amount": "Monto",
         "paymentDate": "Fecha del pago",
         "reference": "Referencia (opcional)",
-        "notes": "Notas (opcional)"
+        "notes": "Notas (opcional)",
+        "screenshot": "Captura del pago (opcional)"
       },
+      "addScreenshot": "Adjuntar captura",
+      "removeScreenshot": "Quitar",
+      "invalidFileType": "Debe ser una imagen (foto o captura de pantalla).",
+      "fileTooLarge": "La imagen es muy pesada (máximo 5 MB).",
       "submit": "Enviar reporte",
       "cancel": "Cancelar",
       "close": "Cerrar",

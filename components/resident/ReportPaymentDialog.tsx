@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { format, parseISO } from 'date-fns';
 import {
@@ -60,6 +60,44 @@ export function ReportPaymentDialog({
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Revoke the previous object URL whenever it changes or the dialog
+  // unmounts -- otherwise each new selection leaks the prior blob.
+  useEffect(() => {
+    return () => {
+      if (screenshotPreviewUrl) URL.revokeObjectURL(screenshotPreviewUrl);
+    };
+  }, [screenshotPreviewUrl]);
+
+  const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    e.target.value = ''; // allow re-selecting the same file after removing it
+    setFileError(null);
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setFileError(t('invalidFileType'));
+      return;
+    }
+    if (file.size > MAX_SCREENSHOT_BYTES) {
+      setFileError(t('fileTooLarge'));
+      return;
+    }
+    if (screenshotPreviewUrl) URL.revokeObjectURL(screenshotPreviewUrl);
+    setScreenshot(file);
+    setScreenshotPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleRemoveScreenshot = () => {
+    if (screenshotPreviewUrl) URL.revokeObjectURL(screenshotPreviewUrl);
+    setScreenshot(null);
+    setScreenshotPreviewUrl(null);
+  };
 
   const currencyInstallments = useMemo(
     () => pendingInstallments.filter((i) => i.currency === currency),
@@ -102,6 +140,7 @@ export function ReportPaymentDialog({
           installment_ids: selectedIds,
         },
         locale,
+        screenshot,
       );
       if ('error' in result) {
         setServerError(result.error);
@@ -209,6 +248,38 @@ export function ReportPaymentDialog({
             onChange={(e) => setReference(e.target.value)}
           />
           <Textarea id="notes" label={t('fields.notes')} value={notes} onChange={(e) => setNotes(e.target.value)} />
+
+          <Column gap="8" fillWidth>
+            <Text variant="label-default-s" onBackground="neutral-weak">
+              {t('fields.screenshot')}
+            </Text>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
+            {fileError && <Feedback variant="danger" description={fileError} />}
+            {screenshotPreviewUrl ? (
+              <Row gap="12" vertical="center">
+                {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview, not a Next-optimizable remote asset */}
+                <img
+                  src={screenshotPreviewUrl}
+                  alt=""
+                  style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--neutral-border-weak)' }}
+                />
+                <Button type="button" variant="tertiary" size="s" onClick={handleRemoveScreenshot}>
+                  {t('removeScreenshot')}
+                </Button>
+              </Row>
+            ) : (
+              <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()}>
+                {t('addScreenshot')}
+              </Button>
+            )}
+          </Column>
         </Column>
       )}
     </Dialog>

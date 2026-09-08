@@ -40,7 +40,9 @@
       "invalidDate": "Invalid date.",
       "amountPositive": "The amount must be greater than 0.",
       "referenceTooLong": "The reference is too long.",
-      "notesTooLong": "The notes are too long."
+      "notesTooLong": "The notes are too long.",
+      "invalidFileType": "Must be an image (photo or screenshot).",
+      "fileTooLarge": "The image is too large (max 5 MB)."
     }
   },
   "auth": {
@@ -109,6 +111,7 @@
       "houses": "Houses & residents",
       "cuotas": "Cuotas",
       "registerPayment": "Register payment",
+      "paymentReports": "Reported payments",
       "report": "Monthly report",
       "paymentsHistory": "Payment history"
     },
@@ -370,6 +373,29 @@
       }
     }
   },
+  "paymentReports": {
+    "heading": "Reported payments",
+    "tabs": {
+      "pending": "Pending ({count})",
+      "all": "All"
+    },
+    "empty": "No payment reports yet.",
+    "reportedAt": "Reported on {date}",
+    "paidOn": "Paid on {date}",
+    "fields": {
+      "reference": "Reference",
+      "notes": "Notes",
+      "cuotas": "Related cuotas"
+    },
+    "viewScreenshot": "View screenshot",
+    "confirm": "Confirm",
+    "reject": "Reject",
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "rejected": "Rejected"
+    }
+  },
   "residentAuth": {
     "heading": "Log in with your house and PIN",
     "cta": "Log in",
@@ -421,8 +447,13 @@
         "amount": "Amount",
         "paymentDate": "Payment date",
         "reference": "Reference (optional)",
-        "notes": "Notes (optional)"
+        "notes": "Notes (optional)",
+        "screenshot": "Payment screenshot (optional)"
       },
+      "addScreenshot": "Attach screenshot",
+      "removeScreenshot": "Remove",
+      "invalidFileType": "Must be an image (photo or screenshot).",
+      "fileTooLarge": "The image is too large (max 5 MB).",
       "submit": "Send report",
       "cancel": "Cancel",
       "close": "Close",
