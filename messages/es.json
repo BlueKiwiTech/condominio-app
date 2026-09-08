@@ -413,10 +413,18 @@
     }
   },
   "residentNav": {
+    "brand": {
+      "name": "ASOBARCELONA",
+      "subtitle": "Portal de vecinos"
+    },
     "home": "Mi hogar",
     "cuotas": "Mis cuotas",
     "payments": "Mis pagos",
-    "logout": "Cerrar sesión"
+    "roleLabel": "Vecino",
+    "unknownHouse": "Mi casa",
+    "logout": "Cerrar sesión",
+    "openMenu": "Abrir menú",
+    "menuTitle": "Menú"
   },
   "residentHome": {
     "greeting": "Hola, {house}",

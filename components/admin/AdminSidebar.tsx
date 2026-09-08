@@ -93,7 +93,20 @@ export function AdminSidebar({ adminEmail }: { adminEmail: string | null }) {
           {group.items.map((item) => {
             const active = isActive(item.href);
             return (
-              <SmartLink key={item.href} href={item.href} unstyled fillWidth onClick={onNavigate}>
+              <SmartLink
+                key={item.href}
+                href={item.href}
+                unstyled
+                fillWidth
+                // Once UI's SmartLink/ElementType only wires an internal-Link
+                // click to onLinkClick -- a plain `onClick` is captured but
+                // silently discarded for the href-present branch (confirmed
+                // via ElementType.js), so onClick alone never closed the
+                // mobile menu on navigation (pre-existing bug, found while
+                // building the resident portal's equivalent sidebar). Not in
+                // SmartLink's own TS type, but supported at runtime.
+                {...({ onLinkClick: onNavigate } as object)}
+              >
                 <Row
                   gap="8"
                   vertical="center"

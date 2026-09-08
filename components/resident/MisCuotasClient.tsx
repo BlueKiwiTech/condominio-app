@@ -89,7 +89,7 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
   const overdueItems = useMemo(() => pending.filter((i) => displayStatus(i, today) === 'overdue'), [pending, today]);
 
   return (
-    <Column fillWidth gap="24" paddingY="24" paddingX="16" maxWidth={32}>
+    <Column fillWidth gap="24" paddingY="32" paddingX="32">
       <Heading variant="display-strong-s">{t('heading')}</Heading>
 
       <SegmentedControl

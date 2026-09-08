@@ -413,10 +413,18 @@
     }
   },
   "residentNav": {
+    "brand": {
+      "name": "ASOBARCELONA",
+      "subtitle": "Resident portal"
+    },
     "home": "My home",
     "cuotas": "My cuotas",
     "payments": "My payments",
-    "logout": "Log out"
+    "roleLabel": "Resident",
+    "unknownHouse": "My house",
+    "logout": "Log out",
+    "openMenu": "Open menu",
+    "menuTitle": "Menu"
   },
   "residentHome": {
     "greeting": "Hi, {house}",

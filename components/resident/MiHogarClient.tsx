@@ -40,7 +40,7 @@ export function MiHogarClient({ data }: { data: ResidentPortalData }) {
   const isUpToDate = credits.length === 0 && morosos.length === 0;
 
   return (
-    <Column fillWidth gap="24" paddingY="24" paddingX="16" maxWidth={32}>
+    <Column fillWidth gap="24" paddingY="32" paddingX="32">
       <Column gap="4">
         <Heading variant="display-strong-s">{t('greeting', { house: houseLabel })}</Heading>
         <Text variant="body-default-m" onBackground="neutral-weak">
@@ -154,7 +154,7 @@ export function MiHogarClient({ data }: { data: ResidentPortalData }) {
         )}
       </Column>
 
-      <Button type="button" variant="secondary" fillWidth onClick={() => setReportOpen(true)}>
+      <Button type="button" variant="secondary" onClick={() => setReportOpen(true)}>
         {t('reportPayment')}
       </Button>
 
