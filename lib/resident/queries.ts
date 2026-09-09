@@ -48,11 +48,31 @@ export type ResidentCredit = { currency: Currency; balance: number };
 
 export type ResidentCommunity = { name: string; phone: string | null; grace_period_days: number };
 
+export type ResidentReportStatus = 'pending' | 'confirmed' | 'rejected';
+
+// condo_payment_reports for this house, every status -- shown on /mis-pagos
+// so a resident always sees their self-reported payment (pending, confirmed,
+// or rejected) rather than it silently vanishing once an admin reviews it.
+export type ResidentPaymentReport = {
+  id: string;
+  amount: number;
+  currency: Currency;
+  payment_date: string;
+  reference: string | null;
+  installment_ids: string[];
+  status: ResidentReportStatus;
+  // Set once an admin's confirm auto-registers the real payment (see
+  // lib/actions/paymentReports.ts's confirmPaymentReport) -- null while
+  // pending/rejected, and for a confirmed report with no tagged cuotas.
+  resulting_payment_batch_id: string | null;
+};
+
 export type ResidentPortalData = {
   house: ResidentHouse | null;
   residents: ResidentPerson[];
   installments: ResidentInstallment[];
   payments: PaymentRow[];
+  paymentReports: ResidentPaymentReport[];
   credits: ResidentCredit[];
   community: ResidentCommunity | null;
 };
@@ -66,8 +86,15 @@ export type ResidentPortalData = {
 export async function getResidentPortalData(houseId: string): Promise<ResidentPortalData> {
   const supabase = createServiceClient();
 
-  const [{ data: house }, { data: residents }, { data: installments }, { data: payments }, { data: credits }, { data: community }] =
-    await Promise.all([
+  const [
+    { data: house },
+    { data: residents },
+    { data: installments },
+    { data: payments },
+    { data: reports },
+    { data: credits },
+    { data: community },
+  ] = await Promise.all([
       supabase
         .from('condo_houses')
         .select('id, house_number, house_name, owner_name, owner_phone, owner_email')
@@ -92,6 +119,11 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
         )
         .eq('house_id', houseId)
         .order('payment_date', { ascending: false }),
+      supabase
+        .from('condo_payment_reports')
+        .select('id, amount, currency, payment_date, reference, installment_ids, status, resulting_payment_batch_id')
+        .eq('house_id', houseId)
+        .order('payment_date', { ascending: false }),
       supabase.from('condo_house_credits').select('currency, balance').eq('house_id', houseId),
       supabase.from('condo_communities').select('name, phone, grace_period_days').limit(1).maybeSingle(),
     ]);
@@ -101,6 +133,7 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
     residents: (residents as ResidentPerson[] | null) ?? [],
     installments: (installments as unknown as ResidentInstallment[] | null) ?? [],
     payments: (payments as unknown as PaymentRow[] | null) ?? [],
+    paymentReports: (reports as ResidentPaymentReport[] | null) ?? [],
     credits: (credits as ResidentCredit[] | null) ?? [],
     community: (community as ResidentCommunity | null) ?? null,
   };

@@ -409,7 +409,9 @@
       "pending": "Pending",
       "confirmed": "Confirmed",
       "rejected": "Rejected"
-    }
+    },
+    "statusWithReceipt": "{status} · {receipt}",
+    "noReceiptHint": "No cuotas selected — register it manually in Payments."
   },
   "residentAuth": {
     "heading": "Log in with your house and PIN",
@@ -517,7 +519,12 @@
     "empty": "You don't have any payments registered yet.",
     "totalFor": "Total {period}",
     "receipt": "No receipt",
-    "cuotas": "Cuotas"
+    "cuotas": "Cuotas",
+    "reportStatus": {
+      "pending": "Under review",
+      "confirmed": "Confirmed",
+      "rejected": "Rejected"
+    }
   },
   "reports": {
     "heading": "Monthly report",

@@ -88,5 +88,6 @@ export async function reportPayment(
   if (error) return { error: error.message };
 
   revalidatePath('/mi-hogar');
+  revalidatePath('/mis-pagos');
   return { success: true };
 }

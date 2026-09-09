@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { format, parseISO } from 'date-fns';
 import { Column, Row, Card, Text, Tag, Button, SegmentedControl, Feedback } from '@once-ui-system/core';
-import { updateReportStatus, getReportScreenshotUrl } from '@/lib/actions/paymentReports';
+import { confirmPaymentReport, rejectPaymentReport, getReportScreenshotUrl } from '@/lib/actions/paymentReports';
 import { currencyLabel } from '@/lib/currency';
 import type { PaymentReportRow, InstallmentLookup, ReportStatus } from './types';
 
@@ -30,6 +30,7 @@ function ReportCard({
   const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [actionError, setActionError] = useState<string | null>(null);
   const [screenshotError, setScreenshotError] = useState<string | null>(null);
   const [screenshotLoading, setScreenshotLoading] = useState(false);
 
@@ -41,10 +42,26 @@ function ReportCard({
 
   const taggedInstallments = report.installment_ids.map((id) => installmentLookup[id]).filter(Boolean);
 
-  const handleStatusChange = (status: 'confirmed' | 'rejected') => {
+  const handleConfirm = () => {
+    setActionError(null);
     startTransition(async () => {
-      const result = await updateReportStatus(report.id, status, locale);
-      if ('error' in result) return;
+      const result = await confirmPaymentReport(report.id, locale);
+      if ('error' in result) {
+        setActionError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  };
+
+  const handleReject = () => {
+    setActionError(null);
+    startTransition(async () => {
+      const result = await rejectPaymentReport(report.id, locale);
+      if ('error' in result) {
+        setActionError(result.error);
+        return;
+      }
       router.refresh();
     });
   };
@@ -72,7 +89,17 @@ function ReportCard({
               {t('reportedAt', { date: format(parseISO(report.created_at), 'dd/MM/yyyy HH:mm') })}
             </Text>
           </Column>
-          <Tag variant={statusVariant(report.status)} label={t(`status.${report.status}`)} />
+          <Tag
+            variant={statusVariant(report.status)}
+            label={
+              report.status === 'confirmed' && report.resulting_receipt_number
+                ? t('statusWithReceipt', {
+                    status: t('status.confirmed'),
+                    receipt: `#${String(report.resulting_receipt_number).padStart(4, '0')}`,
+                  })
+                : t(`status.${report.status}`)
+            }
+          />
         </Row>
 
         <Row horizontal="between" vertical="center" fillWidth wrap>
@@ -112,7 +139,12 @@ function ReportCard({
           </Column>
         )}
 
+        {report.status === 'confirmed' && !report.resulting_receipt_number && (
+          <Feedback variant="warning" description={t('noReceiptHint')} />
+        )}
+
         {screenshotError && <Feedback variant="danger" description={screenshotError} />}
+        {actionError && <Feedback variant="danger" description={actionError} />}
 
         <Row gap="8" wrap>
           {report.screenshot_path && (
@@ -122,10 +154,10 @@ function ReportCard({
           )}
           {report.status === 'pending' && (
             <>
-              <Button type="button" variant="primary" size="s" loading={isPending} onClick={() => handleStatusChange('confirmed')}>
+              <Button type="button" variant="primary" size="s" loading={isPending} onClick={handleConfirm}>
                 {t('confirm')}
               </Button>
-              <Button type="button" variant="danger" size="s" loading={isPending} onClick={() => handleStatusChange('rejected')}>
+              <Button type="button" variant="danger" size="s" loading={isPending} onClick={handleReject}>
                 {t('reject')}
               </Button>
             </>

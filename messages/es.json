@@ -409,7 +409,9 @@
       "pending": "Pendiente",
       "confirmed": "Confirmado",
       "rejected": "Rechazado"
-    }
+    },
+    "statusWithReceipt": "{status} · {receipt}",
+    "noReceiptHint": "Sin cuotas seleccionadas — regístralo manualmente en Pagos."
   },
   "residentAuth": {
     "heading": "Entra con tu casa y PIN",
@@ -517,7 +519,12 @@
     "empty": "Aún no tienes pagos registrados.",
     "totalFor": "Total {period}",
     "receipt": "Sin recibo",
-    "cuotas": "Cuotas"
+    "cuotas": "Cuotas",
+    "reportStatus": {
+      "pending": "Por revisar",
+      "confirmed": "Confirmado",
+      "rejected": "Rechazado"
+    }
   },
   "reports": {
     "heading": "Reporte mensual",

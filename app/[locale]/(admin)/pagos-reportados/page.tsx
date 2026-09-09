@@ -16,7 +16,7 @@ export default async function PaymentReportsPage() {
   const { data: reports } = await supabase
     .from('condo_payment_reports')
     .select(
-      'id, house_id, amount, currency, payment_date, reference, notes, installment_ids, status, screenshot_path, created_at, condo_houses(house_number, house_name)',
+      'id, house_id, amount, currency, payment_date, reference, notes, installment_ids, status, screenshot_path, created_at, resulting_payment_batch_id, resulting_receipt_number, condo_houses(house_number, house_name)',
     )
     .order('created_at', { ascending: false });
 

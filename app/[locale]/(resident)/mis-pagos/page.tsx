@@ -14,5 +14,12 @@ export default async function MisPagosPage() {
 
   const pendingInstallments = data.installments.filter((i) => i.status !== 'paid');
 
-  return <MisPagosClient payments={data.payments} pendingInstallments={pendingInstallments} />;
+  return (
+    <MisPagosClient
+      payments={data.payments}
+      installments={data.installments}
+      pendingInstallments={pendingInstallments}
+      reports={data.paymentReports}
+    />
+  );
 }
