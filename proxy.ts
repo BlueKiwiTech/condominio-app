@@ -9,7 +9,7 @@ const handleI18nRouting = createMiddleware(routing);
 // Admin-only routes, matched against the pathname with any locale prefix
 // stripped (route groups like (admin) don't appear in the URL at all).
 // Phase 5+ will add more entries here as admin CRUD screens land.
-const PROTECTED_PATHS = ['/dashboard', '/houses', '/cuotas', '/pagos', '/pagos-reportados', '/reporte'];
+const PROTECTED_PATHS = ['/dashboard', '/houses', '/cuotas', '/pagos', '/pagos-reportados', '/reporte', '/gastos'];
 
 // Resident-only routes — gated by the signed jose cookie (Pattern A), never
 // Supabase Auth.

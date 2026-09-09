@@ -16,6 +16,7 @@ import {
   Dialog,
   DateInput,
   Feedback,
+  SmartLink,
   type TableHeader,
 } from '@once-ui-system/core';
 import { markExpensePaidSchema, type MarkExpensePaidInput } from '@/lib/validation/gastos';
@@ -39,7 +40,7 @@ export function GastosPageClient({
   const t = useTranslations('gastos');
   const tv = useTranslations('validation.gastos');
   const locale = useLocale();
-  const [, startToggleTransition] = useTransition();
+  const [isTogglingActive, startToggleTransition] = useTransition();
   const [isMarkingPaid, startMarkPaidTransition] = useTransition();
 
   const [statusFilter, setStatusFilter] = useState<'all' | ExpenseStatus>('all');
@@ -94,8 +95,12 @@ export function GastosPageClient({
   };
 
   const toggleActive = (templateId: string, active: boolean) => {
+    setServerError(null);
     startToggleTransition(async () => {
-      await setExpenseTemplateActive(templateId, active, locale);
+      const result = await setExpenseTemplateActive(templateId, active, locale);
+      if ('error' in result) {
+        setServerError(result.error);
+      }
     });
   };
 
@@ -127,6 +132,14 @@ export function GastosPageClient({
 
   return (
     <Column fillWidth gap="24">
+      {serverError && <Feedback variant="danger" description={serverError} />}
+      <Row horizontal="end" fillWidth>
+        <SmartLink href="/gastos/new">
+          <Button variant="primary" type="button">
+            {t('newExpense')}
+          </Button>
+        </SmartLink>
+      </Row>
       <Column gap="12" fillWidth>
         <Heading variant="heading-strong-s">{t('templates.heading')}</Heading>
         {fixedTemplates.length === 0 ? (
@@ -146,7 +159,12 @@ export function GastosPageClient({
                 border="neutral-alpha-weak"
               >
                 <Text variant="label-default-s">{tpl.name}</Text>
-                <Button size="s" variant="secondary" onClick={() => toggleActive(tpl.id, !tpl.active)}>
+                <Button
+                  size="s"
+                  variant="secondary"
+                  loading={isTogglingActive}
+                  onClick={() => toggleActive(tpl.id, !tpl.active)}
+                >
                   {tpl.active ? t('actions.deactivate') : t('actions.activate')}
                 </Button>
               </Row>
