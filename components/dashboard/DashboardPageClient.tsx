@@ -22,14 +22,14 @@ import {
 import { computeMorosos, countDelinquentHouses } from '@/lib/reporting/morosos';
 import {
   collectedInMonth,
-  creditsByCurrency,
   monthlyIncomeSeries,
   outstandingByCurrency,
+  pendingExpensesInMonth,
   percentChange,
 } from '@/lib/reporting/dashboard';
 import { daysToCloseOfMonth } from '@/lib/reporting/dateMath';
 import { groupPaymentsByBatch } from '@/components/payments/types';
-import { CURRENCIES, type DashboardCredit, type DashboardHouse, type DashboardInstallment, type PaymentRow } from './types';
+import { CURRENCIES, type DashboardExpense, type DashboardHouse, type DashboardInstallment, type PaymentRow } from './types';
 import { subMonths } from 'date-fns';
 import { currencyLabel } from '@/lib/currency';
 import { ExchangeRateCard } from './ExchangeRateCard';
@@ -78,14 +78,14 @@ function CurrencyAmountList({
 export function DashboardPageClient({
   installments,
   houses,
-  credits,
+  expenses,
   payments,
   gracePeriodDays,
   exchangeRates,
 }: {
   installments: DashboardInstallment[];
   houses: DashboardHouse[];
-  credits: DashboardCredit[];
+  expenses: DashboardExpense[];
   payments: PaymentRow[];
   gracePeriodDays: number;
   exchangeRates: Record<ExchangeRateType, ExchangeRateRow | null>;
@@ -101,7 +101,7 @@ export function DashboardPageClient({
   const collectedThisMonth = useMemo(() => collectedInMonth(payments, today), [payments, today]);
   const collectedLastMonth = useMemo(() => collectedInMonth(payments, subMonths(today, 1)), [payments, today]);
   const outstanding = useMemo(() => outstandingByCurrency(installments), [installments]);
-  const favorTotals = useMemo(() => creditsByCurrency(credits), [credits]);
+  const pendingExpenses = useMemo(() => pendingExpensesInMonth(expenses, today), [expenses, today]);
 
   const morosos = useMemo(
     () => computeMorosos(installments, houses, gracePeriodDays, today),
@@ -193,12 +193,12 @@ export function DashboardPageClient({
           </Column>
         </Card>
 
-        <Card padding="24" radius="l" background="success-alpha-weak" fillWidth>
+        <Card padding="24" radius="l" background="warning-alpha-weak" fillWidth>
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('kpis.credit.title')}
+              {t('kpis.pendingExpenses.title', { month: monthLabel })}
             </Text>
-            <CurrencyAmountList amounts={favorTotals} emptyLabel={t('kpis.credit.empty')} />
+            <CurrencyAmountList amounts={pendingExpenses} emptyLabel={t('kpis.pendingExpenses.empty')} />
           </Column>
         </Card>
 

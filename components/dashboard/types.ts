@@ -27,3 +27,10 @@ export type DashboardCredit = {
   currency: Currency;
   balance: number;
 };
+
+export type DashboardExpense = {
+  currency: Currency;
+  amount: number;
+  period_date: string;
+  status: 'pending' | 'paid';
+};
