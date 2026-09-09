@@ -27,6 +27,10 @@ const GROUPS: NavGroup[] = [
     ],
   },
   {
+    titleKey: 'groups.expenses',
+    items: [{ href: '/gastos', icon: 'arrowUpRight', labelKey: 'items.gastos' }],
+  },
+  {
     titleKey: 'groups.reports',
     items: [
       { href: '/reporte', icon: 'clipboard', labelKey: 'items.report' },
