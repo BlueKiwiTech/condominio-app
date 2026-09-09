@@ -24,6 +24,14 @@
       "minInstallments": "Debe haber al menos 1 cuota.",
       "maxInstallments": "Número de cuotas demasiado alto."
     },
+    "gastos": {
+      "invalidDate": "Fecha inválida.",
+      "nameRequired": "El nombre es obligatorio.",
+      "categoryRequired": "La categoría es obligatoria.",
+      "amountPositive": "El monto debe ser mayor a 0.",
+      "minInstallments": "Debe haber al menos 1 cuota.",
+      "maxInstallments": "Número de cuotas demasiado alto."
+    },
     "payments": {
       "invalidDate": "Fecha inválida.",
       "houseRequired": "Selecciona una casa.",
@@ -104,12 +112,14 @@
     "groups": {
       "general": "General",
       "collection": "Cobranza",
+      "expenses": "Gastos",
       "reports": "Reportes"
     },
     "items": {
       "dashboard": "Panel",
       "houses": "Casas y vecinos",
       "cuotas": "Cuotas",
+      "gastos": "Gastos",
       "registerPayment": "Registrar pago",
       "paymentReports": "Pagos reportados",
       "report": "Reporte mensual",
@@ -149,9 +159,9 @@
         "title": "Saldo pendiente",
         "empty": "Sin saldo pendiente."
       },
-      "credit": {
-        "title": "Saldo a favor",
-        "empty": "Sin saldo a favor."
+      "pendingExpenses": {
+        "title": "Gastos pendientes en {month}",
+        "empty": "Sin gastos pendientes este mes."
       }
     },
     "chart": {
@@ -314,6 +324,86 @@
       "createFailed": "No se pudo crear la cuota.",
       "notFound": "Cuota no encontrada.",
       "hasPayments": "No se puede eliminar: esta cuota ya tiene pagos registrados."
+    }
+  },
+  "gastos": {
+    "heading": "Gastos",
+    "newExpense": "Nuevo gasto",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "empty": "Aún no hay gastos registrados.",
+    "table": {
+      "name": "Gasto",
+      "category": "Categoría",
+      "provider": "Proveedor",
+      "amount": "Monto",
+      "period": "Período",
+      "status": "Estado"
+    },
+    "actions": {
+      "markPaid": "Marcar pagado",
+      "activate": "Activar",
+      "deactivate": "Desactivar"
+    },
+    "kind": {
+      "fixed": "Fijo",
+      "variable": "Variable"
+    },
+    "cadence": {
+      "weekly": "Semanal",
+      "biweekly": "Quincenal",
+      "monthly": "Mensual",
+      "quarterly": "Trimestral",
+      "annual": "Anual"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "paid": "Pagado"
+    },
+    "filters": {
+      "status": "Estado",
+      "category": "Categoría",
+      "provider": "Proveedor",
+      "month": "Mes",
+      "allStatuses": "Todos",
+      "allCategories": "Todas",
+      "providerPlaceholder": "Buscar proveedor..."
+    },
+    "fields": {
+      "name": "Nombre del gasto",
+      "category": "Categoría",
+      "provider": "Proveedor (opcional)",
+      "currency": "Moneda",
+      "startDate": "Fecha de inicio"
+    },
+    "new": {
+      "heading": "Nuevo gasto"
+    },
+    "form": {
+      "kindFixed": "Fijo",
+      "kindVariable": "Variable",
+      "cadence": "Cadencia",
+      "amountPerPeriod": "Monto por período",
+      "amountTotal": "Monto total",
+      "installmentCount": "Número de cuotas",
+      "submit": "Crear gasto"
+    },
+    "markPaidDialog": {
+      "heading": "Marcar gasto como pagado",
+      "amount": "Monto final",
+      "paidDate": "Fecha de pago",
+      "notes": "Notas (opcional)",
+      "confirm": "Marcar pagado"
+    },
+    "templates": {
+      "heading": "Plantillas fijas",
+      "empty": "Aún no hay gastos fijos creados."
+    },
+    "errors": {
+      "invalid": "Datos inválidos. Revisa el formulario.",
+      "createFailed": "No se pudo crear el gasto.",
+      "notFound": "Gasto no encontrado.",
+      "alreadyPaid": "Este gasto ya fue marcado como pagado."
     }
   },
   "payments": {

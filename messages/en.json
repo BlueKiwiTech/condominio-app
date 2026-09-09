@@ -24,6 +24,14 @@
       "minInstallments": "There must be at least 1 installment.",
       "maxInstallments": "Number of installments is too high."
     },
+    "gastos": {
+      "invalidDate": "Invalid date.",
+      "nameRequired": "Name is required.",
+      "categoryRequired": "Category is required.",
+      "amountPositive": "Amount must be greater than 0.",
+      "minInstallments": "There must be at least 1 installment.",
+      "maxInstallments": "Number of installments is too high."
+    },
     "payments": {
       "invalidDate": "Invalid date.",
       "houseRequired": "Select a house.",
@@ -104,12 +112,14 @@
     "groups": {
       "general": "General",
       "collection": "Collection",
+      "expenses": "Expenses",
       "reports": "Reports"
     },
     "items": {
       "dashboard": "Dashboard",
       "houses": "Houses & residents",
       "cuotas": "Cuotas",
+      "gastos": "Expenses",
       "registerPayment": "Register payment",
       "paymentReports": "Reported payments",
       "report": "Monthly report",
@@ -149,9 +159,9 @@
         "title": "Outstanding balance",
         "empty": "No outstanding balance."
       },
-      "credit": {
-        "title": "Credit balance",
-        "empty": "No credit balance."
+      "pendingExpenses": {
+        "title": "Pending expenses in {month}",
+        "empty": "No pending expenses this month."
       }
     },
     "chart": {
@@ -314,6 +324,86 @@
       "createFailed": "Couldn't create the cuota.",
       "notFound": "Cuota not found.",
       "hasPayments": "Can't delete: this cuota already has payments registered."
+    }
+  },
+  "gastos": {
+    "heading": "Expenses",
+    "newExpense": "New expense",
+    "cancel": "Cancel",
+    "save": "Save",
+    "empty": "No expenses recorded yet.",
+    "table": {
+      "name": "Expense",
+      "category": "Category",
+      "provider": "Provider",
+      "amount": "Amount",
+      "period": "Period",
+      "status": "Status"
+    },
+    "actions": {
+      "markPaid": "Mark paid",
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    },
+    "kind": {
+      "fixed": "Fixed",
+      "variable": "Variable"
+    },
+    "cadence": {
+      "weekly": "Weekly",
+      "biweekly": "Biweekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "annual": "Annual"
+    },
+    "status": {
+      "pending": "Pending",
+      "paid": "Paid"
+    },
+    "filters": {
+      "status": "Status",
+      "category": "Category",
+      "provider": "Provider",
+      "month": "Month",
+      "allStatuses": "All",
+      "allCategories": "All",
+      "providerPlaceholder": "Search provider..."
+    },
+    "fields": {
+      "name": "Expense name",
+      "category": "Category",
+      "provider": "Provider (optional)",
+      "currency": "Currency",
+      "startDate": "Start date"
+    },
+    "new": {
+      "heading": "New expense"
+    },
+    "form": {
+      "kindFixed": "Fixed",
+      "kindVariable": "Variable",
+      "cadence": "Cadence",
+      "amountPerPeriod": "Amount per period",
+      "amountTotal": "Total amount",
+      "installmentCount": "Number of installments",
+      "submit": "Create expense"
+    },
+    "markPaidDialog": {
+      "heading": "Mark expense as paid",
+      "amount": "Final amount",
+      "paidDate": "Payment date",
+      "notes": "Notes (optional)",
+      "confirm": "Mark paid"
+    },
+    "templates": {
+      "heading": "Fixed templates",
+      "empty": "No fixed expenses created yet."
+    },
+    "errors": {
+      "invalid": "Invalid data. Check the form.",
+      "createFailed": "Could not create the expense.",
+      "notFound": "Expense not found.",
+      "alreadyPaid": "This expense was already marked as paid."
     }
   },
   "payments": {
