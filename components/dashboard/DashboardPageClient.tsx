@@ -16,6 +16,7 @@ import {
   Table,
   LineChart,
   SmartLink,
+  DataThemeProvider,
   type TableHeader,
 } from '@once-ui-system/core';
 import { computeMorosos, countDelinquentHouses } from '@/lib/reporting/morosos';
@@ -37,6 +38,16 @@ import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
 function formatAmount(amount: number, currency: string): string {
   return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
 }
+
+// Fixed per-currency identity across the three income charts below (Once
+// UI's --data-* chart-color tokens, not raw hex, so they stay theme/dark-
+// mode consistent) -- user request: Bs blue, USD green, USDT (Binance)
+// mustard/dark yellow. Kept as three SEPARATE charts rather than one
+// combined multi-series chart: a typical cuota is single/double-digit in
+// USD but 100x+ that in Bs at current exchange rates, so sharing one axis
+// would flatten the USD/USDT lines (or need a dual axis, which Once UI's
+// LineChart doesn't support and is the wrong move regardless).
+const CHART_COLOR_BY_CURRENCY: Record<string, string> = { Bs: 'blue', USD: 'green', USDT: 'yellow' };
 
 function CurrencyAmountList({
   amounts,
@@ -141,7 +152,7 @@ export function DashboardPageClient({
         </Row>
       </Row>
 
-      <Grid columns="4" m={{ columns: 2 }} s={{ columns: 1 }} gap="16" fillWidth>
+      <Grid columns="5" m={{ columns: 3 }} s={{ columns: 1 }} gap="16" fillWidth>
         <Card padding="24" radius="l" background="neutral-alpha-weak" fillWidth>
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
@@ -190,36 +201,43 @@ export function DashboardPageClient({
             <CurrencyAmountList amounts={favorTotals} emptyLabel={t('kpis.credit.empty')} />
           </Column>
         </Card>
-      </Grid>
 
-      <ExchangeRateCard rates={exchangeRates} />
+        <ExchangeRateCard rates={exchangeRates} />
+      </Grid>
 
       <Column gap="16" fillWidth>
         <Heading variant="heading-strong-s">{t('chart.heading')}</Heading>
-        <Row gap="16" wrap fillWidth>
-          {CURRENCIES.map((currency) => {
-            const hasData = series.some((point) => (point[currency] ?? 0) > 0);
-            return (
-              <Card key={currency} padding="24" radius="l" background="neutral-alpha-weak" flex={1} minWidth={16}>
-                <Column gap="12">
-                  <Text variant="label-strong-s">{currencyLabel(currency)}</Text>
-                  {hasData ? (
-                    <LineChart
-                      series={{ key: currency }}
-                      data={series.map((p) => ({ label: p.label, [currency]: p[currency] ?? 0 }))}
-                      axis="x"
-                      legend={{ display: false }}
-                    />
-                  ) : (
-                    <Text variant="body-default-s" onBackground="neutral-weak">
-                      {t('chart.empty', { currency: currencyLabel(currency) })}
-                    </Text>
-                  )}
-                </Column>
-              </Card>
-            );
-          })}
-        </Row>
+        {/* Half the app-wide default chart height (24rem) -- LineChart itself
+            has no height prop; its drawing area is driven entirely by the
+            DataThemeProvider context (components/Providers.tsx sets the
+            24rem default for the whole app), so a local nested provider is
+            the only way to shrink just these three charts. */}
+        <DataThemeProvider height={12}>
+          <Row gap="16" wrap fillWidth>
+            {CURRENCIES.map((currency) => {
+              const hasData = series.some((point) => (point[currency] ?? 0) > 0);
+              return (
+                <Card key={currency} padding="24" radius="l" background="neutral-alpha-weak" flex={1} minWidth={16}>
+                  <Column gap="12">
+                    <Text variant="label-strong-s">{currencyLabel(currency)}</Text>
+                    {hasData ? (
+                      <LineChart
+                        series={{ key: currency, color: CHART_COLOR_BY_CURRENCY[currency] }}
+                        data={series.map((p) => ({ label: p.label, [currency]: p[currency] ?? 0 }))}
+                        axis="x"
+                        legend={{ display: false }}
+                      />
+                    ) : (
+                      <Text variant="body-default-s" onBackground="neutral-weak">
+                        {t('chart.empty', { currency: currencyLabel(currency) })}
+                      </Text>
+                    )}
+                  </Column>
+                </Card>
+              );
+            })}
+          </Row>
+        </DataThemeProvider>
       </Column>
 
       <Column gap="16" fillWidth>

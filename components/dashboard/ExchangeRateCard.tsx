@@ -50,7 +50,7 @@ function RateColumn({ rateType, label, row }: { rateType: ExchangeRateType; labe
   };
 
   return (
-    <Column gap="8" flex={1} minWidth={16}>
+    <Column gap="8" fillWidth>
       <Text variant="label-default-s" onBackground="neutral-weak">
         {label}
       </Text>
@@ -103,18 +103,21 @@ function RateColumn({ rateType, label, row }: { rateType: ExchangeRateType; labe
 // Purely a reference for the admin (PLAN.md's "cada quien saca la cuenta"
 // decision -- payments never auto-convert). Sourced daily by
 // app/api/cron/exchange-rate/route.ts, or set by hand here at any time;
-// both write to the same condo_exchange_rates history table.
+// both write to the same condo_exchange_rates history table. Rendered as a
+// 5th card alongside the KPI grid (components/dashboard/DashboardPageClient.
+// tsx) -- BCV/Binance stacked rather than side-by-side so both fit in one
+// grid-column-width card instead of needing their own full-width row.
 export function ExchangeRateCard({ rates }: { rates: Record<ExchangeRateType, ExchangeRateRow | null> }) {
   const t = useTranslations('dashboard.exchangeRate');
 
   return (
     <Card padding="24" radius="l" background="neutral-alpha-weak" fillWidth>
       <Column gap="16" fillWidth>
-        <Text variant="label-strong-s">{t('heading')}</Text>
-        <Row gap="24" wrap fillWidth>
-          <RateColumn rateType="bcv" label={t('bcv')} row={rates.bcv} />
-          <RateColumn rateType="binance" label={t('binance')} row={rates.binance} />
-        </Row>
+        <Text variant="label-default-s" onBackground="neutral-weak">
+          {t('heading')}
+        </Text>
+        <RateColumn rateType="bcv" label={t('bcv')} row={rates.bcv} />
+        <RateColumn rateType="binance" label={t('binance')} row={rates.binance} />
       </Column>
     </Card>
   );
