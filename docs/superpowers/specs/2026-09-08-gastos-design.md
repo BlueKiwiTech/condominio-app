@@ -37,7 +37,9 @@ The expense *definition*, community-wide (no `house_id`).
 - `kind text not null` — `'fixed' | 'variable'`
 - `cadence text` — `'weekly'|'biweekly'|'monthly'|'quarterly'|'annual'`; required when `kind='fixed'`, null when `kind='variable'`
 - `currency text not null` — `'USD'|'Bs'|'USDT'`
-- `default_amount numeric not null` — seed value copied into each new instance; the actual per-period amount is edited on the instance, not here
+- `default_amount numeric not null` — meaning depends on `kind`:
+  - `kind='fixed'`: the seed value copied as-is into each new instance's `amount`; the actual per-period amount is then edited on the instance, not here.
+  - `kind='variable'`: the **total** amount for the whole expense, split across `installment_count` instances at generation time (same `splitAmount` logic already used for special-divided cuotas in `lib/cuotas/generate.ts` — integer-cents split, remainder absorbed by the last installment so the sum is exact).
 - `start_date date not null`
 - `installment_count int` — required when `kind='variable'` (finite series, staggered due dates, same pattern as special cuotas' `template_id` + `installment_number`); null when `kind='fixed'` (indefinite — no total)
 - `active boolean not null default true` — sets to false to stop generating future instances of a fixed template without deleting history
@@ -66,7 +68,7 @@ RLS: deny-by-default like every other table; admin-only policies (no resident po
 
 ## Generation mechanics
 
-- **Fixed templates**: a daily Vercel Cron (`vercel.ts` → `crons: [{ path: '/api/cron/generate-expenses', schedule: '0 6 * * *' }]`) walks all `active=true, kind='fixed'` templates. For each, computes whether the next `period_date` (based on `cadence` from the last generated instance, or `start_date` if none exist yet) has arrived, and inserts the new pending instance — guarded by the `(template_id, period_date)` unique constraint so a retry or double-run cron invocation can't duplicate.
+- **Fixed templates**: a daily Vercel Cron, added to the existing `vercel.json` (repo already uses this file, not `vercel.ts`) — `{ "path": "/api/cron/generate-expenses", "schedule": "0 6 * * *" }` — walks all `active=true, kind='fixed'` templates. For each, computes whether the next `period_date` (based on `cadence` from the last generated instance, or `start_date` if none exist yet) has arrived, and inserts the new pending instance — guarded by the `(template_id, period_date)` unique constraint so a retry or double-run cron invocation can't duplicate.
 - **Variable templates**: all `installment_count` instances are generated at template-creation time in one transaction, with staggered `period_date`s — same idempotent-generation approach already used for special cuotas, no cron involved.
 
 ## Admin UI
@@ -86,7 +88,9 @@ In the existing 5-column KPI grid (`components/dashboard/DashboardPageClient.tsx
 
 ## Testing
 
-- Idempotency: running the cron twice in the same period must not create duplicate instances (unique constraint + guard).
-- Currency isolation: dashboard KPI and list filters must never sum across currencies.
-- RLS: resident-scoped client must not be able to read `condo_expense_templates`/`condo_expenses` at all.
-- Variable template creation: N instances generated transactionally with correct staggered `period_date`s, matching `installment_count`.
+No automated test suite exists anywhere in this repo (confirmed: no `test` script, no `*.test.ts`, no `__tests__`). Verification stays manual/behavioral, consistent with every prior phase in PLAN.md:
+
+- Idempotency: running the cron twice in the same period must not create duplicate instances (unique constraint + guard) — verify via two manual invocations of the cron route.
+- Currency isolation: dashboard KPI and list filters must never sum across currencies — verify visually with mixed-currency seed data.
+- RLS: resident-scoped client must not be able to read `condo_expense_templates`/`condo_expenses` at all — verify via a direct query using the resident-scoped client.
+- Variable template creation: N instances generated transactionally with correct staggered `period_date`s and split amounts, matching `installment_count` — verify via manual creation + a DB query.
