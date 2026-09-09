@@ -90,19 +90,17 @@ export function PaymentFormClient({
   // a house change is a direct consequence of that one user action, not
   // something to "synchronize" reactively.
 
-  // House change: default every pending installment (any currency) to
-  // checked — the common case is "pay everything currently due"; the admin
-  // can uncheck some (PMNT-03: adjustable, supports partial payment).
-  // Currency defaults to the oldest installment's own currency as a
-  // starting point, but is freely changeable regardless of selection.
+  // House change: nothing pre-checked — the admin picks which cuota(s) this
+  // payment covers (PMNT-03: adjustable, supports partial payment). Currency
+  // defaults to the oldest installment's own currency as a starting point,
+  // but is freely changeable regardless of selection.
   const handleHouseSelect = (id: string) => {
     setHouseId(id);
     const nextInstallments = sortOldestFirst(pendingInstallments.filter((i) => i.house_id === id));
-    const nextIds = nextInstallments.map((i) => i.id);
     setCurrency(nextInstallments[0]?.currency ?? null);
-    setSelectedIds(nextIds);
+    setSelectedIds([]);
     setAmountEdited(false);
-    setAmountReceived(suggestedAmountFor(nextIds, nextInstallments));
+    setAmountReceived(0);
   };
 
   const toggleInstallment = (id: string) => {
