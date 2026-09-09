@@ -377,7 +377,9 @@
       "startDate": "Start date"
     },
     "new": {
-      "heading": "New expense"
+      "heading": "New expense",
+      "previewHeading": "Preview",
+      "previewEmpty": "Fill in the total amount and start date to see the preview."
     },
     "form": {
       "kindFixed": "Fixed",

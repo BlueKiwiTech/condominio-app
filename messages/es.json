@@ -377,7 +377,9 @@
       "startDate": "Fecha de inicio"
     },
     "new": {
-      "heading": "Nuevo gasto"
+      "heading": "Nuevo gasto",
+      "previewHeading": "Resumen",
+      "previewEmpty": "Completa el monto total y la fecha de inicio para ver la vista previa."
     },
     "form": {
       "kindFixed": "Fijo",

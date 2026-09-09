@@ -241,10 +241,10 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
 
       {isVariable && (
         <Column gap="12" flex={1} minWidth={16} padding="24" radius="l" background="neutral-alpha-weak" fitHeight>
-          <Heading variant="heading-strong-s">{t('new.heading')}</Heading>
+          <Heading variant="heading-strong-s">{t('new.previewHeading')}</Heading>
           {!preview ? (
             <Text variant="body-default-s" onBackground="neutral-weak">
-              {t('form.amountTotal')}
+              {t('new.previewEmpty')}
             </Text>
           ) : (
             <Column gap="4">
