@@ -1,0 +1,24 @@
+-- condo_payments_receipt_number_uidx (20260906140000_phase5_payments.sql) was
+-- a plain per-ROW unique index on receipt_number, even though that same
+-- migration's own comment describes the intent as "one value per payment
+-- BATCH (all condo_payments rows sharing a payment_batch_id get the same
+-- receipt number)". Those two things are contradictory: the index makes it
+-- impossible for more than one row to ever share a receipt_number, which is
+-- exactly what registerPayment/confirmPaymentReport/
+-- sweepCreditForNewInstallments all intentionally do for a payment covering
+-- more than one cuota -- so registering (or auto-confirming) any multi-cuota
+-- payment always failed with "duplicate key value violates unique
+-- constraint condo_payments_receipt_number_uidx" on the second row of the
+-- INSERT.
+--
+-- Uniqueness ACROSS different batches is already guaranteed by
+-- condo_next_receipt_number() itself (a plain nextval() -- Postgres
+-- sequences never repeat a value, regardless of concurrency), called from
+-- exactly one shared code path (lib/payments/applyAllocation.ts). There's no
+-- way to express "unique per batch, repeatable within a batch" as a single
+-- index on this denormalized table without introducing a separate
+-- condo_payment_batches table -- out of scope for this fix. Instead this
+-- just drops the over-strict index, trusting application code the same way
+-- payment_batch_id itself already has zero DB-level uniqueness/FK
+-- constraint (see initial_schema.sql).
+drop index if exists condo_payments_receipt_number_uidx;

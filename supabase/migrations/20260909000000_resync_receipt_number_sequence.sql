@@ -1,0 +1,14 @@
+-- One-time fix: condo_payments_receipt_seq had fallen behind the actual max
+-- receipt_number already present in condo_payments (some existing row(s)
+-- ended up with a receipt_number that was never assigned via
+-- condo_next_receipt_number()'s nextval() call -- e.g. manually inserted or
+-- restored test/seed data), causing a fresh nextval() to collide with an
+-- existing row and fail condo_payments_receipt_number_uidx on the very next
+-- real payment registered through the app ("duplicate key value violates
+-- unique constraint condo_payments_receipt_number_uidx").
+--
+-- setval() below realigns the sequence to the table's current max so the
+-- next nextval() call resumes at max + 1. Safe to run more than once
+-- (idempotent: recomputes from the table's current state every time), and a
+-- no-op if condo_payments is empty (coalesce to 0, so the next value is 1).
+select setval('condo_payments_receipt_seq', coalesce((select max(receipt_number) from condo_payments), 0));
