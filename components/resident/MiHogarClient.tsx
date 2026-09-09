@@ -107,7 +107,11 @@ export function MiHogarClient({ data }: { data: ResidentPortalData }) {
       </Column>
 
       {reportOpen && (
-        <ReportPaymentDialog pendingInstallments={pendingInstallments} onClose={() => setReportOpen(false)} />
+        <ReportPaymentDialog
+          pendingInstallments={pendingInstallments}
+          exchangeRates={data.exchangeRates}
+          onClose={() => setReportOpen(false)}
+        />
       )}
     </Column>
   );

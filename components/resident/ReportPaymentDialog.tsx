@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { format, parseISO } from 'date-fns';
 import {
@@ -19,6 +19,7 @@ import {
 import { reportPayment } from '@/lib/actions/residentPayments';
 import { toDateOnly } from '@/lib/cuotas/generate';
 import { CURRENCY_SELECT_OPTIONS, currencyLabel } from '@/lib/currency';
+import { referenceUsdAmount, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 import type { ResidentInstallment, Currency } from '@/lib/resident/queries';
 
 function formatAmount(amount: number, currency: string): string {
@@ -33,9 +34,11 @@ function formatAmount(amount: number, currency: string): string {
 // never marks anything paid.
 export function ReportPaymentDialog({
   pendingInstallments,
+  exchangeRates,
   onClose,
 }: {
   pendingInstallments: ResidentInstallment[];
+  exchangeRates: Record<ExchangeRateType, ExchangeRateRow | null>;
   onClose: () => void;
 }) {
   const t = useTranslations('residentHome.reportPaymentDialog');
@@ -110,6 +113,14 @@ export function ReportPaymentDialog({
   const handleCurrencySelect = (value: string | string[]) => {
     setCurrency((Array.isArray(value) ? value[0] : value) as Currency);
   };
+
+  // Reference only (PLAN.md's "cada quien saca la cuenta" decision) -- never
+  // sent to the server. Null (renders nothing) for USD, or whenever the
+  // matching rate is missing/stale.
+  const usdReference = useMemo(
+    () => (amount === '' ? null : referenceUsdAmount(amount, currency, exchangeRates)),
+    [amount, currency, exchangeRates],
+  );
 
   const canSubmit = amount !== '' && amount > 0 && paymentDate;
 
@@ -206,6 +217,11 @@ export function ReportPaymentDialog({
               onSelect={handleCurrencySelect}
             />
           </Row>
+          {usdReference !== null && (
+            <Text variant="body-default-xs" onBackground="neutral-weak">
+              {t('usdReference', { amount: usdReference.toFixed(2), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
+            </Text>
+          )}
           <Text variant="body-default-xs" onBackground="neutral-weak">
             {t('currencyFreeHint')}
           </Text>

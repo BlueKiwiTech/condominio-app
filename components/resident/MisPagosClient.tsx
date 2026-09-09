@@ -8,6 +8,7 @@ import { groupPaymentsByBatch, type PaymentBatch, type PaymentRow } from '@/comp
 import { currencyLabel } from '@/lib/currency';
 import { ReportPaymentDialog } from './ReportPaymentDialog';
 import type { ResidentInstallment, ResidentPaymentReport, ResidentReportStatus } from '@/lib/resident/queries';
+import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
 
 function formatAmount(amount: number, currency: string): string {
   return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
@@ -28,11 +29,13 @@ export function MisPagosClient({
   installments,
   pendingInstallments,
   reports,
+  exchangeRates,
 }: {
   payments: PaymentRow[];
   installments: ResidentInstallment[];
   pendingInstallments: ResidentInstallment[];
   reports: ResidentPaymentReport[];
+  exchangeRates: Record<ExchangeRateType, ExchangeRateRow | null>;
 }) {
   const t = useTranslations('residentPayments');
   const tHome = useTranslations('residentHome');
@@ -170,7 +173,11 @@ export function MisPagosClient({
       )}
 
       {reportOpen && (
-        <ReportPaymentDialog pendingInstallments={pendingInstallments} onClose={() => setReportOpen(false)} />
+        <ReportPaymentDialog
+          pendingInstallments={pendingInstallments}
+          exchangeRates={exchangeRates}
+          onClose={() => setReportOpen(false)}
+        />
       )}
     </Column>
   );

@@ -8,6 +8,7 @@ import { createServiceClient } from '@/lib/supabase/service';
 import type { InstallmentStatus } from '@/lib/cuotas/status';
 import type { InstallmentType } from '@/components/cuotas/types';
 import type { PaymentRow } from '@/components/payments/types';
+import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
 
 export type Currency = 'USD' | 'Bs' | 'USDT';
 
@@ -75,6 +76,11 @@ export type ResidentPortalData = {
   paymentReports: ResidentPaymentReport[];
   credits: ResidentCredit[];
   community: ResidentCommunity | null;
+  // Community-wide (not house-scoped), reference-only for "Reportar un
+  // pago" (lib/exchangeRate.ts's referenceUsdAmount) -- fetched via the
+  // service-role client since condo_exchange_rates' RLS policy is admin-only
+  // and residents never get a Supabase Auth session (Pattern A).
+  exchangeRates: Record<ExchangeRateType, ExchangeRateRow | null>;
 };
 
 /**
@@ -94,6 +100,8 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
     { data: reports },
     { data: credits },
     { data: community },
+    { data: bcvRate },
+    { data: binanceRate },
   ] = await Promise.all([
       supabase
         .from('condo_houses')
@@ -126,6 +134,20 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
         .order('payment_date', { ascending: false }),
       supabase.from('condo_house_credits').select('currency, balance').eq('house_id', houseId),
       supabase.from('condo_communities').select('name, phone, grace_period_days').limit(1).maybeSingle(),
+      supabase
+        .from('condo_exchange_rates')
+        .select('rate_type, rate, source, updated_at')
+        .eq('rate_type', 'bcv')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('condo_exchange_rates')
+        .select('rate_type, rate, source, updated_at')
+        .eq('rate_type', 'binance')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
   return {
@@ -136,5 +158,9 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
     paymentReports: (reports as ResidentPaymentReport[] | null) ?? [],
     credits: (credits as ResidentCredit[] | null) ?? [],
     community: (community as ResidentCommunity | null) ?? null,
+    exchangeRates: {
+      bcv: (bcvRate as ExchangeRateRow | null) ?? null,
+      binance: (binanceRate as ExchangeRateRow | null) ?? null,
+    },
   };
 }

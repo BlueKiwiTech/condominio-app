@@ -20,6 +20,7 @@ export default async function MisPagosPage() {
       installments={data.installments}
       pendingInstallments={pendingInstallments}
       reports={data.paymentReports}
+      exchangeRates={data.exchangeRates}
     />
   );
 }

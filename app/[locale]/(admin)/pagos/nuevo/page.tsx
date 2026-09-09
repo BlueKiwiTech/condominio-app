@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Column, Heading } from '@once-ui-system/core';
 import { createClient } from '@/lib/supabase/server';
+import { getLatestExchangeRates } from '@/lib/actions/exchangeRate';
 import { PaymentFormClient } from '@/components/payments/PaymentFormClient';
 import type { HouseOption, PendingInstallment, HouseCredit } from '@/components/payments/types';
 
@@ -8,7 +9,7 @@ export default async function NuevoPagoPage() {
   const t = await getTranslations('payments.new');
   const supabase = await createClient();
 
-  const [{ data: houses }, { data: installments }, { data: credits }] = await Promise.all([
+  const [{ data: houses }, { data: installments }, { data: credits }, exchangeRates] = await Promise.all([
     supabase.from('condo_houses').select('id, house_number, house_name, owner_name').order('house_number'),
     supabase
       .from('condo_installments')
@@ -16,6 +17,7 @@ export default async function NuevoPagoPage() {
       .in('status', ['pending', 'partial'])
       .order('due_date'),
     supabase.from('condo_house_credits').select('house_id, currency, balance').gt('balance', 0),
+    getLatestExchangeRates(),
   ]);
 
   return (
@@ -25,6 +27,7 @@ export default async function NuevoPagoPage() {
         houses={(houses as HouseOption[] | null) ?? []}
         pendingInstallments={(installments as PendingInstallment[] | null) ?? []}
         houseCredits={(credits as HouseCredit[] | null) ?? []}
+        exchangeRates={exchangeRates}
       />
     </Column>
   );

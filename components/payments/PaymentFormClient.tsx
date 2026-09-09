@@ -24,16 +24,19 @@ import { registerPayment } from '@/lib/actions/payments';
 import { allocateFunds, sortOldestFirst } from '@/lib/payments/allocate';
 import { toDateOnly } from '@/lib/cuotas/generate';
 import { currencyLabel, CURRENCY_SELECT_OPTIONS } from '@/lib/currency';
+import { referenceUsdAmount, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 import type { HouseOption, PendingInstallment, HouseCredit, Currency } from './types';
 
 export function PaymentFormClient({
   houses,
   pendingInstallments,
   houseCredits,
+  exchangeRates,
 }: {
   houses: HouseOption[];
   pendingInstallments: PendingInstallment[];
   houseCredits: HouseCredit[];
+  exchangeRates: Record<ExchangeRateType, ExchangeRateRow | null>;
 }) {
   const t = useTranslations('payments.new');
   const locale = useLocale();
@@ -84,6 +87,14 @@ export function PaymentFormClient({
     const fundsAvailable = (Number.isFinite(amountReceived) ? amountReceived : 0) + existingCredit;
     return allocateFunds(selectedInstallments, fundsAvailable);
   }, [selectedInstallments, amountReceived, existingCredit]);
+
+  // Reference only (PLAN.md's "cada quien saca la cuenta" decision) -- never
+  // sent to the server, never affects the allocation above. Null (renders
+  // nothing) for USD, or whenever the matching rate is missing/stale.
+  const usdReference = useMemo(
+    () => (currency ? referenceUsdAmount(amountReceived, currency, exchangeRates) : null),
+    [amountReceived, currency, exchangeRates],
+  );
 
   // Every selection change below is handled imperatively (event handlers),
   // not via useEffect + setState — the selection/amount reset that follows
@@ -207,6 +218,11 @@ export function PaymentFormClient({
                 onSelect={(value) => setCurrency((Array.isArray(value) ? value[0] : value) as Currency)}
               />
             </Row>
+            {usdReference !== null && (
+              <Text variant="body-default-xs" onBackground="neutral-weak">
+                {t('usdReference', { amount: usdReference.toFixed(2), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
+              </Text>
+            )}
             <Text variant="body-default-xs" onBackground="neutral-weak">
               {t('currencyFreeHint')}
             </Text>
