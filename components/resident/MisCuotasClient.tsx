@@ -33,7 +33,7 @@ function InstallmentCard({ inst, today, statusLabels }: { inst: ResidentInstallm
         </Text>
         <Row horizontal="between" vertical="center" fillWidth>
           <Text variant="body-default-s">{formatAmount(inst.amount - inst.amount_paid, inst.currency)}</Text>
-          <Tag variant={statusVariant(status)} label={statusLabels[status]} />
+          <Tag variant={statusVariant(status)} label={statusLabels[status]} marginLeft="8" />
         </Row>
       </Column>
     </Card>
