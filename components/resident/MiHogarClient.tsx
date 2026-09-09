@@ -78,59 +78,6 @@ export function MiHogarClient({ data }: { data: ResidentPortalData }) {
         ))}
       </Column>
 
-      <Card padding="20" radius="l" fillWidth border="neutral-alpha-weak">
-        <Column gap="16">
-          <Heading variant="heading-strong-s">{t('houseInfo.heading')}</Heading>
-          <Row gap="24" wrap>
-            <Column gap="4">
-              <Text variant="label-default-s" onBackground="neutral-weak">
-                {t('houseInfo.houseNumber')}
-              </Text>
-              <Text variant="body-default-m">{houseLabel}</Text>
-            </Column>
-            {house.owner_name && (
-              <Column gap="4">
-                <Text variant="label-default-s" onBackground="neutral-weak">
-                  {t('houseInfo.owner')}
-                </Text>
-                <Text variant="body-default-m">{house.owner_name}</Text>
-              </Column>
-            )}
-            {house.owner_phone && (
-              <Column gap="4">
-                <Text variant="label-default-s" onBackground="neutral-weak">
-                  {t('houseInfo.phone')}
-                </Text>
-                <Text variant="body-default-m">{house.owner_phone}</Text>
-              </Column>
-            )}
-            {house.owner_email && (
-              <Column gap="4">
-                <Text variant="label-default-s" onBackground="neutral-weak">
-                  {t('houseInfo.email')}
-                </Text>
-                <Text variant="body-default-m">{house.owner_email}</Text>
-              </Column>
-            )}
-          </Row>
-          {data.residents.length > 0 && (
-            <Column gap="8">
-              <Text variant="label-default-s" onBackground="neutral-weak">
-                {t('houseInfo.residents')}
-              </Text>
-              <Column gap="4">
-                {data.residents.map((r) => (
-                  <Text key={r.id} variant="body-default-s">
-                    {r.resident_name}
-                    {r.resident_phone ? ` · ${r.resident_phone}` : ''}
-                  </Text>
-                ))}
-              </Column>
-            </Column>
-          )}
-        </Column>
-      </Card>
-
       <Column gap="12" fillWidth>
         <Row horizontal="between" vertical="center" fillWidth wrap gap="8">
           <Heading variant="heading-strong-s">{t('upcoming.heading')}</Heading>

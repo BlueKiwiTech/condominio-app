@@ -435,6 +435,7 @@
     "home": "My home",
     "cuotas": "My cuotas",
     "payments": "My payments",
+    "profile": "Profile",
     "roleLabel": "Resident",
     "unknownHouse": "My house",
     "logout": "Log out",
@@ -447,14 +448,6 @@
     "upToDate": "You're up to date. Thank you!",
     "creditLabel": "Credit balance",
     "debtLabel": "You owe since {date}",
-    "houseInfo": {
-      "heading": "My house",
-      "houseNumber": "House",
-      "owner": "Owner",
-      "phone": "Phone",
-      "email": "Email",
-      "residents": "Residents"
-    },
     "upcoming": {
       "heading": "Coming up",
       "empty": "You have no upcoming cuotas."
@@ -483,6 +476,15 @@
       "close": "Close",
       "successMessage": "Done! Your report was sent. The board will review and confirm it."
     }
+  },
+  "residentPerfil": {
+    "heading": "Profile",
+    "subtitle": "Your house details and registered residents.",
+    "houseNumber": "House",
+    "owner": "Owner",
+    "phone": "Phone",
+    "email": "Email",
+    "residents": "Residents"
   },
   "residentCuotas": {
     "heading": "My cuotas",

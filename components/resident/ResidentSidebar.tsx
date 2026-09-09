@@ -7,12 +7,13 @@ import { Row, Column, SmartLink, Icon, Text, Button, IconButton, Dialog, type Ic
 import { residentLogout } from '@/lib/actions/residentAuth';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 
-type NavItem = { href: string; icon: IconName; labelKey: 'home' | 'cuotas' | 'payments' };
+type NavItem = { href: string; icon: IconName; labelKey: 'home' | 'cuotas' | 'payments' | 'profile' };
 
 const ITEMS: NavItem[] = [
-  { href: '/mi-hogar', icon: 'person', labelKey: 'home' },
+  { href: '/mi-hogar', icon: 'radialGauge', labelKey: 'home' },
   { href: '/mis-cuotas', icon: 'calendar', labelKey: 'cuotas' },
   { href: '/mis-pagos', icon: 'document', labelKey: 'payments' },
+  { href: '/perfil', icon: 'person', labelKey: 'profile' },
 ];
 
 // Resident (resident)/* sidebar -- deliberately mirrors components/admin/
