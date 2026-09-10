@@ -1,14 +1,15 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { format, parseISO } from 'date-fns';
+import { useTranslations, useLocale } from 'next-intl';
+import { parseISO } from 'date-fns';
 import { Column, Row, Card, Heading, Text, Tag, Button } from '@once-ui-system/core';
 import { computeMorosos } from '@/lib/reporting/morosos';
 import { creditsByCurrency } from '@/lib/reporting/dashboard';
 import { upcomingInstallments } from '@/lib/resident/portal';
 import { ReportPaymentDialog } from './ReportPaymentDialog';
 import { currencyLabel } from '@/lib/currency';
+import { formatShortDate } from '@/lib/dateFormat';
 import type { ResidentPortalData } from '@/lib/resident/queries';
 
 function formatAmount(amount: number, currency: string): string {
@@ -17,6 +18,7 @@ function formatAmount(amount: number, currency: string): string {
 
 export function MiHogarClient({ data }: { data: ResidentPortalData }) {
   const t = useTranslations('residentHome');
+  const locale = useLocale();
   const house = data.house!;
   const today = useMemo(() => new Date(), []);
   const [reportOpen, setReportOpen] = useState(false);
@@ -70,7 +72,7 @@ export function MiHogarClient({ data }: { data: ResidentPortalData }) {
           <Card key={`debt-${m.currency}`} padding="20" radius="l" background="danger-alpha-weak" fillWidth>
             <Column gap="4">
               <Text variant="label-default-s" onBackground="neutral-weak">
-                {t('debtLabel', { date: format(parseISO(m.owedSince), 'dd/MM/yyyy') })}
+                {t('debtLabel', { date: formatShortDate(parseISO(m.owedSince), locale) })}
               </Text>
               <Text variant="heading-strong-l">{formatAmount(m.owed, m.currency)}</Text>
             </Column>
@@ -96,7 +98,7 @@ export function MiHogarClient({ data }: { data: ResidentPortalData }) {
                 <Column gap="2">
                   <Text variant="label-strong-s">{inst.name}</Text>
                   <Text variant="body-default-xs" onBackground="neutral-weak">
-                    {format(parseISO(inst.due_date), 'dd/MM/yyyy')}
+                    {formatShortDate(parseISO(inst.due_date), locale)}
                   </Text>
                 </Column>
                 <Tag variant="info" label={formatAmount(inst.amount - inst.amount_paid, inst.currency)} />

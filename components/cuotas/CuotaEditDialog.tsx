@@ -5,12 +5,11 @@ import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
-import { format } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
 import { Dialog, Column, Row, Input, Textarea, Select, DateInput, Button, Feedback, Text } from '@once-ui-system/core';
 import { updateTemplateSchema, type UpdateTemplateInput } from '@/lib/validation/cuotas';
 import { updateInstallmentTemplate, getPriceHistory, type PriceHistoryEntry } from '@/lib/actions/cuotas';
 import { toDateOnly } from '@/lib/cuotas/generate';
+import { formatShortDate } from '@/lib/dateFormat';
 import { CURRENCY_SELECT_OPTIONS, currencyLabel } from '@/lib/currency';
 import type { TemplateWithInstallments } from './types';
 
@@ -33,7 +32,6 @@ export function CuotaEditDialog({
   const t = useTranslations('cuotas');
   const tv = useTranslations('validation.cuotas');
   const locale = useLocale();
-  const dateLocale = locale === 'en' ? enUS : es;
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   // Not a form field (DateInput works with Date, the schema field is a
@@ -191,13 +189,13 @@ export function CuotaEditDialog({
                     <Text variant="label-default-s" onBackground="neutral-weak">
                       {entry.effective_from
                         ? t('priceHistory.effectiveFrom', {
-                            date: format(new Date(entry.effective_from), 'dd/MM/yyyy', { locale: dateLocale }),
+                            date: formatShortDate(new Date(entry.effective_from), locale),
                           })
                         : t('priceHistory.effectiveFromAll')}
                     </Text>
                   </Column>
                   <Text variant="label-default-s" onBackground="neutral-weak">
-                    {format(new Date(entry.changed_at), 'dd/MM/yyyy', { locale: dateLocale })}
+                    {formatShortDate(new Date(entry.changed_at), locale)}
                   </Text>
                 </Row>
               ))}

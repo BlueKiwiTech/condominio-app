@@ -23,6 +23,7 @@ import {
 import { markExpensePaidSchema, type MarkExpensePaidInput } from '@/lib/validation/gastos';
 import { markExpensePaid, setExpenseTemplateActive, deleteExpense, deleteExpenseTemplate } from '@/lib/actions/gastos';
 import { currencyLabel } from '@/lib/currency';
+import { formatShortDate } from '@/lib/dateFormat';
 import type { CategoryOption, ExpenseRow, ExpenseStatus, FixedTemplateRow } from './types';
 
 function formatAmount(amount: number, currency: string): string {
@@ -148,7 +149,7 @@ export function GastosPageClient({
     e.condo_expense_categories?.name ?? '—',
     e.provider ?? '—',
     formatAmount(e.amount, e.currency),
-    format(new Date(`${e.period_date}T00:00:00`), 'dd/MM/yyyy'),
+    formatShortDate(new Date(`${e.period_date}T00:00:00`), locale),
     <Tag key={`${e.id}-status`} variant={e.status === 'paid' ? 'success' : 'warning'} label={t(`status.${e.status}`)} />,
     e.status === 'pending' ? (
       <Row key={`${e.id}-action`} gap="8">

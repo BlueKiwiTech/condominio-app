@@ -1,11 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { format } from 'date-fns';
+import { useTranslations, useLocale } from 'next-intl';
 import { Column, Row, Card, Heading, Text, Chip, Tag, Button } from '@once-ui-system/core';
 import { groupPaymentsByBatch, type PaymentBatch, type PaymentRow } from '@/components/payments/types';
 import { currencyLabel } from '@/lib/currency';
+import { formatShortDate } from '@/lib/dateFormat';
 import { ReportPaymentDialog } from './ReportPaymentDialog';
 import type { ResidentInstallment, ResidentPaymentReport, ResidentReportStatus } from '@/lib/resident/queries';
 import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
@@ -39,6 +39,7 @@ export function MisPagosClient({
 }) {
   const t = useTranslations('residentPayments');
   const tHome = useTranslations('residentHome');
+  const locale = useLocale();
   const [reportOpen, setReportOpen] = useState(false);
 
   const batches = useMemo(() => groupPaymentsByBatch(payments), [payments]);
@@ -127,7 +128,7 @@ export function MisPagosClient({
                       {item.batch.receiptNumber ? `#${String(item.batch.receiptNumber).padStart(4, '0')}` : t('receipt')}
                     </Text>
                     <Text variant="body-default-xs" onBackground="neutral-weak">
-                      {format(new Date(item.batch.paymentDate), 'dd/MM/yyyy')}
+                      {formatShortDate(new Date(item.batch.paymentDate), locale)}
                     </Text>
                   </Row>
                   <Text variant="body-default-s" onBackground="neutral-weak">
@@ -152,7 +153,7 @@ export function MisPagosClient({
                   <Row horizontal="between" vertical="center" fillWidth>
                     <Tag variant={reportTagVariant(item.report.status)} label={t(`reportStatus.${item.report.status}`)} />
                     <Text variant="body-default-xs" onBackground="neutral-weak">
-                      {format(new Date(item.report.payment_date), 'dd/MM/yyyy')}
+                      {formatShortDate(new Date(item.report.payment_date), locale)}
                     </Text>
                   </Row>
                   {item.report.installment_ids.length > 0 && (

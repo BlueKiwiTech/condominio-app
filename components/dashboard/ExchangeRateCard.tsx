@@ -3,16 +3,14 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { format } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
 import { Row, Column, Card, Text, Button, Input, Feedback } from '@once-ui-system/core';
 import { setExchangeRate } from '@/lib/actions/exchangeRate';
 import { isRateFresh, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
+import { formatShortDateTime } from '@/lib/dateFormat';
 
 function RateColumn({ rateType, label, row }: { rateType: ExchangeRateType; label: string; row: ExchangeRateRow | null }) {
   const t = useTranslations('dashboard.exchangeRate');
   const locale = useLocale();
-  const dateLocale = locale === 'en' ? enUS : es;
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState('');
@@ -81,7 +79,7 @@ function RateColumn({ rateType, label, row }: { rateType: ExchangeRateType; labe
           <Text variant="heading-strong-m">{t('rateValue', { rate: row.rate.toFixed(4) })}</Text>
           <Row gap="8" vertical="center" wrap>
             <Text variant="body-default-xs" onBackground="neutral-weak">
-              {t('updatedAt', { date: format(new Date(row.updated_at), 'dd/MM HH:mm', { locale: dateLocale }) })}
+              {t('updatedAt', { date: formatShortDateTime(new Date(row.updated_at), locale) })}
             </Text>
             <Button type="button" variant="tertiary" size="s" onClick={startEditing}>
               {t('edit')}

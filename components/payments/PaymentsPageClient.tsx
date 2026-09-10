@@ -1,10 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Column, Row, Button, Table, Select, SmartLink, type TableHeader } from '@once-ui-system/core';
 import { groupPaymentsByBatch, type PaymentRow, type HouseOption } from './types';
 import { currencyLabel } from '@/lib/currency';
+import { formatShortDate } from '@/lib/dateFormat';
 
 export function PaymentsPageClient({
   initialPayments,
@@ -14,6 +15,7 @@ export function PaymentsPageClient({
   houses: HouseOption[];
 }) {
   const t = useTranslations('payments');
+  const locale = useLocale();
   const [houseFilter, setHouseFilter] = useState<string>('all');
 
   const houseOptions = [
@@ -42,7 +44,7 @@ export function PaymentsPageClient({
   ];
 
   const rows = batches.map((batch) => [
-    batch.paymentDate,
+    formatShortDate(batch.paymentDate, locale),
     batch.receiptNumber ? `#${String(batch.receiptNumber).padStart(4, '0')}` : '—',
     batch.houseLabel,
     `${batch.installmentNames.length} ${batch.installmentNames.length === 1 ? t('cuotaSingular') : t('cuotaPlural')}`,

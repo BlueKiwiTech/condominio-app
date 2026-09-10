@@ -9,6 +9,7 @@ import { computeMorosos } from '@/lib/reporting/morosos';
 import { displayStatus, groupByDueMonth, type DisplayStatus } from '@/lib/resident/portal';
 import type { ResidentPortalData, ResidentInstallment } from '@/lib/resident/queries';
 import { currencyLabel } from '@/lib/currency';
+import { formatShortDate } from '@/lib/dateFormat';
 
 function formatAmount(amount: number, currency: string): string {
   return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
@@ -23,13 +24,14 @@ function statusVariant(status: DisplayStatus): 'success' | 'info' | 'warning' | 
 }
 
 function InstallmentCard({ inst, today, statusLabels }: { inst: ResidentInstallment; today: Date; statusLabels: Record<DisplayStatus, string> }) {
+  const locale = useLocale();
   const status = displayStatus(inst, today);
   return (
     <Card padding="16" radius="l" fillWidth border="neutral-alpha-weak">
       <Column gap="8">
         <Text variant="label-strong-s">{inst.name}</Text>
         <Text variant="body-default-xs" onBackground="neutral-weak">
-          {format(parseISO(inst.due_date), 'dd/MM/yyyy')}
+          {formatShortDate(parseISO(inst.due_date), locale)}
         </Text>
         <Row horizontal="between" vertical="center" fillWidth>
           <Text variant="body-default-s">{formatAmount(inst.amount - inst.amount_paid, inst.currency)}</Text>
@@ -112,7 +114,7 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
               <Column key={m.currency} gap="4">
                 <Text variant="heading-strong-m">{formatAmount(m.owed, m.currency)}</Text>
                 <Text variant="body-default-xs" onBackground="neutral-weak">
-                  {t('overdueCard.since', { date: format(parseISO(m.owedSince), 'dd/MM/yyyy') })}
+                  {t('overdueCard.since', { date: formatShortDate(parseISO(m.owedSince), locale) })}
                 </Text>
               </Column>
             ))}

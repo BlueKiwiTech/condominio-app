@@ -32,6 +32,7 @@ import { groupPaymentsByBatch } from '@/components/payments/types';
 import { CURRENCIES, type DashboardExpense, type DashboardHouse, type DashboardInstallment, type PaymentRow } from './types';
 import { subMonths } from 'date-fns';
 import { currencyLabel } from '@/lib/currency';
+import { formatShortDate } from '@/lib/dateFormat';
 import { ExchangeRateCard } from './ExchangeRateCard';
 import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
 
@@ -125,7 +126,7 @@ export function DashboardPageClient({
     m.house_name ? `${m.house_number} · ${m.house_name}` : m.house_number,
     m.owner_name ?? '—',
     formatAmount(m.owed, m.currency),
-    format(new Date(m.owedSince), 'dd/MM/yyyy'),
+    formatShortDate(new Date(m.owedSince), locale),
     <Tag key={`${m.house_id}-${m.currency}`} variant="danger" label={String(m.daysOverdue)} />,
   ]);
 
@@ -271,7 +272,7 @@ export function DashboardPageClient({
                   <Column gap="2">
                     <Text variant="label-strong-s">{batch.houseLabel}</Text>
                     <Text variant="body-default-xs" onBackground="neutral-weak">
-                      {format(new Date(batch.paymentDate), 'dd/MM/yyyy')}
+                      {formatShortDate(new Date(batch.paymentDate), locale)}
                     </Text>
                   </Column>
                   <Text variant="label-strong-s">{formatAmount(batch.totalAmount, batch.currency)}</Text>

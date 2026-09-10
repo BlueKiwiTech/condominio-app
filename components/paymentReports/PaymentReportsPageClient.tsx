@@ -3,10 +3,11 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { format, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { Column, Row, Card, Text, Tag, Button, SegmentedControl, Feedback } from '@once-ui-system/core';
 import { confirmPaymentReport, rejectPaymentReport, getReportScreenshotUrl } from '@/lib/actions/paymentReports';
 import { currencyLabel } from '@/lib/currency';
+import { formatShortDate, formatDateTime } from '@/lib/dateFormat';
 import type { PaymentReportRow, InstallmentLookup, ReportStatus } from './types';
 
 function formatAmount(amount: number, currency: string): string {
@@ -86,7 +87,7 @@ function ReportCard({
           <Column gap="2">
             <Text variant="label-strong-s">{houseLabel}</Text>
             <Text variant="body-default-xs" onBackground="neutral-weak">
-              {t('reportedAt', { date: format(parseISO(report.created_at), 'dd/MM/yyyy HH:mm') })}
+              {t('reportedAt', { date: formatDateTime(parseISO(report.created_at), locale) })}
             </Text>
           </Column>
           <Tag
@@ -105,7 +106,7 @@ function ReportCard({
         <Row horizontal="between" vertical="center" fillWidth wrap>
           <Text variant="heading-strong-m">{formatAmount(report.amount, report.currency)}</Text>
           <Text variant="body-default-s" onBackground="neutral-weak">
-            {t('paidOn', { date: format(parseISO(report.payment_date), 'dd/MM/yyyy') })}
+            {t('paidOn', { date: formatShortDate(parseISO(report.payment_date), locale) })}
           </Text>
         </Row>
 
@@ -133,7 +134,7 @@ function ReportCard({
             </Text>
             {taggedInstallments.map((inst, idx) => (
               <Text key={idx} variant="body-default-s">
-                {inst.name} — {format(parseISO(inst.due_date), 'dd/MM/yyyy')}
+                {inst.name} — {formatShortDate(parseISO(inst.due_date), locale)}
               </Text>
             ))}
           </Column>

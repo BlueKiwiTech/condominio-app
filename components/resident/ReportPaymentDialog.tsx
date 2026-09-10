@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { format, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import {
   Dialog,
   Column,
@@ -21,6 +21,7 @@ import { toDateOnly } from '@/lib/cuotas/generate';
 import { CURRENCY_SELECT_OPTIONS, currencyLabel } from '@/lib/currency';
 import { referenceUsdAmount, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 import type { ResidentInstallment, Currency } from '@/lib/resident/queries';
+import { formatShortDate } from '@/lib/dateFormat';
 
 function formatAmount(amount: number, currency: string): string {
   return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
@@ -190,7 +191,7 @@ export function ReportPaymentDialog({
                     key={inst.id}
                     isChecked={selectedIds.includes(inst.id)}
                     onToggle={() => toggleInstallment(inst.id)}
-                    label={`${inst.name} — ${format(parseISO(inst.due_date), 'dd/MM/yyyy')}`}
+                    label={`${inst.name} — ${formatShortDate(parseISO(inst.due_date), locale)}`}
                     description={formatAmount(balanceDue(inst), inst.currency)}
                   />
                 ))}
