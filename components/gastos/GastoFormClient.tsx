@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { useTranslations, useLocale } from 'next-intl';
@@ -65,14 +65,36 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
   const values = watch();
   const isVariable = values.kind === 'variable';
 
-  const preview = useMemo(() => {
+  const periodDates = useMemo(() => {
     if (!isVariable) return null;
-    if (!values.default_amount || values.default_amount <= 0 || !values.start_date) return null;
+    if (!values.start_date) return null;
     if (!values.installment_count || values.installment_count < 1) return null;
-    const periodDates = computeVariablePeriodDates(values.start_date, values.installment_count);
-    const amounts = splitAmount(values.default_amount, values.installment_count);
-    return { periodDates, amounts };
-  }, [isVariable, values.default_amount, values.start_date, values.installment_count]);
+    return computeVariablePeriodDates(values.start_date, values.installment_count);
+  }, [isVariable, values.start_date, values.installment_count]);
+
+  // Per-installment amounts the admin can edit individually -- they don't
+  // have to be equal, only sum to the total. Reset to an even split
+  // whenever the count or total changes; the admin's own edits persist
+  // until one of those two changes again.
+  const [amounts, setAmounts] = useState<number[]>([]);
+  useEffect(() => {
+    if (!isVariable) return;
+    const count = values.installment_count && values.installment_count > 0 ? values.installment_count : 0;
+    const total = values.default_amount && values.default_amount > 0 ? values.default_amount : 0;
+    if (count === 0 || total === 0) {
+      setAmounts([]);
+      return;
+    }
+    setAmounts(splitAmount(total, count));
+  }, [isVariable, values.installment_count, values.default_amount]);
+
+  const amountsSum = useMemo(() => amounts.reduce((sum, a) => sum + (Number.isFinite(a) ? a : 0), 0), [amounts]);
+  const amountsMismatch =
+    isVariable && amounts.length > 0 && Math.round(amountsSum * 100) !== Math.round((values.default_amount || 0) * 100);
+
+  const updateAmount = (index: number, value: number) => {
+    setAmounts((prev) => prev.map((a, i) => (i === index ? value : a)));
+  };
 
   const onSubmit = (data: FormValues) => {
     setServerError(null);
@@ -87,7 +109,7 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
     const payload: CreateExpenseTemplateInput =
       data.kind === 'fixed'
         ? { kind: 'fixed', ...shared, cadence: data.cadence }
-        : { kind: 'variable', ...shared, installment_count: data.installment_count };
+        : { kind: 'variable', ...shared, installment_count: data.installment_count, amounts };
 
     const parsed = createExpenseTemplateSchema(tv).safeParse(payload);
     if (!parsed.success) {
@@ -230,7 +252,7 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
         )}
 
         <Row gap="12">
-          <Button type="submit" variant="primary" loading={isPending}>
+          <Button type="submit" variant="primary" loading={isPending} disabled={isVariable && amountsMismatch}>
             {t('form.submit')}
           </Button>
           <Button type="button" variant="secondary" onClick={() => router.push('/gastos')}>
@@ -242,21 +264,42 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
       {isVariable && (
         <Column gap="12" flex={1} minWidth={16} padding="24" radius="l" background="neutral-alpha-weak" fitHeight>
           <Heading variant="heading-strong-s">{t('new.previewHeading')}</Heading>
-          {!preview ? (
+          {!periodDates || amounts.length === 0 ? (
             <Text variant="body-default-s" onBackground="neutral-weak">
               {t('new.previewEmpty')}
             </Text>
           ) : (
-            <Column gap="4">
-              {preview.periodDates.map((date, idx) => (
-                <Row key={idx} horizontal="between">
-                  <Text variant="body-default-s">{toDateOnly(date)}</Text>
-                  <Text variant="body-default-s">
-                    {preview.amounts[idx].toFixed(2)} {currencyLabel(values.currency)}
-                  </Text>
-                </Row>
-              ))}
-            </Column>
+            <>
+              <Column gap="8">
+                {periodDates.map((date, idx) => (
+                  <Input
+                    key={idx}
+                    id={`installment-amount-${idx}`}
+                    type="number"
+                    label={`${t('form.installmentAmount', { number: idx + 1 })} — ${toDateOnly(date)}`}
+                    value={Number.isNaN(amounts[idx]) ? '' : amounts[idx]}
+                    onChange={(e) => updateAmount(idx, e.target.valueAsNumber)}
+                  />
+                ))}
+              </Column>
+              <Row horizontal="between">
+                <Text variant="label-default-s" onBackground="neutral-weak">
+                  {t('form.amountTotal')}
+                </Text>
+                <Text variant="label-strong-s">
+                  {amountsSum.toFixed(2)} {currencyLabel(values.currency)}
+                </Text>
+              </Row>
+              {amountsMismatch && (
+                <Feedback
+                  variant="danger"
+                  description={t('form.amountsSumMismatch', {
+                    sum: amountsSum.toFixed(2),
+                    total: (values.default_amount || 0).toFixed(2),
+                  })}
+                />
+              )}
+            </>
           )}
         </Column>
       )}

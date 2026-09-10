@@ -21,8 +21,9 @@ function sharedFields(t: Translator) {
     currency: currencySchema,
     // decimal(12,2) in the DB. For kind='fixed' this is the per-period seed
     // amount, copied as-is into each new instance. For kind='variable' it's
-    // the TOTAL split across installment_count instances at creation time
-    // (lib/gastos/generate.ts's splitAmount, reused from lib/cuotas/generate.ts).
+    // the TOTAL the admin expects `amounts` (below) to sum to — the admin
+    // enters each installment's amount directly (not necessarily equal),
+    // validated against this total by createExpenseTemplateSchema's refine.
     default_amount: z.coerce.number().positive(t('amountPositive')),
     start_date: isoDate(t),
   };
@@ -42,12 +43,27 @@ export function variableExpenseTemplateSchema(t: Translator) {
     kind: z.literal('variable'),
     ...sharedFields(t),
     installment_count: z.coerce.number().int().min(1, t('minInstallments')).max(360, t('maxInstallments')),
+    // One amount per installment, admin-entered -- not necessarily equal,
+    // must sum to default_amount (checked below, once the union is built,
+    // since a discriminated union member must stay a plain ZodObject).
+    amounts: z.array(z.coerce.number().positive(t('amountPositive'))).min(1, t('minInstallments')),
   });
 }
 export type VariableExpenseTemplateInput = z.infer<ReturnType<typeof variableExpenseTemplateSchema>>;
 
 export function createExpenseTemplateSchema(t: Translator) {
-  return z.discriminatedUnion('kind', [fixedExpenseTemplateSchema(t), variableExpenseTemplateSchema(t)]);
+  return z
+    .discriminatedUnion('kind', [fixedExpenseTemplateSchema(t), variableExpenseTemplateSchema(t)])
+    .refine((data) => data.kind !== 'variable' || data.amounts.length === data.installment_count, {
+      message: t('minInstallments'),
+      path: ['amounts'],
+    })
+    .refine(
+      (data) =>
+        data.kind !== 'variable' ||
+        Math.round(data.amounts.reduce((sum, a) => sum + a, 0) * 100) === Math.round(data.default_amount * 100),
+      { message: t('amountsSumMismatch'), path: ['amounts'] },
+    );
 }
 export type CreateExpenseTemplateInput = z.infer<ReturnType<typeof createExpenseTemplateSchema>>;
 

@@ -30,7 +30,8 @@
       "categoryRequired": "La categoría es obligatoria.",
       "amountPositive": "El monto debe ser mayor a 0.",
       "minInstallments": "Debe haber al menos 1 cuota.",
-      "maxInstallments": "Número de cuotas demasiado alto."
+      "maxInstallments": "Número de cuotas demasiado alto.",
+      "amountsSumMismatch": "La suma de las cuotas no coincide con el monto total."
     },
     "payments": {
       "invalidDate": "Fecha inválida.",
@@ -123,7 +124,8 @@
       "registerPayment": "Registrar pago",
       "paymentReports": "Pagos reportados",
       "report": "Reporte mensual",
-      "paymentsHistory": "Historial de pagos"
+      "paymentsHistory": "Historial de pagos",
+      "expensePayments": "Pagos de gastos"
     },
     "roleLabel": "Administradora",
     "unknownAdmin": "Administrador",
@@ -335,7 +337,7 @@
     "table": {
       "name": "Gasto",
       "category": "Categoría",
-      "provider": "Proveedor",
+      "provider": "Persona/Empresa",
       "amount": "Monto",
       "period": "Período",
       "status": "Estado"
@@ -367,16 +369,16 @@
     "filters": {
       "status": "Estado",
       "category": "Categoría",
-      "provider": "Proveedor",
+      "provider": "Persona/Empresa",
       "month": "Mes",
       "allStatuses": "Todos",
       "allCategories": "Todas",
-      "providerPlaceholder": "Buscar proveedor..."
+      "providerPlaceholder": "Buscar persona o empresa..."
     },
     "fields": {
       "name": "Nombre del gasto",
       "category": "Categoría",
-      "provider": "Proveedor (opcional)",
+      "provider": "Persona/Empresa (opcional)",
       "currency": "Moneda",
       "startDate": "Fecha de inicio"
     },
@@ -388,10 +390,12 @@
     "form": {
       "kindFixed": "Fijo",
       "kindVariable": "Variable",
-      "cadence": "Cadencia",
+      "cadence": "Frecuencia",
       "amountPerPeriod": "Monto por período",
       "amountTotal": "Monto total",
       "installmentCount": "Número de cuotas",
+      "installmentAmount": "Monto de la cuota {number}",
+      "amountsSumMismatch": "La suma de las cuotas ({sum}) no coincide con el monto total ({total}).",
       "submit": "Crear gasto"
     },
     "markPaidDialog": {
@@ -412,6 +416,25 @@
       "alreadyPaid": "Este gasto ya fue marcado como pagado.",
       "hasPayments": "No se puede eliminar: ya hay cuotas pagadas de este gasto.",
       "cannotDeletePaid": "No se puede eliminar un gasto ya pagado."
+    }
+  },
+  "gastosPagados": {
+    "heading": "Pagos de gastos",
+    "empty": "Aún no hay gastos pagados.",
+    "table": {
+      "name": "Gasto",
+      "category": "Categoría",
+      "provider": "Persona/Empresa",
+      "amount": "Monto",
+      "paidDate": "Fecha de pago",
+      "notes": "Notas"
+    },
+    "filters": {
+      "category": "Categoría",
+      "provider": "Persona/Empresa",
+      "month": "Mes",
+      "allCategories": "Todas",
+      "providerPlaceholder": "Buscar persona o empresa..."
     }
   },
   "payments": {

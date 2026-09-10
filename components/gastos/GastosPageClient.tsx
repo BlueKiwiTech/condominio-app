@@ -68,6 +68,17 @@ export function GastosPageClient({
     });
   }, [initialExpenses, statusFilter, categoryFilter, providerFilter, monthFilter]);
 
+  // How many total installments a variable gasto has, keyed by template_id --
+  // a single-installment variable gasto shows "Borrar" like a fixed gasto
+  // instead of the (redundant) "Borrar todas las cuotas".
+  const installmentCountByTemplate = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of initialExpenses) {
+      counts.set(e.template_id, (counts.get(e.template_id) ?? 0) + 1);
+    }
+    return counts;
+  }, [initialExpenses]);
+
   const openMarkPaid = (expense: ExpenseRow) => {
     setServerError(null);
     setMarkPaidTarget(expense);
@@ -156,12 +167,13 @@ export function GastosPageClient({
         <Button size="s" variant="secondary" onClick={() => openMarkPaid(e)}>
           {t('actions.markPaid')}
         </Button>
-        <Button size="s" variant="danger" disabled={isDeleting} onClick={() => handleDeleteExpense(e)}>
-          {t('actions.delete')}
-        </Button>
-        {e.condo_expense_templates?.kind === 'variable' && (
+        {e.condo_expense_templates?.kind === 'variable' && (installmentCountByTemplate.get(e.template_id) ?? 1) > 1 ? (
           <Button size="s" variant="danger" disabled={isDeleting} onClick={() => handleDeleteTemplate(e.template_id)}>
             {t('actions.deleteAll')}
+          </Button>
+        ) : (
+          <Button size="s" variant="danger" disabled={isDeleting} onClick={() => handleDeleteExpense(e)}>
+            {t('actions.delete')}
           </Button>
         )}
       </Row>

@@ -35,6 +35,7 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: '/reporte', icon: 'clipboard', labelKey: 'items.report' },
       { href: '/pagos', icon: 'document', labelKey: 'items.paymentsHistory' },
+      { href: '/gastos-pagados', icon: 'check', labelKey: 'items.expensePayments' },
     ],
   },
 ];

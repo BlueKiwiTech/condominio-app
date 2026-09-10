@@ -30,7 +30,8 @@
       "categoryRequired": "Category is required.",
       "amountPositive": "Amount must be greater than 0.",
       "minInstallments": "There must be at least 1 installment.",
-      "maxInstallments": "Number of installments is too high."
+      "maxInstallments": "Number of installments is too high.",
+      "amountsSumMismatch": "The installments' sum doesn't match the total amount."
     },
     "payments": {
       "invalidDate": "Invalid date.",
@@ -123,7 +124,8 @@
       "registerPayment": "Register payment",
       "paymentReports": "Reported payments",
       "report": "Monthly report",
-      "paymentsHistory": "Payment history"
+      "paymentsHistory": "Payment history",
+      "expensePayments": "Expense payments"
     },
     "roleLabel": "Board admin",
     "unknownAdmin": "Admin",
@@ -335,7 +337,7 @@
     "table": {
       "name": "Expense",
       "category": "Category",
-      "provider": "Provider",
+      "provider": "Person/Company",
       "amount": "Amount",
       "period": "Period",
       "status": "Status"
@@ -367,16 +369,16 @@
     "filters": {
       "status": "Status",
       "category": "Category",
-      "provider": "Provider",
+      "provider": "Person/Company",
       "month": "Month",
       "allStatuses": "All",
       "allCategories": "All",
-      "providerPlaceholder": "Search provider..."
+      "providerPlaceholder": "Search person or company..."
     },
     "fields": {
       "name": "Expense name",
       "category": "Category",
-      "provider": "Provider (optional)",
+      "provider": "Person/Company (optional)",
       "currency": "Currency",
       "startDate": "Start date"
     },
@@ -388,10 +390,12 @@
     "form": {
       "kindFixed": "Fixed",
       "kindVariable": "Variable",
-      "cadence": "Cadence",
+      "cadence": "Frequency",
       "amountPerPeriod": "Amount per period",
       "amountTotal": "Total amount",
       "installmentCount": "Number of installments",
+      "installmentAmount": "Installment {number} amount",
+      "amountsSumMismatch": "The installments' sum ({sum}) doesn't match the total amount ({total}).",
       "submit": "Create expense"
     },
     "markPaidDialog": {
@@ -412,6 +416,25 @@
       "alreadyPaid": "This expense was already marked as paid.",
       "hasPayments": "Can't delete: some installments of this expense are already paid.",
       "cannotDeletePaid": "Can't delete an expense that's already paid."
+    }
+  },
+  "gastosPagados": {
+    "heading": "Expense payments",
+    "empty": "No paid expenses yet.",
+    "table": {
+      "name": "Expense",
+      "category": "Category",
+      "provider": "Person/Company",
+      "amount": "Amount",
+      "paidDate": "Payment date",
+      "notes": "Notes"
+    },
+    "filters": {
+      "category": "Category",
+      "provider": "Person/Company",
+      "month": "Month",
+      "allCategories": "All",
+      "providerPlaceholder": "Search person or company..."
     }
   },
   "payments": {

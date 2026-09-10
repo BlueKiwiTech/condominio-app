@@ -9,7 +9,7 @@ import {
   type CreateExpenseTemplateInput,
   type MarkExpensePaidInput,
 } from '@/lib/validation/gastos';
-import { computeVariablePeriodDates, splitAmount, toDateOnly } from '@/lib/gastos/generate';
+import { computeVariablePeriodDates, toDateOnly } from '@/lib/gastos/generate';
 
 type ActionResult = { error: string } | { success: true };
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -83,18 +83,18 @@ export async function createExpenseTemplate(
   }
 
   // kind === 'variable': generate all installment_count rows now, staggered
-  // one month apart, total split via splitAmount — same shape as special-
-  // divided cuotas (lib/actions/cuotas.ts's createInstallmentTemplate).
+  // one month apart. Amounts are admin-entered per installment (not
+  // necessarily equal) -- createExpenseTemplateSchema already verified
+  // data.amounts.length === installment_count and their sum === default_amount.
   const startDate = new Date(`${data.start_date}T00:00:00`);
   const periodDates = computeVariablePeriodDates(startDate, data.installment_count);
-  const amounts = splitAmount(data.default_amount, data.installment_count);
 
   const rows = periodDates.map((date, idx) => ({
     template_id: template.id,
     category_id: data.category_id,
     provider: normalizeOptional(data.provider),
     currency: data.currency,
-    amount: amounts[idx],
+    amount: data.amounts[idx],
     installment_number: idx + 1,
     period_date: toDateOnly(date),
     status: 'pending' as const,
