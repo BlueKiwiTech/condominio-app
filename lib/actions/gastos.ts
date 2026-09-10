@@ -174,3 +174,74 @@ export async function setExpenseTemplateActive(
   revalidatePath('/gastos');
   return { success: true };
 }
+
+/** Soft delete: sets deleted_at, never removes the row (keeps the financial record). */
+export async function deleteExpense(expenseId: string, locale: string): Promise<ActionResult> {
+  const [tc, tg] = await Promise.all([
+    getTranslations({ locale, namespace: 'common' }),
+    getTranslations({ locale, namespace: 'gastos' }),
+  ]);
+  const { error: authError, supabase } = await requireAdmin(tc);
+  if (authError || !supabase) return { error: authError! };
+
+  const { data: expense, error: fetchError } = await supabase
+    .from('condo_expenses')
+    .select('id, status')
+    .eq('id', expenseId)
+    .maybeSingle();
+  if (fetchError) return { error: fetchError.message };
+  if (!expense) return { error: tg('errors.notFound') };
+  if (expense.status === 'paid') return { error: tg('errors.cannotDeletePaid') };
+
+  const { error } = await supabase
+    .from('condo_expenses')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', expenseId);
+  if (error) return { error: error.message };
+
+  revalidatePath('/gastos');
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
+/**
+ * Soft delete a whole expense template (fixed or variable) plus every one of
+ * its still-pending instances. Refuses if ANY instance for this template is
+ * already paid -- same guard as cuotas' deleteInstallmentTemplate ("only
+ * allowed before any payment exists against it").
+ */
+export async function deleteExpenseTemplate(templateId: string, locale: string): Promise<ActionResult> {
+  const [tc, tg] = await Promise.all([
+    getTranslations({ locale, namespace: 'common' }),
+    getTranslations({ locale, namespace: 'gastos' }),
+  ]);
+  const { error: authError, supabase } = await requireAdmin(tc);
+  if (authError || !supabase) return { error: authError! };
+
+  const { count: paidCount, error: paidError } = await supabase
+    .from('condo_expenses')
+    .select('id', { count: 'exact', head: true })
+    .eq('template_id', templateId)
+    .eq('status', 'paid');
+  if (paidError) return { error: paidError.message };
+  if (paidCount && paidCount > 0) return { error: tg('errors.hasPayments') };
+
+  const now = new Date().toISOString();
+
+  const { error: expensesError } = await supabase
+    .from('condo_expenses')
+    .update({ deleted_at: now })
+    .eq('template_id', templateId)
+    .eq('status', 'pending');
+  if (expensesError) return { error: expensesError.message };
+
+  const { error: templateError } = await supabase
+    .from('condo_expense_templates')
+    .update({ deleted_at: now })
+    .eq('id', templateId);
+  if (templateError) return { error: templateError.message };
+
+  revalidatePath('/gastos');
+  revalidatePath('/dashboard');
+  return { success: true };
+}

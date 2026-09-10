@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { format } from 'date-fns';
 import {
@@ -20,7 +21,7 @@ import {
   type TableHeader,
 } from '@once-ui-system/core';
 import { markExpensePaidSchema, type MarkExpensePaidInput } from '@/lib/validation/gastos';
-import { markExpensePaid, setExpenseTemplateActive } from '@/lib/actions/gastos';
+import { markExpensePaid, setExpenseTemplateActive, deleteExpense, deleteExpenseTemplate } from '@/lib/actions/gastos';
 import { currencyLabel } from '@/lib/currency';
 import type { CategoryOption, ExpenseRow, ExpenseStatus, FixedTemplateRow } from './types';
 
@@ -40,8 +41,10 @@ export function GastosPageClient({
   const t = useTranslations('gastos');
   const tv = useTranslations('validation.gastos');
   const locale = useLocale();
+  const router = useRouter();
   const [isTogglingActive, startToggleTransition] = useTransition();
   const [isMarkingPaid, startMarkPaidTransition] = useTransition();
+  const [isDeleting, startDeleteTransition] = useTransition();
 
   const [statusFilter, setStatusFilter] = useState<'all' | ExpenseStatus>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -104,6 +107,32 @@ export function GastosPageClient({
     });
   };
 
+  const handleDeleteExpense = (expense: ExpenseRow) => {
+    if (typeof window !== 'undefined' && !window.confirm(t('confirmDelete'))) return;
+    setServerError(null);
+    startDeleteTransition(async () => {
+      const result = await deleteExpense(expense.id, locale);
+      if ('error' in result) {
+        setServerError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  };
+
+  const handleDeleteTemplate = (templateId: string) => {
+    if (typeof window !== 'undefined' && !window.confirm(t('confirmDeleteAll'))) return;
+    setServerError(null);
+    startDeleteTransition(async () => {
+      const result = await deleteExpenseTemplate(templateId, locale);
+      if ('error' in result) {
+        setServerError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  };
+
   const headers: TableHeader[] = [
     { key: 'name', content: t('table.name') },
     { key: 'category', content: t('table.category') },
@@ -122,9 +151,19 @@ export function GastosPageClient({
     format(new Date(`${e.period_date}T00:00:00`), 'dd/MM/yyyy'),
     <Tag key={`${e.id}-status`} variant={e.status === 'paid' ? 'success' : 'warning'} label={t(`status.${e.status}`)} />,
     e.status === 'pending' ? (
-      <Button key={`${e.id}-action`} size="s" variant="secondary" onClick={() => openMarkPaid(e)}>
-        {t('actions.markPaid')}
-      </Button>
+      <Row key={`${e.id}-action`} gap="8">
+        <Button size="s" variant="secondary" onClick={() => openMarkPaid(e)}>
+          {t('actions.markPaid')}
+        </Button>
+        <Button size="s" variant="danger" disabled={isDeleting} onClick={() => handleDeleteExpense(e)}>
+          {t('actions.delete')}
+        </Button>
+        {e.condo_expense_templates?.kind === 'variable' && (
+          <Button size="s" variant="danger" disabled={isDeleting} onClick={() => handleDeleteTemplate(e.template_id)}>
+            {t('actions.deleteAll')}
+          </Button>
+        )}
+      </Row>
     ) : (
       '—'
     ),
@@ -159,14 +198,19 @@ export function GastosPageClient({
                 border="neutral-alpha-weak"
               >
                 <Text variant="label-default-s">{tpl.name}</Text>
-                <Button
-                  size="s"
-                  variant="secondary"
-                  loading={isTogglingActive}
-                  onClick={() => toggleActive(tpl.id, !tpl.active)}
-                >
-                  {tpl.active ? t('actions.deactivate') : t('actions.activate')}
-                </Button>
+                <Row gap="8">
+                  <Button
+                    size="s"
+                    variant="secondary"
+                    loading={isTogglingActive}
+                    onClick={() => toggleActive(tpl.id, !tpl.active)}
+                  >
+                    {tpl.active ? t('actions.deactivate') : t('actions.activate')}
+                  </Button>
+                  <Button size="s" variant="danger" disabled={isDeleting} onClick={() => handleDeleteTemplate(tpl.id)}>
+                    {t('actions.delete')}
+                  </Button>
+                </Row>
               </Row>
             ))}
           </Column>

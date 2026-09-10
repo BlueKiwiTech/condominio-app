@@ -343,8 +343,12 @@
     "actions": {
       "markPaid": "Marcar pagado",
       "activate": "Activar",
-      "deactivate": "Desactivar"
+      "deactivate": "Desactivar",
+      "delete": "Borrar",
+      "deleteAll": "Borrar todas las cuotas"
     },
+    "confirmDelete": "¿Borrar este gasto? No volverás a verlo en la lista.",
+    "confirmDeleteAll": "¿Borrar todas las cuotas de este gasto? No volverás a verlas en la lista.",
     "kind": {
       "fixed": "Fijo",
       "variable": "Variable"
@@ -405,7 +409,9 @@
       "invalid": "Datos inválidos. Revisa el formulario.",
       "createFailed": "No se pudo crear el gasto.",
       "notFound": "Gasto no encontrado.",
-      "alreadyPaid": "Este gasto ya fue marcado como pagado."
+      "alreadyPaid": "Este gasto ya fue marcado como pagado.",
+      "hasPayments": "No se puede eliminar: ya hay cuotas pagadas de este gasto.",
+      "cannotDeletePaid": "No se puede eliminar un gasto ya pagado."
     }
   },
   "payments": {

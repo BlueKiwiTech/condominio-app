@@ -343,8 +343,12 @@
     "actions": {
       "markPaid": "Mark paid",
       "activate": "Activate",
-      "deactivate": "Deactivate"
+      "deactivate": "Deactivate",
+      "delete": "Delete",
+      "deleteAll": "Delete all installments"
     },
+    "confirmDelete": "Delete this expense? You won't see it in the list again.",
+    "confirmDeleteAll": "Delete all installments of this expense? You won't see them in the list again.",
     "kind": {
       "fixed": "Fixed",
       "variable": "Variable"
@@ -405,7 +409,9 @@
       "invalid": "Invalid data. Check the form.",
       "createFailed": "Could not create the expense.",
       "notFound": "Expense not found.",
-      "alreadyPaid": "This expense was already marked as paid."
+      "alreadyPaid": "This expense was already marked as paid.",
+      "hasPayments": "Can't delete: some installments of this expense are already paid.",
+      "cannotDeletePaid": "Can't delete an expense that's already paid."
     }
   },
   "payments": {

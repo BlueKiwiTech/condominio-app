@@ -14,9 +14,15 @@ export default async function GastosPage() {
       .select(
         'id, template_id, category_id, provider, currency, amount, installment_number, period_date, status, paid_date, notes, condo_expense_templates(name, kind), condo_expense_categories(name)',
       )
+      .is('deleted_at', null)
       .order('period_date', { ascending: false }),
     supabase.from('condo_expense_categories').select('id, name').order('name'),
-    supabase.from('condo_expense_templates').select('id, name, active').eq('kind', 'fixed').order('name'),
+    supabase
+      .from('condo_expense_templates')
+      .select('id, name, active')
+      .eq('kind', 'fixed')
+      .is('deleted_at', null)
+      .order('name'),
   ]);
 
   return (

@@ -16,7 +16,7 @@ export default async function DashboardPage() {
     await Promise.all([
       supabase.from('condo_installments').select('house_id, due_date, status, amount, amount_paid, currency'),
       supabase.from('condo_houses').select('id, house_number, house_name, owner_name').order('house_number'),
-      supabase.from('condo_expenses').select('currency, amount, period_date, status'),
+      supabase.from('condo_expenses').select('currency, amount, period_date, status').is('deleted_at', null),
       supabase
         .from('condo_payments')
         .select(

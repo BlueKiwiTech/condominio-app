@@ -27,7 +27,8 @@ export async function GET(request: Request) {
     .from('condo_expense_templates')
     .select('id, category_id, provider, currency, cadence, default_amount, start_date')
     .eq('kind', 'fixed')
-    .eq('active', true);
+    .eq('active', true)
+    .is('deleted_at', null);
 
   if (templatesError) {
     console.error('[cron/generate-expenses] failed to load templates:', templatesError.message);
