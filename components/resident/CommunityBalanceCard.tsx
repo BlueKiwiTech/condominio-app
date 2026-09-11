@@ -23,7 +23,7 @@ function CurrencyAmountList({ amounts, emptyLabel }: { amounts: CurrencyAmountMa
   return (
     <Column gap="4">
       {entries.map(([currency, amount]) => (
-        <Text key={currency} variant="heading-strong-m">
+        <Text key={currency} variant="heading-strong-m" style={{ fontVariantNumeric: 'tabular-nums' }}>
           {formatAmount(amount ?? 0, currency)}
         </Text>
       ))}

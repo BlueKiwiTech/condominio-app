@@ -47,7 +47,7 @@ export function GastosPagadosPageClient({
     e.condo_expense_templates?.name ?? '—',
     e.condo_expense_categories?.name ?? '—',
     e.provider ?? '—',
-    formatAmount(e.amount, e.currency),
+    <span key={`${e.id}-amount`} style={{ fontVariantNumeric: 'tabular-nums' }}>{formatAmount(e.amount, e.currency)}</span>,
     e.paid_date ? formatShortDate(new Date(`${e.paid_date}T00:00:00`), locale) : '—',
     e.notes ?? '—',
   ]);

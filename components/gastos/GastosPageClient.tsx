@@ -159,7 +159,7 @@ export function GastosPageClient({
     e.condo_expense_templates?.name ?? '—',
     e.condo_expense_categories?.name ?? '—',
     e.provider ?? '—',
-    formatAmount(e.amount, e.currency),
+    <span key={`${e.id}-amount`} style={{ fontVariantNumeric: 'tabular-nums' }}>{formatAmount(e.amount, e.currency)}</span>,
     formatShortDate(new Date(`${e.period_date}T00:00:00`), locale),
     <Tag key={`${e.id}-status`} variant={e.status === 'paid' ? 'success' : 'warning'} label={t(`status.${e.status}`)} />,
     e.status === 'pending' ? (

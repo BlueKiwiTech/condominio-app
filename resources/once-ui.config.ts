@@ -1,21 +1,26 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 
-const heading = Geist({ variable: "--font-heading", subsets: ["latin"], display: "swap" });
-const body = Geist({ variable: "--font-body", subsets: ["latin"], display: "swap" });
-const label = Geist({ variable: "--font-label", subsets: ["latin"], display: "swap" });
-const code = Geist_Mono({ variable: "--font-code", subsets: ["latin"], display: "swap" });
+// "Financiero y serio" direction (feat/new-design): IBM Plex Sans for
+// heading/body/label -- a technical, precise sans that reads as
+// fintech-serious rather than generic-SaaS -- and IBM Plex Mono for
+// numeric/tabular data (amounts, dates) via --font-code, applied with
+// font-variant-numeric: tabular-nums at call sites that show money.
+const heading = IBM_Plex_Sans({ weight: ["500", "600", "700"], variable: "--font-heading", subsets: ["latin"], display: "swap" });
+const body = IBM_Plex_Sans({ weight: ["400", "500"], variable: "--font-body", subsets: ["latin"], display: "swap" });
+const label = IBM_Plex_Sans({ weight: ["500", "600"], variable: "--font-label", subsets: ["latin"], display: "swap" });
+const code = IBM_Plex_Mono({ weight: ["500", "600"], variable: "--font-code", subsets: ["latin"], display: "swap" });
 
 export const fonts = { heading, body, label, code };
 
 export const style = {
   theme: "light",
-  brand: "blue",
-  accent: "blue",
-  neutral: "gray",
+  brand: "indigo",
+  accent: "indigo",
+  neutral: "slate",
   solid: "color",
   solidStyle: "flat",
-  border: "playful",
-  surface: "translucent",
+  border: "conservative",
+  surface: "filled",
   transition: "all",
   scaling: "100",
 } as const;

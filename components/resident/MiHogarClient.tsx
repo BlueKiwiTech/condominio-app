@@ -78,7 +78,7 @@ export function MiHogarClient({
               <Text variant="label-default-s" onBackground="neutral-weak">
                 {t('creditLabel')}
               </Text>
-              <Text variant="heading-strong-l">{formatAmount(amount ?? 0, currency)}</Text>
+              <Text variant="heading-strong-l" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatAmount(amount ?? 0, currency)}</Text>
             </Column>
           </Card>
         ))}
@@ -88,7 +88,7 @@ export function MiHogarClient({
               <Text variant="label-default-s" onBackground="neutral-weak">
                 {t('debtLabel', { date: formatShortDate(parseISO(m.owedSince), locale) })}
               </Text>
-              <Text variant="heading-strong-l">{formatAmount(m.owed, m.currency)}</Text>
+              <Text variant="heading-strong-l" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatAmount(m.owed, m.currency)}</Text>
             </Column>
           </Card>
         ))}
