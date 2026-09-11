@@ -33,4 +33,5 @@ export type DashboardExpense = {
   amount: number;
   period_date: string;
   status: 'pending' | 'paid';
+  paid_date: string | null;
 };

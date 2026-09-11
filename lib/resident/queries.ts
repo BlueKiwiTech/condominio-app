@@ -9,6 +9,8 @@ import type { InstallmentStatus } from '@/lib/cuotas/status';
 import type { InstallmentType } from '@/components/cuotas/types';
 import type { PaymentRow } from '@/components/payments/types';
 import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
+import type { ReportInstallment, CreditForReport as MonthlyReportCredit } from '@/lib/reporting/monthlyReport';
+import type { ExpenseForReport } from '@/lib/reporting/dashboard';
 
 export type Currency = 'USD' | 'Bs' | 'USDT';
 
@@ -162,5 +164,36 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
       bcv: (bcvRate as ExchangeRateRow | null) ?? null,
       binance: (binanceRate as ExchangeRateRow | null) ?? null,
     },
+  };
+}
+
+export type CommunityBalanceData = {
+  installments: ReportInstallment[];
+  credits: MonthlyReportCredit[];
+  expenses: ExpenseForReport[];
+};
+
+/**
+ * Community-wide (every house, every gasto) totals for the "Balance de la
+ * comunidad" card on /mi-hogar -- residents see the same expected/collected/
+ * pending/saldo-a-favor figures the admin's monthly report already computes,
+ * plus the month's expense totals. Same service-role client as
+ * getResidentPortalData (Pattern A: residents never get a Supabase Auth
+ * session), just unscoped by house_id since this is a community aggregate,
+ * not one house's data.
+ */
+export async function getCommunityBalanceData(): Promise<CommunityBalanceData> {
+  const supabase = createServiceClient();
+
+  const [{ data: installments }, { data: credits }, { data: expenses }] = await Promise.all([
+    supabase.from('condo_installments').select('house_id, amount, amount_paid, currency, due_date, status'),
+    supabase.from('condo_house_credits').select('house_id, currency, balance'),
+    supabase.from('condo_expenses').select('currency, amount, period_date, status, paid_date').is('deleted_at', null),
+  ]);
+
+  return {
+    installments: (installments as unknown as ReportInstallment[] | null) ?? [],
+    credits: (credits as MonthlyReportCredit[] | null) ?? [],
+    expenses: (expenses as ExpenseForReport[] | null) ?? [],
   };
 }

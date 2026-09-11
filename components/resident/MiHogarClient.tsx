@@ -8,15 +8,22 @@ import { computeMorosos } from '@/lib/reporting/morosos';
 import { creditsByCurrency } from '@/lib/reporting/dashboard';
 import { upcomingInstallments } from '@/lib/resident/portal';
 import { ReportPaymentDialog } from './ReportPaymentDialog';
+import { CommunityBalanceCard } from './CommunityBalanceCard';
 import { currencyLabel } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
-import type { ResidentPortalData } from '@/lib/resident/queries';
+import type { ResidentPortalData, CommunityBalanceData } from '@/lib/resident/queries';
 
 function formatAmount(amount: number, currency: string): string {
   return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
 }
 
-export function MiHogarClient({ data }: { data: ResidentPortalData }) {
+export function MiHogarClient({
+  data,
+  communityBalance,
+}: {
+  data: ResidentPortalData;
+  communityBalance: CommunityBalanceData;
+}) {
   const t = useTranslations('residentHome');
   const locale = useLocale();
   const house = data.house!;
@@ -49,6 +56,13 @@ export function MiHogarClient({ data }: { data: ResidentPortalData }) {
           {t('subtitle')}
         </Text>
       </Column>
+
+      <CommunityBalanceCard
+        installments={communityBalance.installments}
+        credits={communityBalance.credits}
+        expenses={communityBalance.expenses}
+        today={today}
+      />
 
       <Column gap="12" fillWidth>
         {isUpToDate && (

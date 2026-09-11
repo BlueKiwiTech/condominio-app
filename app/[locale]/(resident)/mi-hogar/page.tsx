@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getResidentSession } from '@/lib/auth/residentSession';
-import { getResidentPortalData } from '@/lib/resident/queries';
+import { getResidentPortalData, getCommunityBalanceData } from '@/lib/resident/queries';
 import { MiHogarClient } from '@/components/resident/MiHogarClient';
 
 // V2 · Mi hogar (RSDT-02 saldo, plus greeting/house-info/upcoming). Replaces
@@ -13,8 +13,11 @@ export default async function MiHogarPage() {
   // depth, never trust a cookie's mere presence without this check too.
   if (!session) redirect('/resident-login');
 
-  const data = await getResidentPortalData(session.house_id);
+  const [data, communityBalance] = await Promise.all([
+    getResidentPortalData(session.house_id),
+    getCommunityBalanceData(),
+  ]);
   if (!data.house) redirect('/resident-login');
 
-  return <MiHogarClient data={data} />;
+  return <MiHogarClient data={data} communityBalance={communityBalance} />;
 }

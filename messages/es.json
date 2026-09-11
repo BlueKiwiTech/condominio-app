@@ -572,6 +572,16 @@
     "upToDate": "Estás al día. ¡Gracias!",
     "creditLabel": "Saldo a favor",
     "debtLabel": "Debes desde {date}",
+    "communityBalance": {
+      "heading": "Balance de la comunidad",
+      "expected": "Esperado este mes",
+      "collected": "Cobrado este mes",
+      "pending": "Pendiente",
+      "favor": "Saldo a favor",
+      "paidExpenses": "Gastos pagados este mes",
+      "totalExpenses": "Gastos de este mes",
+      "empty": "Sin datos."
+    },
     "upcoming": {
       "heading": "Lo que viene",
       "empty": "No tienes cuotas próximas."

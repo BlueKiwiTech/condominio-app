@@ -70,6 +70,7 @@ export type ExpenseForReport = {
   amount: number;
   period_date: string;
   status: 'pending' | 'paid';
+  paid_date: string | null;
 };
 
 // "Gastos pendientes del mes": pending condo_expenses whose period_date
@@ -84,6 +85,29 @@ export function pendingExpensesInMonth(expenses: ExpenseForReport[], monthDate: 
     (e) => e.status === 'pending' && isWithinInterval(parseISO(e.period_date), { start, end }),
   );
   return sumByCurrency(pendingInMonth, (e) => e.amount);
+}
+
+// "Gastos pagados del mes": cash-basis, keyed off paid_date (not
+// period_date) falling in the month — mirrors collectedInMonth's own
+// payment_date-based logic for the income side.
+export function paidExpensesInMonth(expenses: ExpenseForReport[], monthDate: Date): CurrencyAmountMap {
+  const start = startOfMonth(monthDate);
+  const end = endOfMonth(monthDate);
+  const paidInMonth = expenses.filter(
+    (e) => e.status === 'paid' && e.paid_date && isWithinInterval(parseISO(e.paid_date), { start, end }),
+  );
+  return sumByCurrency(paidInMonth, (e) => e.amount);
+}
+
+// "Gastos del mes": every expense (paid or pending) whose period_date falls
+// in the month — the total incurred, regardless of whether it's been paid
+// out yet. Distinct from pendingExpensesInMonth (status-filtered) and
+// paidExpensesInMonth (paid_date-filtered).
+export function totalExpensesInMonth(expenses: ExpenseForReport[], monthDate: Date): CurrencyAmountMap {
+  const start = startOfMonth(monthDate);
+  const end = endOfMonth(monthDate);
+  const inMonth = expenses.filter((e) => isWithinInterval(parseISO(e.period_date), { start, end }));
+  return sumByCurrency(inMonth, (e) => e.amount);
 }
 
 export type MonthlySeriesPoint = { month: string; label: string } & CurrencyAmountMap;

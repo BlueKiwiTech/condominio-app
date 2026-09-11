@@ -572,6 +572,16 @@
     "upToDate": "You're up to date. Thank you!",
     "creditLabel": "Credit balance",
     "debtLabel": "You owe since {date}",
+    "communityBalance": {
+      "heading": "Community balance",
+      "expected": "Expected this month",
+      "collected": "Collected this month",
+      "pending": "Pending",
+      "favor": "Credit balance",
+      "paidExpenses": "Expenses paid this month",
+      "totalExpenses": "This month's expenses",
+      "empty": "No data."
+    },
     "upcoming": {
       "heading": "Coming up",
       "empty": "You have no upcoming cuotas."
