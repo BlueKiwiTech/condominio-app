@@ -12,6 +12,7 @@
 // always did.
 import { randomUUID } from 'crypto';
 import type { createClient } from '@/lib/supabase/server';
+import { logAudit } from '@/lib/audit';
 import { allocateFunds, sortOldestFirst, type AllocatableInstallment } from './allocate';
 import { getHouseCredit, setHouseCredit } from './creditSweep';
 
@@ -97,6 +98,13 @@ export async function applyPaymentAllocation(
 
   const { error: creditError } = await setHouseCredit(supabase, params.house_id, params.currency, leftoverCents / 100);
   if (creditError) return { error: creditError };
+
+  await logAudit(supabase, {
+    userId: params.created_by,
+    action: 'payment.create',
+    entityType: 'payment_batch',
+    entityId: batchId,
+  });
 
   return { success: true, batchId, receiptNumber };
 }
