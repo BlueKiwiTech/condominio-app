@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
+import { logAudit } from '@/lib/audit';
 import {
   createExpenseTemplateSchema,
   markExpensePaidSchema,
@@ -132,7 +133,7 @@ export async function markExpensePaid(
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
   const data = parsed.data;
 
-  const { error: authError, supabase } = await requireAdmin(tc);
+  const { error: authError, supabase, userId } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
   const { data: expense, error: fetchError } = await supabase
@@ -154,6 +155,13 @@ export async function markExpensePaid(
     })
     .eq('id', expenseId);
   if (updateError) return { error: updateError.message };
+
+  await logAudit(supabase, {
+    userId,
+    action: 'expense.mark_paid',
+    entityType: 'expense',
+    entityId: expenseId,
+  });
 
   revalidatePath('/gastos');
   return { success: true };
