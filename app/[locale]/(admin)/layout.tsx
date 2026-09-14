@@ -17,9 +17,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const adminEmail = (data.claims as { email?: string }).email ?? null;
 
+  // Lets the sidebar flag "Pagos reportados" with a count so the admin
+  // notices there's something to review without opening the page first
+  // (user-requested, 2026-09-13). RLS (condo_payment_reports_admin_all)
+  // already scopes this to the signed-in admin, same as the page itself.
+  const { count: pendingReportsCount } = await supabase
+    .from('condo_payment_reports')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'pending');
+
   return (
     <Row fillWidth style={{ minHeight: '100vh' }} s={{ direction: 'column' }}>
-      <AdminSidebar adminEmail={adminEmail} />
+      <AdminSidebar adminEmail={adminEmail} pendingReportsCount={pendingReportsCount ?? 0} />
       <Column fillWidth flex={1} style={{ overflowY: 'auto' }}>
         {children}
       </Column>

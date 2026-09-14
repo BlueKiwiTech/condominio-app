@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Row, Column, SmartLink, Icon, Text, Button, IconButton, Dialog, type IconName } from '@once-ui-system/core';
+import { Row, Column, SmartLink, Icon, Text, Tag, Button, IconButton, Dialog, type IconName } from '@once-ui-system/core';
 import { logout } from '@/lib/actions/auth';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 
@@ -55,7 +55,13 @@ const GROUPS: NavGroup[] = [
 // width and replaced with a slim top bar + hamburger button that opens the
 // exact same nav content inside a Dialog — one shared `NavContent` render
 // so the two variants never drift out of sync.
-export function AdminSidebar({ adminEmail }: { adminEmail: string | null }) {
+export function AdminSidebar({
+  adminEmail,
+  pendingReportsCount = 0,
+}: {
+  adminEmail: string | null;
+  pendingReportsCount?: number;
+}) {
   const pathname = usePathname();
   const t = useTranslations('adminNav');
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -128,6 +134,9 @@ export function AdminSidebar({ adminEmail }: { adminEmail: string | null }) {
                   <Text variant="label-default-s" onBackground={active ? 'brand-strong' : 'neutral-medium'}>
                     {t(item.labelKey)}
                   </Text>
+                  {item.href === '/pagos-reportados' && pendingReportsCount > 0 && (
+                    <Tag variant="danger" size="s" label={String(pendingReportsCount)} style={{ marginLeft: 'auto' }} />
+                  )}
                 </Row>
               </SmartLink>
             );
