@@ -27,27 +27,38 @@ async function getOrigin() {
 }
 
 /**
- * D-05: link the newly-created auth.users account to the single
- * condo_communities row (creating that row on first signup if it doesn't
- * exist yet). Must run via the service-role client — signUp() returns a
- * null session while "Confirm email" is enabled (AUTH-02), so there is no
- * auth.uid()-backed session yet for any RLS policy to authorize this write.
+ * Links the newly-created auth.users account to the single condo_communities
+ * row (creating it on first signup if it doesn't exist yet), then records
+ * this user as one of that community's admins in condo_community_admins.
+ * Must run via the service-role client — signUp() returns a null session
+ * while "Confirm email" is enabled (AUTH-02), so there is no auth.uid()-backed
+ * session yet for any RLS policy to authorize these writes.
  */
 async function linkAdminToCommunity(userId: string) {
   const service = createServiceClient();
   const { data: community } = await service
     .from('condo_communities')
-    .select('id, admin_id')
+    .select('id')
     .limit(1)
     .maybeSingle();
 
-  if (!community) {
-    await service.from('condo_communities').insert({ name: 'ASOBARCELONA', admin_id: userId });
-    return;
+  let communityId = community?.id as string | undefined;
+  if (!communityId) {
+    const { data: created } = await service
+      .from('condo_communities')
+      .insert({ name: 'ASOBARCELONA' })
+      .select('id')
+      .single();
+    communityId = created?.id;
   }
-  if (!community.admin_id) {
-    await service.from('condo_communities').update({ admin_id: userId }).eq('id', community.id);
-  }
+  if (!communityId) return;
+
+  await service
+    .from('condo_community_admins')
+    .upsert(
+      { community_id: communityId, user_id: userId },
+      { onConflict: 'community_id,user_id', ignoreDuplicates: true },
+    );
 }
 
 export async function signup(input: SignupInput, locale: string): Promise<ActionResult> {
