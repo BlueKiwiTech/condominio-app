@@ -5,6 +5,7 @@ import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { applyPaymentAllocation } from '@/lib/payments/applyAllocation';
+import { logAudit } from '@/lib/audit';
 
 type ActionResult = { error: string } | { success: true };
 type Currency = 'USD' | 'Bs' | 'USDT';
@@ -38,7 +39,7 @@ async function requireAdmin(tc: Awaited<ReturnType<typeof getTranslations>>) {
  */
 export async function rejectPaymentReport(reportId: string, locale: string): Promise<ActionResult> {
   const tc = await getTranslations({ locale, namespace: 'common' });
-  const { error: authError, supabase } = await requireAdmin(tc);
+  const { error: authError, supabase, userId } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
   const { error } = await supabase
@@ -46,6 +47,13 @@ export async function rejectPaymentReport(reportId: string, locale: string): Pro
     .update({ status: 'rejected' })
     .eq('id', reportId);
   if (error) return { error: error.message };
+
+  await logAudit(supabase, {
+    userId,
+    action: 'payment_report.reject',
+    entityType: 'payment_report',
+    entityId: reportId,
+  });
 
   revalidatePath('/pagos-reportados');
   return { success: true };
@@ -92,6 +100,14 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
       .update({ status: 'confirmed' })
       .eq('id', reportId);
     if (error) return { error: error.message };
+
+    await logAudit(supabase, {
+      userId,
+      action: 'payment_report.confirm',
+      entityType: 'payment_report',
+      entityId: reportId,
+    });
+
     revalidatePath('/pagos-reportados');
     return { success: true };
   }
@@ -126,6 +142,13 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
     })
     .eq('id', reportId);
   if (updateError) return { error: updateError.message };
+
+  await logAudit(supabase, {
+    userId,
+    action: 'payment_report.confirm',
+    entityType: 'payment_report',
+    entityId: reportId,
+  });
 
   revalidatePath('/pagos-reportados');
   revalidatePath('/pagos');
