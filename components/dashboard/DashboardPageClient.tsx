@@ -34,6 +34,7 @@ import { subMonths } from 'date-fns';
 import { currencyLabel } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import { ExchangeRateCard } from './ExchangeRateCard';
+import { StatCard } from './StatCard';
 import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
 
 function formatAmount(amount: number, currency: string): string {
@@ -154,7 +155,7 @@ export function DashboardPageClient({
       </Row>
 
       <Grid columns="5" m={{ columns: 3 }} s={{ columns: 1 }} gap="16" fillWidth>
-        <Card padding="24" radius="l" background="neutral-alpha-weak" fillWidth>
+        <StatCard stripeColor="success-strong">
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('kpis.collected.title', { month: monthLabel })}
@@ -171,9 +172,9 @@ export function DashboardPageClient({
               );
             })}
           </Column>
-        </Card>
+        </StatCard>
 
-        <Card padding="24" radius="l" background="neutral-alpha-weak" fillWidth>
+        <StatCard stripeColor="danger-strong">
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('kpis.morosos.title')}
@@ -183,25 +184,25 @@ export function DashboardPageClient({
               {t('kpis.morosos.of', { total: houses.length })}
             </Text>
           </Column>
-        </Card>
+        </StatCard>
 
-        <Card padding="24" radius="l" background="neutral-alpha-weak" fillWidth>
+        <StatCard stripeColor="brand-strong">
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('kpis.outstanding.title')}
             </Text>
             <CurrencyAmountList amounts={outstanding} emptyLabel={t('kpis.outstanding.empty')} />
           </Column>
-        </Card>
+        </StatCard>
 
-        <Card padding="24" radius="l" background="warning-alpha-weak" fillWidth>
+        <StatCard stripeColor="warning-strong">
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('kpis.pendingExpenses.title', { month: monthLabel })}
             </Text>
             <CurrencyAmountList amounts={pendingExpenses} emptyLabel={t('kpis.pendingExpenses.empty')} />
           </Column>
-        </Card>
+        </StatCard>
 
         <ExchangeRateCard rates={exchangeRates} />
       </Grid>

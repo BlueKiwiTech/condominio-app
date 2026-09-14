@@ -3,10 +3,11 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { Row, Column, Card, Text, Button, Input, Feedback } from '@once-ui-system/core';
+import { Row, Column, Text, Button, Input, Feedback } from '@once-ui-system/core';
 import { setExchangeRate } from '@/lib/actions/exchangeRate';
 import { isRateFresh, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 import { formatShortDateTime } from '@/lib/dateFormat';
+import { StatCard } from './StatCard';
 
 function RateColumn({ rateType, label, row }: { rateType: ExchangeRateType; label: string; row: ExchangeRateRow | null }) {
   const t = useTranslations('dashboard.exchangeRate');
@@ -109,7 +110,7 @@ export function ExchangeRateCard({ rates }: { rates: Record<ExchangeRateType, Ex
   const t = useTranslations('dashboard.exchangeRate');
 
   return (
-    <Card padding="24" radius="l" background="neutral-alpha-weak" fillWidth>
+    <StatCard stripeColor="brand-strong">
       <Column gap="16" fillWidth>
         <Text variant="label-default-s" onBackground="neutral-weak">
           {t('heading')}
@@ -117,6 +118,6 @@ export function ExchangeRateCard({ rates }: { rates: Record<ExchangeRateType, Ex
         <RateColumn rateType="bcv" label={t('bcv')} row={rates.bcv} />
         <RateColumn rateType="binance" label={t('binance')} row={rates.binance} />
       </Column>
-    </Card>
+    </StatCard>
   );
 }
