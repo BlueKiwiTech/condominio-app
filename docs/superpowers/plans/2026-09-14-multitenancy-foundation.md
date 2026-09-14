@@ -301,8 +301,8 @@ git commit -m "feat(db): add community_id to every remaining tenant-scoped table
 - Create: `supabase/migrations/20260914120000_rewrite_admin_rls_policies.sql`
 
 **Interfaces:**
-- Consumes: `condo_is_community_admin(uuid)` (Task 1), `community_id` on all 14 `condo_*` tables (pre-existing on 3, added in Task 3 on the other 10... wait 11, see note).
-- Produces: same 15 policy names as before, rewritten definitions.
+- Consumes: `condo_is_community_admin(uuid)` (Task 1); `community_id` on 13 tables (3 pre-existing: `condo_houses`, `condo_installment_templates`, `condo_expense_templates` — added in Task 3 on the other 10); and `condo_communities.id` directly (it has no `community_id` column of its own).
+- Produces: same 15 policy names as before, across all 14 `condo_*` tables, rewritten definitions.
 
 > Note: `condo_expense_templates` already had `community_id` since its own migration — it is included in this task's rewrite even though Task 3 didn't touch its column.
 
