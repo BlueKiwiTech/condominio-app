@@ -508,6 +508,16 @@
         "creditUsed": "Credit applied",
         "resultingCredit": "A credit balance of {amount} {currency} remains for the next cuota.",
         "upToDate": "With this payment, the house is up to date."
+      },
+      "ocr": {
+        "scanButton": "Scan receipt",
+        "invalidFileType": "Must be an image (photo or screenshot).",
+        "fileTooLarge": "The image is too large (max 5 MB).",
+        "extractFailed": "Could not read the receipt. Please fill in the fields manually.",
+        "prefilled": "Fields filled in from the receipt — please review them before saving.",
+        "stepHint": "Attach the payment receipt to auto-fill the details.",
+        "manualEntry": "Enter manually",
+        "rescan": "Scan a different receipt"
       }
     }
   },
@@ -598,8 +608,7 @@
         "amount": "Amount",
         "paymentDate": "Payment date",
         "reference": "Reference (optional)",
-        "notes": "Notes (optional)",
-        "screenshot": "Payment screenshot (optional)"
+        "notes": "Notes (optional)"
       },
       "addScreenshot": "Attach screenshot",
       "removeScreenshot": "Remove",
@@ -610,7 +619,12 @@
       "submit": "Send report",
       "cancel": "Cancel",
       "close": "Close",
-      "successMessage": "Done! Your report was sent. The board will review and confirm it."
+      "successMessage": "Done! Your report was sent. The board will review and confirm it.",
+      "extractFailed": "Could not read the screenshot. Please fill in the fields manually.",
+      "ocrStepHint": "Attach your payment receipt to auto-fill the details.",
+      "manualEntry": "I don't have a screenshot",
+      "prefilled": "Fields filled in from the screenshot — please review them before sending.",
+      "changeScreenshot": "Attach a different screenshot"
     }
   },
   "residentPerfil": {

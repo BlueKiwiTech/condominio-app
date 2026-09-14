@@ -9,10 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/gateway": "^4.0.80",
     "@hookform/resolvers": "^5.9.1",
     "@once-ui-system/core": "^1.8.4",
     "@supabase/ssr": "^0.12.6",
     "@supabase/supabase-js": "^2.115.0",
+    "ai": "^7.0.99",
     "bcryptjs": "^3.0.3",
     "classnames": "^2.5.1",
     "date-fns": "^4.4.0",

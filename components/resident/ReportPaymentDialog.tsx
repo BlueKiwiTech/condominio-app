@@ -17,6 +17,7 @@ import {
   Text,
 } from '@once-ui-system/core';
 import { reportPayment } from '@/lib/actions/residentPayments';
+import { extractResidentPaymentFromScreenshot } from '@/lib/actions/residentPaymentOcr';
 import { toDateOnly } from '@/lib/cuotas/generate';
 import { CURRENCY_SELECT_OPTIONS, currencyLabel } from '@/lib/currency';
 import { referenceUsdAmount, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
@@ -60,6 +61,17 @@ export function ReportPaymentDialog({
   const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // OCR-first flow (user-requested, 2026-09-13): the amount/currency/date/
+  // reference/notes fields stay hidden until the resident either attaches a
+  // screenshot (auto-OCR'd via extractResidentPaymentFromScreenshot) or
+  // explicitly says they don't have one. Purely a convenience -- it only
+  // fills the fields below, reportPayment still submits whatever the
+  // resident confirms/edits.
+  const [isScanning, startScanTransition] = useTransition();
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const [ocrPrefilled, setOcrPrefilled] = useState(false);
+  const [formRevealed, setFormRevealed] = useState(false);
+
   // Revoke the previous object URL whenever it changes or the dialog
   // unmounts -- otherwise each new selection leaks the prior blob.
   useEffect(() => {
@@ -86,6 +98,28 @@ export function ReportPaymentDialog({
     if (screenshotPreviewUrl) URL.revokeObjectURL(screenshotPreviewUrl);
     setScreenshot(file);
     setScreenshotPreviewUrl(URL.createObjectURL(file));
+
+    setOcrError(null);
+    setOcrPrefilled(false);
+    startScanTransition(async () => {
+      const result = await extractResidentPaymentFromScreenshot(file, locale);
+      if ('error' in result) {
+        setOcrError(result.error);
+        setFormRevealed(true);
+        return;
+      }
+      const { data } = result;
+      if (data.amount !== null) {
+        setAmountEdited(true);
+        setAmount(data.amount);
+      }
+      if (data.currency !== null) setCurrency(data.currency);
+      if (data.payment_date !== null) setPaymentDate(parseISO(data.payment_date));
+      if (data.reference !== null) setReference(data.reference);
+      if (data.notes !== null) setNotes(data.notes);
+      setOcrPrefilled(true);
+      setFormRevealed(true);
+    });
   };
 
   const handleRemoveScreenshot = () => {
@@ -199,80 +233,102 @@ export function ReportPaymentDialog({
             </Column>
           )}
 
-          <Row gap="16" wrap>
-            <Input
-              id="amount"
-              type="number"
-              label={t('fields.amount')}
-              value={amount}
-              onChange={(e) => {
-                setAmountEdited(true);
-                setAmount(e.target.valueAsNumber || 0);
-              }}
-            />
-            <Select
-              id="currency"
-              label={t('fields.currency')}
-              options={CURRENCY_SELECT_OPTIONS}
-              value={currency}
-              onSelect={handleCurrencySelect}
-            />
-          </Row>
-          {usdReference !== null && (
-            <Text variant="body-default-xs" onBackground="neutral-weak">
-              {t('usdReference', { amount: usdReference.toFixed(2), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
-            </Text>
-          )}
-          <Text variant="body-default-xs" onBackground="neutral-weak">
-            {t('currencyFreeHint')}
-          </Text>
-
-          <DateInput
-            id="payment_date"
-            label={t('fields.paymentDate')}
-            value={paymentDate}
-            onChange={(date) => setPaymentDate(date)}
-            maxDate={new Date()}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
           />
-          <Input
-            id="reference"
-            label={t('fields.reference')}
-            value={reference}
-            onChange={(e) => setReference(e.target.value)}
-          />
-          <Textarea id="notes" label={t('fields.notes')} value={notes} onChange={(e) => setNotes(e.target.value)} />
 
-          <Column gap="8" fillWidth>
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('fields.screenshot')}
-            </Text>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              style={{ display: 'none' }}
-              onChange={handleFileChange}
-            />
-            {fileError && <Feedback variant="danger" description={fileError} />}
-            {screenshotPreviewUrl ? (
-              <Row gap="12" vertical="center">
-                {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview, not a Next-optimizable remote asset */}
-                <img
-                  src={screenshotPreviewUrl}
-                  alt=""
-                  style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--neutral-border-weak)' }}
-                />
-                <Button type="button" variant="tertiary" size="s" onClick={handleRemoveScreenshot}>
-                  {t('removeScreenshot')}
+          {!formRevealed && (
+            <Column gap="12" padding="24" radius="l" background="neutral-alpha-weak">
+              <Text variant="body-default-s">{t('ocrStepHint')}</Text>
+              {fileError && <Feedback variant="danger" description={fileError} />}
+              <Row gap="12" vertical="center" wrap>
+                <Button type="button" variant="primary" loading={isScanning} onClick={() => fileInputRef.current?.click()}>
+                  {t('addScreenshot')}
+                </Button>
+                <Button type="button" variant="tertiary" disabled={isScanning} onClick={() => setFormRevealed(true)}>
+                  {t('manualEntry')}
                 </Button>
               </Row>
-            ) : (
-              <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()}>
-                {t('addScreenshot')}
-              </Button>
-            )}
-          </Column>
+            </Column>
+          )}
+
+          {formRevealed && (
+            <>
+              {ocrError && <Feedback variant="danger" description={ocrError} />}
+              {ocrPrefilled && !ocrError && <Feedback variant="success" description={t('prefilled')} />}
+
+              {screenshotPreviewUrl ? (
+                <Row gap="12" vertical="center">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview, not a Next-optimizable remote asset */}
+                  <img
+                    src={screenshotPreviewUrl}
+                    alt=""
+                    style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--neutral-border-weak)' }}
+                  />
+                  <Button type="button" variant="tertiary" size="s" onClick={handleRemoveScreenshot}>
+                    {t('removeScreenshot')}
+                  </Button>
+                  <Button type="button" variant="tertiary" size="s" loading={isScanning} onClick={() => fileInputRef.current?.click()}>
+                    {t('changeScreenshot')}
+                  </Button>
+                </Row>
+              ) : (
+                <Row>
+                  <Button type="button" variant="tertiary" size="s" loading={isScanning} onClick={() => fileInputRef.current?.click()}>
+                    {t('addScreenshot')}
+                  </Button>
+                </Row>
+              )}
+
+              <Row gap="16" wrap>
+                <Input
+                  id="amount"
+                  type="number"
+                  label={t('fields.amount')}
+                  value={amount}
+                  onChange={(e) => {
+                    setAmountEdited(true);
+                    setAmount(e.target.valueAsNumber || 0);
+                  }}
+                />
+                <Select
+                  id="currency"
+                  label={t('fields.currency')}
+                  options={CURRENCY_SELECT_OPTIONS}
+                  value={currency}
+                  onSelect={handleCurrencySelect}
+                />
+              </Row>
+              {usdReference !== null && (
+                <Text variant="body-default-xs" onBackground="neutral-weak">
+                  {t('usdReference', { amount: usdReference.toFixed(2), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
+                </Text>
+              )}
+              <Text variant="body-default-xs" onBackground="neutral-weak">
+                {t('currencyFreeHint')}
+              </Text>
+
+              <DateInput
+                id="payment_date"
+                label={t('fields.paymentDate')}
+                value={paymentDate}
+                onChange={(date) => setPaymentDate(date)}
+                maxDate={new Date()}
+              />
+              <Input
+                id="reference"
+                label={t('fields.reference')}
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+              />
+              <Textarea id="notes" label={t('fields.notes')} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </>
+          )}
         </Column>
       )}
     </Dialog>

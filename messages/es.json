@@ -508,6 +508,16 @@
         "creditUsed": "Saldo a favor aplicado",
         "resultingCredit": "Queda un saldo a favor de {amount} {currency} para la próxima cuota.",
         "upToDate": "Con este pago, la casa queda al día."
+      },
+      "ocr": {
+        "scanButton": "Escanear comprobante",
+        "invalidFileType": "Debe ser una imagen (foto o captura de pantalla).",
+        "fileTooLarge": "La imagen es muy pesada (máximo 5 MB).",
+        "extractFailed": "No se pudo leer el comprobante. Completa los datos manualmente.",
+        "prefilled": "Datos completados desde el comprobante — revísalos antes de guardar.",
+        "stepHint": "Adjunta el comprobante del pago para completar los datos automáticamente.",
+        "manualEntry": "Ingresar manualmente",
+        "rescan": "Escanear otro comprobante"
       }
     }
   },
@@ -598,8 +608,7 @@
         "amount": "Monto",
         "paymentDate": "Fecha del pago",
         "reference": "Referencia (opcional)",
-        "notes": "Notas (opcional)",
-        "screenshot": "Captura del pago (opcional)"
+        "notes": "Notas (opcional)"
       },
       "addScreenshot": "Adjuntar captura",
       "removeScreenshot": "Quitar",
@@ -610,7 +619,12 @@
       "submit": "Enviar reporte",
       "cancel": "Cancelar",
       "close": "Cerrar",
-      "successMessage": "¡Listo! Tu reporte fue enviado. La junta lo va a revisar y confirmar."
+      "successMessage": "¡Listo! Tu reporte fue enviado. La junta lo va a revisar y confirmar.",
+      "extractFailed": "No se pudo leer la captura. Completa los datos manualmente.",
+      "ocrStepHint": "Adjunta tu comprobante de pago para completar los datos automáticamente.",
+      "manualEntry": "No tengo captura",
+      "prefilled": "Datos completados desde la captura — revísalos antes de enviar.",
+      "changeScreenshot": "Adjuntar otra captura"
     }
   },
   "residentPerfil": {

@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
+import { parseISO } from 'date-fns';
 import {
   Column,
   Row,
@@ -21,6 +22,7 @@ import {
   type TableHeader,
 } from '@once-ui-system/core';
 import { registerPayment } from '@/lib/actions/payments';
+import { extractPaymentFromScreenshot } from '@/lib/actions/paymentOcr';
 import { allocateFunds, sortOldestFirst } from '@/lib/payments/allocate';
 import { toDateOnly } from '@/lib/cuotas/generate';
 import { currencyLabel, CURRENCY_SELECT_OPTIONS } from '@/lib/currency';
@@ -53,6 +55,47 @@ export function PaymentFormClient({
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
+
+  // OCR-prefill from a receipt screenshot (user-requested, 2026-09-13) --
+  // purely a convenience: it only fills the fields above, it never submits
+  // anything itself, so the admin always reviews/edits before registering.
+  const [isScanning, startScanTransition] = useTransition();
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const [ocrPrefilled, setOcrPrefilled] = useState(false);
+  // Gates the amount/currency/date/reference/notes/submit section: hidden
+  // until the admin either scans a receipt (success or failure) or opts to
+  // skip straight to manual entry (user-requested flow, 2026-09-13). The
+  // cuota table above stays visible throughout -- picking which cuota(s)
+  // this payment covers doesn't depend on OCR.
+  const [ocrStepDone, setOcrStepDone] = useState(false);
+  const scanInputRef = useRef<HTMLInputElement>(null);
+
+  const handleScanFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    e.target.value = ''; // allow re-selecting the same file
+    if (!file) return;
+    setOcrError(null);
+    setOcrPrefilled(false);
+    startScanTransition(async () => {
+      const result = await extractPaymentFromScreenshot(file, locale);
+      if ('error' in result) {
+        setOcrError(result.error);
+        setOcrStepDone(true);
+        return;
+      }
+      const { data } = result;
+      if (data.amount !== null) {
+        setAmountEdited(true);
+        setAmountReceived(data.amount);
+      }
+      if (data.currency !== null) setCurrency(data.currency);
+      if (data.payment_date !== null) setPaymentDate(parseISO(data.payment_date));
+      if (data.reference !== null) setReference(data.reference);
+      if (data.notes !== null) setNotes(data.notes);
+      setOcrPrefilled(true);
+      setOcrStepDone(true);
+    });
+  };
 
   const houseOptions = houses.map((h) => ({
     label: h.house_name ? `${h.house_number} · ${h.house_name}${h.owner_name ? ` (${h.owner_name})` : ''}` : h.house_number,
@@ -112,6 +155,9 @@ export function PaymentFormClient({
     setSelectedIds([]);
     setAmountEdited(false);
     setAmountReceived(0);
+    setOcrStepDone(false);
+    setOcrError(null);
+    setOcrPrefilled(false);
   };
 
   const toggleInstallment = (id: string) => {
@@ -199,51 +245,86 @@ export function PaymentFormClient({
 
             <Table data={{ headers, rows }} emptyState={t('noPendingInstallments')} />
 
-            <Row gap="16" wrap>
-              <Input
-                id="amount"
-                type="number"
-                label={t('fields.amountReceived')}
-                value={Number.isNaN(amountReceived) ? '' : amountReceived}
-                onChange={(e) => {
-                  setAmountEdited(true);
-                  setAmountReceived(e.target.valueAsNumber);
-                }}
-              />
-              <Select
-                id="currency"
-                label={t('fields.currency')}
-                options={CURRENCY_SELECT_OPTIONS}
-                value={currency ?? undefined}
-                onSelect={(value) => setCurrency((Array.isArray(value) ? value[0] : value) as Currency)}
-              />
-            </Row>
-            {usdReference !== null && (
-              <Text variant="body-default-xs" onBackground="neutral-weak">
-                {t('usdReference', { amount: usdReference.toFixed(2), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
-              </Text>
-            )}
-            <Text variant="body-default-xs" onBackground="neutral-weak">
-              {t('currencyFreeHint')}
-            </Text>
-
-            <DateInput
-              id="payment_date"
-              label={t('fields.paymentDate')}
-              value={paymentDate}
-              onChange={(date) => setPaymentDate(date)}
+            <input
+              ref={scanInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              style={{ display: 'none' }}
+              onChange={handleScanFile}
             />
-            <Input id="reference" label={t('fields.reference')} value={reference} onChange={(e) => setReference(e.target.value)} />
-            <Textarea id="notes" label={t('fields.notes')} value={notes} onChange={(e) => setNotes(e.target.value)} />
 
-            <Row gap="12">
-              <Button type="button" variant="primary" loading={isPending} disabled={!canSubmit} onClick={onSubmit}>
-                {t('submit')}
-              </Button>
-              <Button type="button" variant="secondary" onClick={() => router.push('/pagos')}>
-                {t('cancel')}
-              </Button>
-            </Row>
+            {!ocrStepDone && (
+              <Column gap="12" padding="24" radius="l" background="neutral-alpha-weak">
+                <Text variant="body-default-s">{t('ocr.stepHint')}</Text>
+                <Row gap="12" vertical="center" wrap>
+                  <Button type="button" variant="primary" loading={isScanning} onClick={() => scanInputRef.current?.click()}>
+                    {t('ocr.scanButton')}
+                  </Button>
+                  <Button type="button" variant="tertiary" disabled={isScanning} onClick={() => setOcrStepDone(true)}>
+                    {t('ocr.manualEntry')}
+                  </Button>
+                </Row>
+              </Column>
+            )}
+
+            {ocrStepDone && (
+              <>
+                {ocrError && <Feedback variant="danger" description={ocrError} />}
+                {ocrPrefilled && !ocrError && <Feedback variant="success" description={t('ocr.prefilled')} />}
+                <Row>
+                  <Button type="button" variant="tertiary" size="s" loading={isScanning} onClick={() => scanInputRef.current?.click()}>
+                    {t('ocr.rescan')}
+                  </Button>
+                </Row>
+
+                <Row gap="16" wrap>
+                  <Input
+                    id="amount"
+                    type="number"
+                    label={t('fields.amountReceived')}
+                    value={Number.isNaN(amountReceived) ? '' : amountReceived}
+                    onChange={(e) => {
+                      setAmountEdited(true);
+                      setAmountReceived(e.target.valueAsNumber);
+                    }}
+                  />
+                  <Select
+                    id="currency"
+                    label={t('fields.currency')}
+                    options={CURRENCY_SELECT_OPTIONS}
+                    value={currency ?? undefined}
+                    onSelect={(value) => setCurrency((Array.isArray(value) ? value[0] : value) as Currency)}
+                  />
+                </Row>
+                {usdReference !== null && (
+                  <Text variant="body-default-xs" onBackground="neutral-weak">
+                    {t('usdReference', { amount: usdReference.toFixed(2), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
+                  </Text>
+                )}
+                <Text variant="body-default-xs" onBackground="neutral-weak">
+                  {t('currencyFreeHint')}
+                </Text>
+
+                <DateInput
+                  id="payment_date"
+                  label={t('fields.paymentDate')}
+                  value={paymentDate}
+                  onChange={(date) => setPaymentDate(date)}
+                />
+                <Input id="reference" label={t('fields.reference')} value={reference} onChange={(e) => setReference(e.target.value)} />
+                <Textarea id="notes" label={t('fields.notes')} value={notes} onChange={(e) => setNotes(e.target.value)} />
+
+                <Row gap="12">
+                  <Button type="button" variant="primary" loading={isPending} disabled={!canSubmit} onClick={onSubmit}>
+                    {t('submit')}
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => router.push('/pagos')}>
+                    {t('cancel')}
+                  </Button>
+                </Row>
+              </>
+            )}
           </>
         )}
       </Column>
