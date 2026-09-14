@@ -112,15 +112,16 @@
     },
     "groups": {
       "general": "General",
-      "collection": "Collection",
+      "collection": "Dues",
       "expenses": "Expenses",
       "reports": "Reports"
     },
     "items": {
       "dashboard": "Dashboard",
       "houses": "Houses & residents",
-      "cuotas": "Cuotas",
+      "cuotas": "Cuota templates",
       "gastos": "Expenses",
+      "expenseTemplates": "Expense templates",
       "registerPayment": "Register payment",
       "paymentReports": "Reported payments",
       "report": "Monthly report",

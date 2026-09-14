@@ -21,14 +21,17 @@ const GROUPS: NavGroup[] = [
   {
     titleKey: 'groups.collection',
     items: [
-      { href: '/cuotas', icon: 'calendar', labelKey: 'items.cuotas' },
       { href: '/pagos/nuevo', icon: 'plus', labelKey: 'items.registerPayment' },
       { href: '/pagos-reportados', icon: 'checkbox', labelKey: 'items.paymentReports' },
+      { href: '/cuotas', icon: 'calendar', labelKey: 'items.cuotas' },
     ],
   },
   {
     titleKey: 'groups.expenses',
-    items: [{ href: '/gastos', icon: 'arrowUpRight', labelKey: 'items.gastos' }],
+    items: [
+      { href: '/gastos', icon: 'arrowUpRight', labelKey: 'items.gastos' },
+      { href: '/gastos/plantillas', icon: 'copy', labelKey: 'items.expenseTemplates' },
+    ],
   },
   {
     titleKey: 'groups.reports',

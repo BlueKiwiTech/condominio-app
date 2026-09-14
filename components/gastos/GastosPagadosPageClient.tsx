@@ -54,10 +54,21 @@ export function GastosPagadosPageClient({
 
   return (
     <Column fillWidth gap="24">
-      <Row gap="12" wrap>
+      <Row
+        gap="16"
+        wrap
+        vertical="end"
+        fillWidth
+        background="surface"
+        border="neutral-alpha-weak"
+        radius="l"
+        padding="16"
+      >
         <Select
           id="categoryFilter"
           label={t('filters.category')}
+          fillWidth={false}
+          minWidth={12}
           options={[
             { label: t('filters.allCategories'), value: 'all' },
             ...categories.map((c) => ({ label: c.name, value: c.id })),
@@ -65,20 +76,24 @@ export function GastosPagadosPageClient({
           value={categoryFilter}
           onSelect={(value) => setCategoryFilter(Array.isArray(value) ? value[0] : value)}
         />
-        <Input
-          id="providerFilter"
-          label={t('filters.provider')}
-          placeholder={t('filters.providerPlaceholder')}
-          value={providerFilter}
-          onChange={(e) => setProviderFilter(e.target.value)}
-        />
-        <Input
-          id="monthFilter"
-          type="month"
-          label={t('filters.month')}
-          value={monthFilter}
-          onChange={(e) => setMonthFilter(e.target.value)}
-        />
+        <Column minWidth={16}>
+          <Input
+            id="providerFilter"
+            label={t('filters.provider')}
+            placeholder={t('filters.providerPlaceholder')}
+            value={providerFilter}
+            onChange={(e) => setProviderFilter(e.target.value)}
+          />
+        </Column>
+        <Column minWidth={12}>
+          <Input
+            id="monthFilter"
+            type="month"
+            label={t('filters.month')}
+            value={monthFilter}
+            onChange={(e) => setMonthFilter(e.target.value)}
+          />
+        </Column>
       </Row>
 
       <Table data={{ headers, rows }} emptyState={t('empty')} />

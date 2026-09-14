@@ -119,8 +119,9 @@
     "items": {
       "dashboard": "Panel",
       "houses": "Casas y vecinos",
-      "cuotas": "Cuotas",
+      "cuotas": "Plantillas de cuotas",
       "gastos": "Gastos",
+      "expenseTemplates": "Plantillas de gastos",
       "registerPayment": "Registrar pago",
       "paymentReports": "Pagos reportados",
       "report": "Reporte mensual",

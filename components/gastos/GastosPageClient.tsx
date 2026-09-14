@@ -7,8 +7,6 @@ import { format } from 'date-fns';
 import {
   Column,
   Row,
-  Heading,
-  Text,
   Select,
   Input,
   Table,
@@ -21,10 +19,10 @@ import {
   type TableHeader,
 } from '@once-ui-system/core';
 import { markExpensePaidSchema, type MarkExpensePaidInput } from '@/lib/validation/gastos';
-import { markExpensePaid, setExpenseTemplateActive, deleteExpense, deleteExpenseTemplate } from '@/lib/actions/gastos';
+import { markExpensePaid, deleteExpense, deleteExpenseTemplate } from '@/lib/actions/gastos';
 import { currencyLabel } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
-import type { CategoryOption, ExpenseRow, ExpenseStatus, FixedTemplateRow } from './types';
+import type { CategoryOption, ExpenseRow, ExpenseStatus } from './types';
 
 function formatAmount(amount: number, currency: string): string {
   return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
@@ -33,17 +31,14 @@ function formatAmount(amount: number, currency: string): string {
 export function GastosPageClient({
   initialExpenses,
   categories,
-  fixedTemplates,
 }: {
   initialExpenses: ExpenseRow[];
   categories: CategoryOption[];
-  fixedTemplates: FixedTemplateRow[];
 }) {
   const t = useTranslations('gastos');
   const tv = useTranslations('validation.gastos');
   const locale = useLocale();
   const router = useRouter();
-  const [isTogglingActive, startToggleTransition] = useTransition();
   const [isMarkingPaid, startMarkPaidTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
 
@@ -106,16 +101,6 @@ export function GastosPageClient({
         return;
       }
       setMarkPaidTarget(null);
-    });
-  };
-
-  const toggleActive = (templateId: string, active: boolean) => {
-    setServerError(null);
-    startToggleTransition(async () => {
-      const result = await setExpenseTemplateActive(templateId, active, locale);
-      if ('error' in result) {
-        setServerError(result.error);
-      }
     });
   };
 
@@ -192,48 +177,21 @@ export function GastosPageClient({
           </Button>
         </SmartLink>
       </Row>
-      <Column gap="12" fillWidth>
-        <Heading variant="heading-strong-s">{t('templates.heading')}</Heading>
-        {fixedTemplates.length === 0 ? (
-          <Text variant="body-default-s" onBackground="neutral-weak">
-            {t('templates.empty')}
-          </Text>
-        ) : (
-          <Column gap="8" fillWidth>
-            {fixedTemplates.map((tpl) => (
-              <Row
-                key={tpl.id}
-                fillWidth
-                horizontal="between"
-                vertical="center"
-                padding="12"
-                radius="m"
-                border="neutral-alpha-weak"
-              >
-                <Text variant="label-default-s">{tpl.name}</Text>
-                <Row gap="8">
-                  <Button
-                    size="s"
-                    variant="secondary"
-                    loading={isTogglingActive}
-                    onClick={() => toggleActive(tpl.id, !tpl.active)}
-                  >
-                    {tpl.active ? t('actions.deactivate') : t('actions.activate')}
-                  </Button>
-                  <Button size="s" variant="danger" disabled={isDeleting} onClick={() => handleDeleteTemplate(tpl.id)}>
-                    {t('actions.delete')}
-                  </Button>
-                </Row>
-              </Row>
-            ))}
-          </Column>
-        )}
-      </Column>
-
-      <Row gap="12" wrap>
+      <Row
+        gap="16"
+        wrap
+        vertical="end"
+        fillWidth
+        background="surface"
+        border="neutral-alpha-weak"
+        radius="l"
+        padding="16"
+      >
         <Select
           id="statusFilter"
           label={t('filters.status')}
+          fillWidth={false}
+          minWidth={12}
           options={[
             { label: t('filters.allStatuses'), value: 'all' },
             { label: t('status.pending'), value: 'pending' },
@@ -245,6 +203,8 @@ export function GastosPageClient({
         <Select
           id="categoryFilter"
           label={t('filters.category')}
+          fillWidth={false}
+          minWidth={12}
           options={[
             { label: t('filters.allCategories'), value: 'all' },
             ...categories.map((c) => ({ label: c.name, value: c.id })),
@@ -252,20 +212,24 @@ export function GastosPageClient({
           value={categoryFilter}
           onSelect={(value) => setCategoryFilter(Array.isArray(value) ? value[0] : value)}
         />
-        <Input
-          id="providerFilter"
-          label={t('filters.provider')}
-          placeholder={t('filters.providerPlaceholder')}
-          value={providerFilter}
-          onChange={(e) => setProviderFilter(e.target.value)}
-        />
-        <Input
-          id="monthFilter"
-          type="month"
-          label={t('filters.month')}
-          value={monthFilter}
-          onChange={(e) => setMonthFilter(e.target.value)}
-        />
+        <Column minWidth={16}>
+          <Input
+            id="providerFilter"
+            label={t('filters.provider')}
+            placeholder={t('filters.providerPlaceholder')}
+            value={providerFilter}
+            onChange={(e) => setProviderFilter(e.target.value)}
+          />
+        </Column>
+        <Column minWidth={12}>
+          <Input
+            id="monthFilter"
+            type="month"
+            label={t('filters.month')}
+            value={monthFilter}
+            onChange={(e) => setMonthFilter(e.target.value)}
+          />
+        </Column>
       </Row>
 
       <Table data={{ headers, rows }} emptyState={t('empty')} />
