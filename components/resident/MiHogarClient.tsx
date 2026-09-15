@@ -108,7 +108,7 @@ export function MiHogarClient({
         ) : (
           <Column gap="8" fillWidth>
             {upcoming.map((inst) => (
-              <Row key={inst.id} fillWidth horizontal="between" vertical="center" padding="12" radius="m" border="neutral-alpha-weak">
+              <Row key={inst.id} fillWidth horizontal="between" vertical="center" padding="12" radius="s" border="neutral-alpha-weak">
                 <Column gap="2">
                   <Text variant="label-strong-s">{inst.name}</Text>
                   <Text variant="body-default-xs" onBackground="neutral-weak">

@@ -8,7 +8,7 @@ import { Card, Flex, type Colors } from '@once-ui-system/core';
 export function StatCard({ stripeColor, children }: { stripeColor?: Colors; children: ReactNode }) {
   return (
     <Card
-      radius="m"
+      radius="s"
       border="neutral-alpha-medium"
       background="surface"
       position="relative"

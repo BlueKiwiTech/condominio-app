@@ -267,7 +267,7 @@ export function DashboardPageClient({
                   horizontal="between"
                   vertical="center"
                   padding="12"
-                  radius="m"
+                  radius="s"
                   border="neutral-alpha-weak"
                 >
                   <Column gap="2">

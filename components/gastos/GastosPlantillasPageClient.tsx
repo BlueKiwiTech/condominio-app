@@ -61,7 +61,7 @@ export function GastosPlantillasPageClient({ fixedTemplates }: { fixedTemplates:
               horizontal="between"
               vertical="center"
               padding="12"
-              radius="m"
+              radius="s"
               border="neutral-alpha-weak"
             >
               <Text variant="label-default-s">{tpl.name}</Text>

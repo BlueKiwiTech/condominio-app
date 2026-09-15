@@ -74,7 +74,7 @@ export function AdminSidebar({
       <Column
         horizontal="center"
         vertical="center"
-        radius="m"
+        radius="s"
         background="brand-strong"
         style={{ width: 30, height: 30, flex: '0 0 30px' }}
       >
@@ -125,7 +125,7 @@ export function AdminSidebar({
                   gap="8"
                   vertical="center"
                   paddingX="8"
-                  radius="m"
+                  radius="s"
                   background={active ? 'brand-alpha-weak' : undefined}
                   border={active ? 'brand-alpha-medium' : undefined}
                   style={{ height: 34 }}
@@ -149,7 +149,7 @@ export function AdminSidebar({
   const accountFooter = (
     <Column gap="8" style={{ marginTop: 'auto' }}>
       <LocaleSwitcher />
-      <Row gap="8" vertical="center" paddingX="8" paddingY="8" radius="m" background="neutral-alpha-weak">
+      <Row gap="8" vertical="center" paddingX="8" paddingY="8" radius="s" background="neutral-alpha-weak">
         <Column
           horizontal="center"
           vertical="center"
@@ -214,7 +214,7 @@ export function AdminSidebar({
           <Column
             horizontal="center"
             vertical="center"
-            radius="m"
+            radius="s"
             background="brand-strong"
             style={{ width: 26, height: 26, flex: '0 0 26px' }}
           >
