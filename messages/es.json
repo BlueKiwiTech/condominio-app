@@ -300,7 +300,7 @@
     "form": {
       "typeRecurring": "Recurrente",
       "typeSpecial": "Especial",
-      "cadence": "Cadencia",
+      "cadence": "Frecuencia",
       "isDivided": "Dividir en cuotas",
       "startDate": "Fecha de inicio",
       "firstInstallmentDate": "Primera cuota",
