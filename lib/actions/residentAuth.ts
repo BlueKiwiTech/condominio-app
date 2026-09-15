@@ -12,6 +12,7 @@ type VerifyPinResult = {
   success: boolean;
   reason?: 'not_found' | 'no_pin' | 'locked' | 'invalid';
   house_id?: string;
+  community_id?: string;
   locked_until?: string;
   attempts_remaining?: number;
 };
@@ -54,7 +55,7 @@ export async function residentLogin(input: ResidentLoginInput, locale: string): 
     };
   }
 
-  await createResidentSession(result.house_id!);
+  await createResidentSession(result.house_id!, result.community_id!);
   redirect('/mi-hogar');
 }
 

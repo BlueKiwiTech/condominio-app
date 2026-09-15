@@ -17,6 +17,7 @@ export const RESIDENT_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 export type ResidentSessionPayload = {
   house_id: string;
+  community_id: string;
   role: 'resident';
 };
 
@@ -26,8 +27,8 @@ function getSecret() {
   return new TextEncoder().encode(secret);
 }
 
-export async function signResidentToken(houseId: string): Promise<string> {
-  return new SignJWT({ house_id: houseId, role: 'resident' })
+export async function signResidentToken(houseId: string, communityId: string): Promise<string> {
+  return new SignJWT({ house_id: houseId, community_id: communityId, role: 'resident' })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${RESIDENT_SESSION_MAX_AGE_SECONDS}s`)
@@ -39,8 +40,14 @@ export async function verifyResidentToken(
 ): Promise<ResidentSessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    if (payload.role !== 'resident' || typeof payload.house_id !== 'string') return null;
-    return { house_id: payload.house_id, role: 'resident' };
+    if (
+      payload.role !== 'resident' ||
+      typeof payload.house_id !== 'string' ||
+      typeof payload.community_id !== 'string'
+    ) {
+      return null;
+    }
+    return { house_id: payload.house_id, community_id: payload.community_id, role: 'resident' };
   } catch {
     return null;
   }
