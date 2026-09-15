@@ -69,8 +69,8 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
     if (!isVariable) return null;
     if (!values.start_date) return null;
     if (!values.installment_count || values.installment_count < 1) return null;
-    return computeVariablePeriodDates(values.start_date, values.installment_count);
-  }, [isVariable, values.start_date, values.installment_count]);
+    return computeVariablePeriodDates(values.start_date, values.installment_count, values.cadence);
+  }, [isVariable, values.start_date, values.installment_count, values.cadence]);
 
   // Per-installment amounts the admin can edit individually -- they don't
   // have to be equal, only sum to the total. Reset to an even split
@@ -109,7 +109,7 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
     const payload: CreateExpenseTemplateInput =
       data.kind === 'fixed'
         ? { kind: 'fixed', ...shared, cadence: data.cadence }
-        : { kind: 'variable', ...shared, installment_count: data.installment_count, amounts };
+        : { kind: 'variable', ...shared, cadence: data.cadence, installment_count: data.installment_count, amounts };
 
     const parsed = createExpenseTemplateSchema(tv).safeParse(payload);
     if (!parsed.success) {
@@ -204,28 +204,26 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
           />
         </Row>
 
-        {!isVariable && (
-          <Controller
-            control={control}
-            name="cadence"
-            render={({ field }) => (
-              <Select
-                id="cadence"
-                label={t('form.cadence')}
-                options={[
-                  { label: t('cadence.weekly'), value: 'weekly' },
-                  { label: t('cadence.biweekly'), value: 'biweekly' },
-                  { label: t('cadence.monthly'), value: 'monthly' },
-                  { label: t('cadence.quarterly'), value: 'quarterly' },
-                  { label: t('cadence.annual'), value: 'annual' },
-                ]}
-                value={field.value}
-                onSelect={(value) => field.onChange(Array.isArray(value) ? value[0] : value)}
-                fillWidth
-              />
-            )}
-          />
-        )}
+        <Controller
+          control={control}
+          name="cadence"
+          render={({ field }) => (
+            <Select
+              id="cadence"
+              label={t('form.cadence')}
+              options={[
+                { label: t('cadence.weekly'), value: 'weekly' },
+                { label: t('cadence.biweekly'), value: 'biweekly' },
+                { label: t('cadence.monthly'), value: 'monthly' },
+                { label: t('cadence.quarterly'), value: 'quarterly' },
+                { label: t('cadence.annual'), value: 'annual' },
+              ]}
+              value={field.value}
+              onSelect={(value) => field.onChange(Array.isArray(value) ? value[0] : value)}
+              fillWidth
+            />
+          )}
+        />
 
         <Controller
           control={control}

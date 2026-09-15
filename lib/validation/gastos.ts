@@ -42,6 +42,9 @@ export function variableExpenseTemplateSchema(t: Translator) {
   return z.object({
     kind: z.literal('variable'),
     ...sharedFields(t),
+    // Cadence between installment due dates — admin-chosen, same options as
+    // a fixed gasto's cadence (previously hardcoded to monthly).
+    cadence: cadenceSchema,
     installment_count: z.coerce.number().int().min(1, t('minInstallments')).max(360, t('maxInstallments')),
     // One amount per installment, admin-entered -- not necessarily equal,
     // must sum to default_amount (checked below, once the union is built,

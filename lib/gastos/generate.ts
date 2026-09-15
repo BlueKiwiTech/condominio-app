@@ -33,10 +33,26 @@ export function computeNextPeriodDate(cadence: Cadence, lastPeriodDate: Date): D
   }
 }
 
-// Staggered one calendar month apart, preserving day-of-month — identical
-// rule to special-divided cuotas (lib/cuotas/generate.ts's 'special-divided'
-// branch of computeDueDates), since a variable gasto's installments are
-// conceptually the same shape ("this total, split into N dated installments").
-export function computeVariablePeriodDates(startDate: Date, count: number): Date[] {
-  return Array.from({ length: count }, (_, n) => addMonths(startDate, n));
+// Staggered per the admin-chosen cadence, preserving day-of-month/weekday —
+// same offset-from-startDate shape as lib/cuotas/generate.ts's
+// 'special-divided' branch of computeDueDates (a variable gasto's
+// installments are conceptually the same: "this total, split into N dated
+// installments"). Computed directly from startDate (never chained
+// period-to-period) so a day-31 start doesn't drift after a short month
+// clamps it — same reasoning as computeDueDates.
+export function computeVariablePeriodDates(startDate: Date, count: number, cadence: Cadence): Date[] {
+  return Array.from({ length: count }, (_, n) => {
+    switch (cadence) {
+      case 'weekly':
+        return addWeeks(startDate, n);
+      case 'biweekly':
+        return addWeeks(startDate, n * 2);
+      case 'monthly':
+        return addMonths(startDate, n);
+      case 'quarterly':
+        return addMonths(startDate, n * 3);
+      case 'annual':
+        return addMonths(startDate, n * 12);
+    }
+  });
 }

@@ -62,7 +62,7 @@ export async function createExpenseTemplate(
       category_id: data.category_id,
       provider: normalizeOptional(data.provider),
       kind: data.kind,
-      cadence: data.kind === 'fixed' ? data.cadence : null,
+      cadence: data.cadence,
       currency: data.currency,
       default_amount: data.default_amount,
       start_date: data.start_date,
@@ -84,11 +84,11 @@ export async function createExpenseTemplate(
   }
 
   // kind === 'variable': generate all installment_count rows now, staggered
-  // one month apart. Amounts are admin-entered per installment (not
-  // necessarily equal) -- createExpenseTemplateSchema already verified
+  // per the admin-chosen cadence. Amounts are admin-entered per installment
+  // (not necessarily equal) -- createExpenseTemplateSchema already verified
   // data.amounts.length === installment_count and their sum === default_amount.
   const startDate = new Date(`${data.start_date}T00:00:00`);
-  const periodDates = computeVariablePeriodDates(startDate, data.installment_count);
+  const periodDates = computeVariablePeriodDates(startDate, data.installment_count, data.cadence);
 
   const rows = periodDates.map((date, idx) => ({
     template_id: template.id,
