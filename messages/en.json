@@ -22,7 +22,8 @@
       "nameRequired": "Description is required.",
       "amountPositive": "Amount must be greater than 0.",
       "minInstallments": "There must be at least 1 installment.",
-      "maxInstallments": "Number of installments is too high."
+      "maxInstallments": "Number of installments is too high.",
+      "amountsSumMismatch": "The installments' sum doesn't match the total amount."
     },
     "gastos": {
       "invalidDate": "Invalid date.",
@@ -310,6 +311,8 @@
       "allHouses": "All",
       "amountPerInstallment": "Amount per installment",
       "amountTotal": "Total amount",
+      "installmentAmount": "Installment {number} amount",
+      "amountsSumMismatch": "The installments' sum ({sum}) doesn't match the total amount ({total}).",
       "submit": "Create cuota"
     },
     "preview": {

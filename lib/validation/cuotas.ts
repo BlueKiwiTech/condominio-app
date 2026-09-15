@@ -48,15 +48,36 @@ export function specialTemplateSchema(t: Translator) {
     ...sharedFields(t),
     is_divided: z.boolean().default(false),
     number_of_installments: z.coerce.number().int().min(1).max(360).default(1),
+    // Admin-entered per-installment amounts for a divided special cuota — not
+    // necessarily equal, must sum to `amount` (checked below, once the union
+    // is built, mirroring lib/validation/gastos.ts's variable-expense shape).
+    // Omitted (or ignored) when is_divided is false; the action falls back to
+    // an even splitAmount() if is_divided is true but this is missing.
+    amounts: z.array(z.coerce.number().positive(t('amountPositive'))).optional(),
   });
 }
 export type SpecialTemplateInput = z.infer<ReturnType<typeof specialTemplateSchema>>;
 
 export function createTemplateSchema(t: Translator) {
-  return z.discriminatedUnion('installment_type', [
-    recurringTemplateSchema(t),
-    specialTemplateSchema(t),
-  ]);
+  return z
+    .discriminatedUnion('installment_type', [
+      recurringTemplateSchema(t),
+      specialTemplateSchema(t),
+    ])
+    .refine(
+      (data) =>
+        data.installment_type !== 'special' ||
+        !data.is_divided ||
+        (data.amounts?.length ?? 0) === data.number_of_installments,
+      { message: t('minInstallments'), path: ['amounts'] },
+    )
+    .refine(
+      (data) =>
+        data.installment_type !== 'special' ||
+        !data.is_divided ||
+        Math.round((data.amounts ?? []).reduce((sum, a) => sum + a, 0) * 100) === Math.round(data.amount * 100),
+      { message: t('amountsSumMismatch'), path: ['amounts'] },
+    );
 }
 export type CreateTemplateInput = z.infer<ReturnType<typeof createTemplateSchema>>;
 

@@ -22,7 +22,8 @@
       "nameRequired": "La descripción es obligatoria.",
       "amountPositive": "El monto debe ser mayor a 0.",
       "minInstallments": "Debe haber al menos 1 cuota.",
-      "maxInstallments": "Número de cuotas demasiado alto."
+      "maxInstallments": "Número de cuotas demasiado alto.",
+      "amountsSumMismatch": "La suma de las cuotas no coincide con el monto total."
     },
     "gastos": {
       "invalidDate": "Fecha inválida.",
@@ -310,6 +311,8 @@
       "allHouses": "Todas",
       "amountPerInstallment": "Monto por cuota",
       "amountTotal": "Monto total",
+      "installmentAmount": "Monto de la cuota {number}",
+      "amountsSumMismatch": "La suma de las cuotas ({sum}) no coincide con el monto total ({total}).",
       "submit": "Crear cuota"
     },
     "preview": {

@@ -81,7 +81,14 @@ export async function createInstallmentTemplate(input: CreateTemplateInput, loca
   const startDate = parseDateOnly(data.start_date);
   const mode = dueDateModeFor(data);
   const dueDates = computeDueDates(mode, startDate, count);
-  const amounts = isDivided ? splitAmount(data.amount, count) : Array(count).fill(data.amount);
+  // Admin-entered per-installment amounts (validated by createTemplateSchema
+  // to sum to data.amount) take precedence; fall back to an even split if
+  // the divided branch somehow didn't send any (shouldn't happen given the
+  // schema's refine, but this keeps the action safe on its own).
+  const customAmounts = data.installment_type === 'special' ? data.amounts : undefined;
+  const amounts = isDivided
+    ? (customAmounts && customAmounts.length === count ? customAmounts : splitAmount(data.amount, count))
+    : Array(count).fill(data.amount);
 
   const { data: template, error: templateError } = await supabase
     .from('condo_installment_templates')

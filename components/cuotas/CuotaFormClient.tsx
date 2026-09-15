@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { useTranslations, useLocale } from 'next-intl';
@@ -21,7 +21,7 @@ import {
 } from '@once-ui-system/core';
 import { createTemplateSchema, type CreateTemplateInput, type Cadence } from '@/lib/validation/cuotas';
 import { createInstallmentTemplate } from '@/lib/actions/cuotas';
-import { buildPreview, toDateOnly, type DueDateMode } from '@/lib/cuotas/generate';
+import { buildPreview, splitAmount, toDateOnly, type DueDateMode } from '@/lib/cuotas/generate';
 import { CURRENCY_SELECT_OPTIONS, currencyLabel } from '@/lib/currency';
 import type { HouseOption } from './types';
 
@@ -67,6 +67,34 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
 
   const selectedHouseCount = houseSelection === 'all' ? houses.length : houseSelection.length;
 
+  // Per-installment amounts for a divided special cuota, editable individually
+  // — they don't have to be equal, only sum to the total. Reset to an even
+  // split whenever the count or total changes; the admin's own edits persist
+  // until one of those two changes again. Mirrors components/gastos/GastoFormClient.tsx's
+  // variable-expense amounts pattern.
+  const [amounts, setAmounts] = useState<number[]>([]);
+  useEffect(() => {
+    if (!isDivided) {
+      setAmounts([]);
+      return;
+    }
+    const count = values.number_of_installments && values.number_of_installments > 0 ? values.number_of_installments : 0;
+    const total = values.amount && values.amount > 0 ? values.amount : 0;
+    if (count === 0 || total === 0) {
+      setAmounts([]);
+      return;
+    }
+    setAmounts(splitAmount(total, count));
+  }, [isDivided, values.number_of_installments, values.amount]);
+
+  const amountsSum = useMemo(() => amounts.reduce((sum, a) => sum + (Number.isFinite(a) ? a : 0), 0), [amounts]);
+  const amountsMismatch =
+    isDivided && amounts.length > 0 && Math.round(amountsSum * 100) !== Math.round((values.amount || 0) * 100);
+
+  const updateAmount = (index: number, value: number) => {
+    setAmounts((prev) => prev.map((a, i) => (i === index ? value : a)));
+  };
+
   const preview = useMemo(() => {
     if (!values.amount || values.amount <= 0 || !values.start_date) return null;
     const mode: DueDateMode =
@@ -77,8 +105,12 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
           : { kind: 'special-single' };
     const count = installmentType === 'recurring' ? values.number_of_installments : isDivided ? values.number_of_installments : 1;
     if (!count || count < 1) return null;
-    return buildPreview({ mode, startDate: values.start_date, count, amount: values.amount, isDivided });
-  }, [installmentType, isDivided, values.amount, values.start_date, values.cadence, values.number_of_installments]);
+    const base = buildPreview({ mode, startDate: values.start_date, count, amount: values.amount, isDivided });
+    if (isDivided && amounts.length === count) {
+      return { ...base, amounts, totalPerHouse: amountsSum };
+    }
+    return base;
+  }, [installmentType, isDivided, values.amount, values.start_date, values.cadence, values.number_of_installments, amounts, amountsSum]);
 
   const toggleHouse = (houseId: string) => {
     setHouseSelection((prev) => {
@@ -111,6 +143,7 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
             ...shared,
             is_divided: data.is_divided,
             number_of_installments: data.is_divided ? data.number_of_installments : 1,
+            amounts: data.is_divided ? amounts : undefined,
           };
 
     const parsed = createTemplateSchema(tv).safeParse(payload);
@@ -277,7 +310,7 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
         </Column>
 
         <Row gap="12">
-          <Button type="submit" variant="primary" loading={isPending}>
+          <Button type="submit" variant="primary" loading={isPending} disabled={isDivided && amountsMismatch}>
             {t('form.submit')}
           </Button>
           <Button type="button" variant="secondary" onClick={() => router.push('/cuotas')}>
@@ -298,15 +331,26 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
             <Text variant="body-default-s" onBackground="neutral-weak">
               {t('preview.info')}
             </Text>
-            <Column gap="4">
-              {preview.dueDates.map((date, idx) => (
-                <Row key={idx} horizontal="between">
-                  <Text variant="body-default-s">{toDateOnly(date)}</Text>
-                  <Text variant="body-default-s">
-                    {preview.amounts[idx].toFixed(2)} {currencyLabel(values.currency)}
-                  </Text>
-                </Row>
-              ))}
+            <Column gap={isDivided ? '8' : '4'}>
+              {preview.dueDates.map((date, idx) =>
+                isDivided ? (
+                  <Input
+                    key={idx}
+                    id={`installment-amount-${idx}`}
+                    type="number"
+                    label={`${t('form.installmentAmount', { number: idx + 1 })} — ${toDateOnly(date)}`}
+                    value={Number.isNaN(amounts[idx]) ? '' : amounts[idx]}
+                    onChange={(e) => updateAmount(idx, e.target.valueAsNumber)}
+                  />
+                ) : (
+                  <Row key={idx} horizontal="between">
+                    <Text variant="body-default-s">{toDateOnly(date)}</Text>
+                    <Text variant="body-default-s">
+                      {preview.amounts[idx].toFixed(2)} {currencyLabel(values.currency)}
+                    </Text>
+                  </Row>
+                ),
+              )}
             </Column>
             <Row horizontal="between">
               <Text variant="label-default-s" onBackground="neutral-weak">
@@ -316,6 +360,15 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
                 {preview.totalPerHouse.toFixed(2)} {currencyLabel(values.currency)}
               </Text>
             </Row>
+            {isDivided && amountsMismatch && (
+              <Feedback
+                variant="danger"
+                description={t('form.amountsSumMismatch', {
+                  sum: amountsSum.toFixed(2),
+                  total: (values.amount || 0).toFixed(2),
+                })}
+              />
+            )}
             <Row horizontal="between">
               <Text variant="label-default-s" onBackground="neutral-weak">
                 {t('preview.houses')}
