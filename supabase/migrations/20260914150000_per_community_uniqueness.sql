@@ -9,6 +9,12 @@
 -- a given login attempt means until the tenant-routing UI (explicitly out
 -- of scope for this phase) exists. Do not onboard a second community with
 -- an overlapping house_number until that UI ships.
+
+-- Enforce NOT NULL on community_id before scoping the uniqueness constraint.
+-- Without this, two NULL community_ids would bypass the unique constraint
+-- (Postgres treats NULL as distinct in unique constraints).
+alter table condo_houses alter column community_id set not null;
+
 alter table condo_houses drop constraint condo_houses_house_number_key;
 alter table condo_houses add constraint condo_houses_community_house_number_key unique (community_id, house_number);
 
