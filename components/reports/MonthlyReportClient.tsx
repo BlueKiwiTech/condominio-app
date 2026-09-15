@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { format, subMonths } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { Column, Row, Card, Heading, Text, Chip, Select, Table, Tag, type TableHeader } from '@once-ui-system/core';
+import { Column, Row, Grid, Heading, Text, Chip, Select, Table, Tag, type TableHeader } from '@once-ui-system/core';
+import { StatCard } from '@/components/dashboard/StatCard';
 import {
   buildMonthlyReport,
   reportTotalsByCurrency,
@@ -134,27 +135,47 @@ export function MonthlyReportClient({
       </Row>
 
       {totals.length > 0 && (
-        <Row gap="16" wrap fillWidth>
+        <Column gap="20" fillWidth>
           {totals.map((total) => (
-            <Card key={total.currency} padding="16" radius="l" background="neutral-alpha-weak" flex={1} minWidth={12}>
-              <Column gap="4">
-                <Text variant="label-strong-s">{t('totalsFor', { currency: currencyLabel(total.currency) })}</Text>
-                <Text variant="body-default-xs" onBackground="neutral-weak">
-                  {t('table.expected')}: {formatAmount(total.expected, total.currency)}
-                </Text>
-                <Text variant="body-default-xs" onBackground="neutral-weak">
-                  {t('table.paid')}: {formatAmount(total.paid, total.currency)}
-                </Text>
-                <Text variant="body-default-xs" onBackground="neutral-weak">
-                  {t('table.pending')}: {formatAmount(total.pending, total.currency)}
-                </Text>
-                <Text variant="body-default-xs" onBackground="neutral-weak">
-                  {t('table.favor')}: {formatAmount(total.favor, total.currency)}
-                </Text>
-              </Column>
-            </Card>
+            <Column key={total.currency} gap="12" fillWidth>
+              <Text variant="label-strong-s">{t('totalsFor', { currency: currencyLabel(total.currency) })}</Text>
+              <Grid columns="4" m={{ columns: 2 }} s={{ columns: 1 }} gap="16" fillWidth>
+                <StatCard stripeColor="brand-strong">
+                  <Column gap="8">
+                    <Text variant="label-default-s" onBackground="neutral-weak">
+                      {t('table.expected')}
+                    </Text>
+                    <Text variant="heading-strong-m">{formatAmount(total.expected, total.currency)}</Text>
+                  </Column>
+                </StatCard>
+                <StatCard stripeColor="success-strong">
+                  <Column gap="8">
+                    <Text variant="label-default-s" onBackground="neutral-weak">
+                      {t('table.paid')}
+                    </Text>
+                    <Text variant="heading-strong-m">{formatAmount(total.paid, total.currency)}</Text>
+                  </Column>
+                </StatCard>
+                <StatCard stripeColor="warning-strong">
+                  <Column gap="8">
+                    <Text variant="label-default-s" onBackground="neutral-weak">
+                      {t('table.pending')}
+                    </Text>
+                    <Text variant="heading-strong-m">{formatAmount(total.pending, total.currency)}</Text>
+                  </Column>
+                </StatCard>
+                <StatCard stripeColor="success-strong">
+                  <Column gap="8">
+                    <Text variant="label-default-s" onBackground="neutral-weak">
+                      {t('table.favor')}
+                    </Text>
+                    <Text variant="heading-strong-m">{formatAmount(total.favor, total.currency)}</Text>
+                  </Column>
+                </StatCard>
+              </Grid>
+            </Column>
           ))}
-        </Row>
+        </Column>
       )}
 
       <Table data={{ headers, rows }} emptyState={t('empty')} />
