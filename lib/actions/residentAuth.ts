@@ -55,7 +55,11 @@ export async function residentLogin(input: ResidentLoginInput, locale: string): 
     };
   }
 
-  await createResidentSession(result.house_id!, result.community_id!);
+  if (!result.house_id || !result.community_id) {
+    return { error: tr('errors.verifyFailed') };
+  }
+
+  await createResidentSession(result.house_id, result.community_id);
   redirect('/mi-hogar');
 }
 

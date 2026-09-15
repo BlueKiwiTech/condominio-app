@@ -10,9 +10,25 @@ create or replace function condo_default_community_id()
 returns uuid
 language sql
 stable
+set search_path = ''
 as $$
-  select id from condo_communities order by created_at limit 1;
+  select id from public.condo_communities order by created_at limit 1;
 $$;
+
+-- Three tables already had community_id from earlier work, but it was never
+-- backfilled or enforced -- if any row is null here, every derivation below
+-- inherits the null and this migration aborts (or, worse, a template row
+-- with a null community_id becomes invisible to condo_is_community_admin()
+-- once the RLS rewrite lands). Close that out before deriving anything from
+-- these three columns.
+update condo_houses set community_id = condo_default_community_id() where community_id is null;
+alter table condo_houses alter column community_id set not null;
+
+update condo_installment_templates set community_id = condo_default_community_id() where community_id is null;
+alter table condo_installment_templates alter column community_id set not null;
+
+update condo_expense_templates set community_id = condo_default_community_id() where community_id is null;
+alter table condo_expense_templates alter column community_id set not null;
 
 -- 1. condo_house_residents (derive via house_id)
 alter table condo_house_residents add column community_id uuid references condo_communities(id);

@@ -13,6 +13,9 @@
 -- Enforce NOT NULL on community_id before scoping the uniqueness constraint.
 -- Without this, two NULL community_ids would bypass the unique constraint
 -- (Postgres treats NULL as distinct in unique constraints).
+-- Now redundant-but-harmless: migration 20260914110000 backfills and enforces
+-- this same NOT NULL earlier, so by the time this file runs the column is
+-- already NOT NULL. Left in place as a no-op safety net.
 alter table condo_houses alter column community_id set not null;
 
 alter table condo_houses drop constraint condo_houses_house_number_key;
