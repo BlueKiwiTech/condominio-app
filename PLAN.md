@@ -278,6 +278,25 @@ Follow-up migration `20260906033502_schema_hardening.sql` also shipped (from cod
 - Empty states beyond what individual screens already render inline were not specifically re-audited this session — most list/table screens already have an `empty` message (verified in earlier sessions); if a genuine gap turns up on closer inspection, fix it directly.
 - Revisit any of this project's standing "**Assumption made (needs confirmation)**" notes across Phases 2-7 if the user has weighed in (none had, as of this session — nothing to change yet). This is the one remaining item before Phase 8 (and the whole v1 roadmap) can flip to ✅ COMPLETE — since it depends on user input, the practical next action is to ask the user directly rather than keep looping on unattended polish.
 
+### ✅ Multi-Tenancy Foundation (2026-09-14) — code/migrations COMPLETE, not yet live
+
+**Goal:** Make the schema and RLS support more than one community (`condo_communities` row) without changing anything about how ASOBARCELONA, the one community that exists today, behaves. Full rationale and design decisions: `docs/superpowers/specs/2026-09-14-multitenancy-foundation-design.md`.
+
+**Action needed (live Supabase project, dashboard-only — cannot be done via migration runner or from this environment):** push these 7 migrations, in order, via the Supabase Dashboard SQL Editor:
+1. `supabase/migrations/20260914100000_community_admins.sql` — creates `condo_community_admins` (community_id, user_id join table, deny-by-default RLS) so a community can have more than one admin; admins are still provisioned directly in the database, not through a signup flow.
+2. `supabase/migrations/20260914110000_community_id_remaining_tables.sql` — adds a denormalized `community_id` column (backfilled via `condo_default_community_id()`, "the one community that exists today") to every remaining tenant-scoped table that didn't already have one.
+3. `supabase/migrations/20260914120000_rewrite_admin_rls_policies.sql` — replaces every admin RLS policy's old "is this user an admin of *any* community" check (`condo_communities.admin_id = auth.uid()`) with a real per-row `condo_is_community_admin(community_id)` check. This is the actual multi-tenancy bug fix — without it, once a second community exists, any admin could read/write every other community's rows.
+4. `supabase/migrations/20260914130000_drop_communities_admin_id.sql` — drops the now-unused `condo_communities.admin_id` column (superseded by `condo_community_admins`).
+5. `supabase/migrations/20260914140000_community_id_autofill_triggers.sql` — `BEFORE INSERT` triggers that auto-derive `community_id` (from `house_id` where available, else the default community) so existing app code that doesn't yet set `community_id` explicitly keeps working unchanged.
+6. `supabase/migrations/20260914150000_per_community_uniqueness.sql` — scopes `condo_houses.house_number` and the expense-category name uniqueness constraints to per-community instead of global, so a second community can reuse a house number or category name the first one already has. This migration also enforces `condo_houses.community_id NOT NULL` (added so the new `unique (community_id, house_number)` constraint can't be bypassed by two NULL `community_id` rows — Postgres treats NULLs as distinct in unique constraints).
+7. `supabase/migrations/20260914160000_resident_pin_verify_returns_community.sql` — `condo_verify_house_pin` now also returns the house's `community_id` on success, so the resident's signed session cookie can carry it.
+
+**Only one community exists in production today (ASOBARCELONA).** Every change above is additive/backward-compatible and invisible in the running app until a second `condo_communities` row is created — nothing about ASOBARCELONA's behavior changes.
+
+**Accepted gap (documented, not fixed here):** resident login (`condo_verify_house_pin`) still resolves a login attempt by `house_number` alone, with no community disambiguation. Migration 6 above makes it *possible* for two communities to each have a "House 12", but the login function has no way to know which community a given attempt means. **Do not onboard a second community whose house numbers overlap an existing community's until the tenant-routing UI (out of scope for this work) exists to disambiguate.**
+
+**No self-service admin invite flow exists.** A new community's admin(s) are created directly in the database — an `auth.users` row plus a matching `condo_community_admins` row — by the developer, not through any in-app signup/invite screen.
+
 ---
 
 ## Design Reference
