@@ -3,10 +3,11 @@
 // SUPABASE_SERVICE_ROLE_KEY to the browser bundle.
 //
 // Used sparingly for privileged writes that must happen before any
-// auth.uid()-backed session/RLS policy can authorize them — e.g. linking the
-// first (and only) admin signup to condo_communities.admin_id, which happens
-// while the new account still has a null session (email confirmation
-// pending, per Supabase's signUp() behavior when "Confirm email" is on).
+// auth.uid()-backed session/RLS policy can authorize them — e.g. linking a
+// new admin signup to its condo_communities row via condo_community_admins,
+// which happens while the new account still has a null session (email
+// confirmation pending, per Supabase's signUp() behavior when "Confirm
+// email" is on).
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 export function createServiceClient() {
