@@ -319,7 +319,7 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
         </Row>
       </Column>
 
-      <Column gap="12" flex={1} minWidth={16} padding="24" radius="l" background="neutral-alpha-weak" fitHeight>
+      <Column gap="12" flex={1} minWidth={16} padding="24" radius="s" background="neutral-alpha-weak" fitHeight>
         <Heading variant="heading-strong-s">{t('preview.heading')}</Heading>
         {!preview && (
           <Text variant="body-default-s" onBackground="neutral-weak">

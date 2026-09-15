@@ -101,7 +101,7 @@ export function MisPagosClient({
       {Object.keys(totalsByCurrency).length > 0 && (
         <Row gap="16" wrap fillWidth>
           {Object.entries(totalsByCurrency).map(([currency, amount]) => (
-            <Card key={currency} padding="16" radius="l" background="neutral-alpha-weak" flex={1} minWidth={12}>
+            <Card key={currency} padding="16" radius="s" background="neutral-alpha-weak" flex={1} minWidth={12}>
               <Column gap="4">
                 <Text variant="label-default-s" onBackground="neutral-weak">
                   {t('totalFor', { period: yearFilter === 'all' ? t('filterAll') : yearFilter })}
@@ -121,7 +121,7 @@ export function MisPagosClient({
         <Column gap="8" fillWidth>
           {filtered.map((item) =>
             item.kind === 'payment' ? (
-              <Card key={item.batch.batchId} padding="16" radius="l" fillWidth border="neutral-alpha-weak">
+              <Card key={item.batch.batchId} padding="16" radius="s" fillWidth border="neutral-alpha-weak">
                 <Column gap="8">
                   <Row horizontal="between" vertical="center" fillWidth>
                     <Text variant="label-strong-s">
@@ -144,7 +144,7 @@ export function MisPagosClient({
               <Card
                 key={item.report.id}
                 padding="16"
-                radius="l"
+                radius="s"
                 fillWidth
                 border="neutral-alpha-weak"
                 background={`${reportTagVariant(item.report.status)}-alpha-weak`}

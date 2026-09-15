@@ -77,7 +77,7 @@ export function CommunityBalanceCard({
     <Column gap="12" fillWidth>
       <Heading variant="heading-strong-s">{t('heading')}</Heading>
       <Grid columns="3" m={{ columns: 2 }} s={{ columns: 1 }} gap="16" fillWidth>
-        <Card padding="24" radius="l" background="neutral-alpha-weak" fillWidth>
+        <Card padding="24" radius="s" background="neutral-alpha-weak" fillWidth>
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('expected')}
@@ -85,7 +85,7 @@ export function CommunityBalanceCard({
             <CurrencyAmountList amounts={expected} emptyLabel={t('empty')} />
           </Column>
         </Card>
-        <Card padding="24" radius="l" background="success-alpha-weak" fillWidth>
+        <Card padding="24" radius="s" background="success-alpha-weak" fillWidth>
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('collected')}
@@ -93,7 +93,7 @@ export function CommunityBalanceCard({
             <CurrencyAmountList amounts={collected} emptyLabel={t('empty')} />
           </Column>
         </Card>
-        <Card padding="24" radius="l" background="warning-alpha-weak" fillWidth>
+        <Card padding="24" radius="s" background="warning-alpha-weak" fillWidth>
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('pending')}
@@ -101,7 +101,7 @@ export function CommunityBalanceCard({
             <CurrencyAmountList amounts={pending} emptyLabel={t('empty')} />
           </Column>
         </Card>
-        <Card padding="24" radius="l" background="success-alpha-weak" fillWidth>
+        <Card padding="24" radius="s" background="success-alpha-weak" fillWidth>
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('favor')}
@@ -109,7 +109,7 @@ export function CommunityBalanceCard({
             <CurrencyAmountList amounts={favor} emptyLabel={t('empty')} />
           </Column>
         </Card>
-        <Card padding="24" radius="l" background="neutral-alpha-weak" fillWidth>
+        <Card padding="24" radius="s" background="neutral-alpha-weak" fillWidth>
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('paidExpenses')}
@@ -117,7 +117,7 @@ export function CommunityBalanceCard({
             <CurrencyAmountList amounts={paidExpenses} emptyLabel={t('empty')} />
           </Column>
         </Card>
-        <Card padding="24" radius="l" background="warning-alpha-weak" fillWidth>
+        <Card padding="24" radius="s" background="warning-alpha-weak" fillWidth>
           <Column gap="8">
             <Text variant="label-default-s" onBackground="neutral-weak">
               {t('totalExpenses')}

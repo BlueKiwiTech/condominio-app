@@ -7,7 +7,7 @@ export default async function ResetPasswordPage() {
 
   return (
     <Row maxWidth={24} fillWidth>
-      <Card fillWidth padding="24" radius="l">
+      <Card fillWidth padding="24" radius="s">
         <Column gap="24" fillWidth>
           <Heading variant="heading-strong-m" align="center">
             {t('resetPassword.heading')}

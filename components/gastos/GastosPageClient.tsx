@@ -184,7 +184,7 @@ export function GastosPageClient({
         fillWidth
         background="surface"
         border="neutral-alpha-weak"
-        radius="l"
+        radius="s"
         padding="16"
       >
         <Select

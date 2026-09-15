@@ -9,3 +9,22 @@
 body {
   background: var(--page-background);
 }
+
+/* Once UI's <Table> hardcodes its visible bordered container's corner
+   radius to "l" internally and silently ignores any `radius` prop passed
+   to <Table> itself (confirmed against @once-ui-system/core 1.8.4, the
+   current npm latest -- unfixed upstream as of 2026-09-15). This targets
+   that container globally, for every Table in the app, via the one
+   structural fact Table.js guarantees rather than its internal (and
+   possibly build-hashed) class names: the <table> element is always the
+   direct child of that bordered wrapper div.
+   FRAGILE: depends on Once UI's internal component structure, not a public
+   contract -- re-verify this still matches after any
+   @once-ui-system/core upgrade.
+   The !important is required, not stylistic: :has()'s specificity comes
+   from its argument (here a bare `table` type selector), so
+   `div:has(> table)` alone is LESS specific than Once UI's own `.radius-l`
+   class rule and would silently lose to it regardless of CSS source order. */
+div:has(> table) {
+  border-radius: var(--radius-s) !important;
+}

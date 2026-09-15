@@ -19,7 +19,7 @@ export function PerfilClient({ data }: { data: ResidentPortalData }) {
         </Text>
       </Column>
 
-      <Card padding="20" radius="l" fillWidth border="neutral-alpha-weak">
+      <Card padding="20" radius="s" fillWidth border="neutral-alpha-weak">
         <Column gap="16">
           <Row gap="24" wrap>
             <Column gap="4">

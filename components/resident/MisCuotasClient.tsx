@@ -27,7 +27,7 @@ function InstallmentCard({ inst, today, statusLabels }: { inst: ResidentInstallm
   const locale = useLocale();
   const status = displayStatus(inst, today);
   return (
-    <Card padding="16" radius="l" fillWidth border="neutral-alpha-weak">
+    <Card padding="16" radius="s" fillWidth border="neutral-alpha-weak">
       <Column gap="8">
         <Text variant="label-strong-s">{inst.name}</Text>
         <Text variant="body-default-xs" onBackground="neutral-weak">
@@ -105,7 +105,7 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
       />
 
       {tab === 'pending' && morosos.length > 0 && (
-        <Card padding="20" radius="l" background="danger-alpha-weak" fillWidth>
+        <Card padding="20" radius="s" background="danger-alpha-weak" fillWidth>
           <Column gap="12">
             <Heading variant="heading-strong-s" onBackground="danger-strong">
               {t('overdueCard.heading')}

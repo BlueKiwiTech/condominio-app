@@ -260,7 +260,7 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
       </Column>
 
       {isVariable && (
-        <Column gap="12" flex={1} minWidth={16} padding="24" radius="l" background="neutral-alpha-weak" fitHeight>
+        <Column gap="12" flex={1} minWidth={16} padding="24" radius="s" background="neutral-alpha-weak" fitHeight>
           <Heading variant="heading-strong-s">{t('new.previewHeading')}</Heading>
           {!periodDates || amounts.length === 0 ? (
             <Text variant="body-default-s" onBackground="neutral-weak">

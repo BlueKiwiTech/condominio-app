@@ -81,7 +81,7 @@ function ReportCard({
   };
 
   return (
-    <Card padding="20" radius="l" border="neutral-alpha-weak" fillWidth>
+    <Card padding="20" radius="s" border="neutral-alpha-weak" fillWidth>
       <Column gap="12" fillWidth>
         <Row horizontal="between" vertical="center" fillWidth wrap>
           <Column gap="2">

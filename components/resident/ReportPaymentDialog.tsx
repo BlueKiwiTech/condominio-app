@@ -243,7 +243,7 @@ export function ReportPaymentDialog({
           />
 
           {!formRevealed && (
-            <Column gap="12" padding="24" radius="l" background="neutral-alpha-weak">
+            <Column gap="12" padding="24" radius="s" background="neutral-alpha-weak">
               <Text variant="body-default-s">{t('ocrStepHint')}</Text>
               {fileError && <Feedback variant="danger" description={fileError} />}
               <Row gap="12" vertical="center" wrap>

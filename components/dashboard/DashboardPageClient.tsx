@@ -219,7 +219,7 @@ export function DashboardPageClient({
             {CURRENCIES.map((currency) => {
               const hasData = series.some((point) => (point[currency] ?? 0) > 0);
               return (
-                <Card key={currency} padding="24" radius="l" background="neutral-alpha-weak" flex={1} minWidth={16}>
+                <Card key={currency} padding="24" radius="s" background="neutral-alpha-weak" flex={1} minWidth={16}>
                   <Column gap="12">
                     <Text variant="label-strong-s">{currencyLabel(currency)}</Text>
                     {hasData ? (

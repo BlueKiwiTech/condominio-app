@@ -35,7 +35,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
         </Row>
       </SmartLink>
 
-      <Card padding="24" radius="l" fillWidth>
+      <Card padding="24" radius="s" fillWidth>
         <Column gap="20" fillWidth>
           <Row horizontal="between" vertical="start" fillWidth wrap>
             <Column gap="4">

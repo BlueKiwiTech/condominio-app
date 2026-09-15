@@ -255,7 +255,7 @@ export function PaymentFormClient({
             />
 
             {!ocrStepDone && (
-              <Column gap="12" padding="24" radius="l" background="neutral-alpha-weak">
+              <Column gap="12" padding="24" radius="s" background="neutral-alpha-weak">
                 <Text variant="body-default-s">{t('ocr.stepHint')}</Text>
                 <Row gap="12" vertical="center" wrap>
                   <Button type="button" variant="primary" loading={isScanning} onClick={() => scanInputRef.current?.click()}>
@@ -329,7 +329,7 @@ export function PaymentFormClient({
         )}
       </Column>
 
-      <Column gap="12" flex={1} minWidth={16} padding="24" radius="l" background="neutral-alpha-weak" fitHeight>
+      <Column gap="12" flex={1} minWidth={16} padding="24" radius="s" background="neutral-alpha-weak" fitHeight>
         <Heading variant="heading-strong-s">{t('summary.heading')}</Heading>
         {!preview && (
           <Text variant="body-default-s" onBackground="neutral-weak">
