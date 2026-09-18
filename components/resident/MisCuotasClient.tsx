@@ -64,23 +64,32 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
     [pending, today],
   );
 
-  const notOverduePending = useMemo(
-    () => pending.filter((i) => displayStatus(i, today) !== 'overdue'),
-    [pending, today],
+  // "Lo que viene" also surfaces cuotas already paid in advance (e.g. a
+  // special cuota's later installments settled in one go) as long as their
+  // due date hasn't happened yet, so a resident who's fully paid up still
+  // sees what's ahead instead of an empty section -- a paid installment
+  // whose due date already passed just isn't "upcoming" anymore, so that
+  // case is excluded.
+  const upcomingPool = useMemo(
+    () =>
+      data.installments.filter((i) =>
+        i.status === 'paid' ? parseISO(i.due_date) > today : displayStatus(i, today) !== 'overdue',
+      ),
+    [data.installments, today],
   );
 
   const nextRecurringMonth = useMemo(() => {
-    const recurring = notOverduePending.filter(
+    const recurring = upcomingPool.filter(
       (i) => (i.condo_installment_templates?.installment_type ?? 'recurring') === 'recurring',
     );
     const groups = groupByDueMonth(recurring);
     const nextKey = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b))[0];
     return nextKey ? { monthKey: nextKey, items: groups.get(nextKey)! } : null;
-  }, [notOverduePending]);
+  }, [upcomingPool]);
 
   const specialUpcoming = useMemo(
-    () => notOverduePending.filter((i) => i.condo_installment_templates?.installment_type === 'special'),
-    [notOverduePending],
+    () => upcomingPool.filter((i) => i.condo_installment_templates?.installment_type === 'special'),
+    [upcomingPool],
   );
 
   // "Deuda acumulada" (board request 2026-09-18): everything unpaid due in
