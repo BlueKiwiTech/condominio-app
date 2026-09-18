@@ -22,7 +22,7 @@ import {
 import { createTemplateSchema, type CreateTemplateInput, type Cadence } from '@/lib/validation/cuotas';
 import { createInstallmentTemplate } from '@/lib/actions/cuotas';
 import { buildPreview, splitAmount, toDateOnly, type DueDateMode } from '@/lib/cuotas/generate';
-import { CURRENCY_SELECT_OPTIONS, currencyLabel } from '@/lib/currency';
+import { CURRENCY_SELECT_OPTIONS, formatAmount, formatMoney } from '@/lib/currency';
 import type { HouseOption } from './types';
 
 type FormValues = {
@@ -346,7 +346,7 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
                   <Row key={idx} horizontal="between">
                     <Text variant="body-default-s">{toDateOnly(date)}</Text>
                     <Text variant="body-default-s">
-                      {preview.amounts[idx].toFixed(2)} {currencyLabel(values.currency)}
+                      {formatAmount(preview.amounts[idx], values.currency)}
                     </Text>
                   </Row>
                 ),
@@ -357,15 +357,15 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
                 {t('preview.totalPerHouse')}
               </Text>
               <Text variant="label-strong-s">
-                {preview.totalPerHouse.toFixed(2)} {currencyLabel(values.currency)}
+                {formatAmount(preview.totalPerHouse, values.currency)}
               </Text>
             </Row>
             {isDivided && amountsMismatch && (
               <Feedback
                 variant="danger"
                 description={t('form.amountsSumMismatch', {
-                  sum: amountsSum.toFixed(2),
-                  total: (values.amount || 0).toFixed(2),
+                  sum: formatMoney(amountsSum),
+                  total: formatMoney(values.amount || 0),
                 })}
               />
             )}
@@ -380,7 +380,7 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
                 {t('preview.expectedTotal')}
               </Text>
               <Text variant="label-strong-s">
-                {(preview.totalPerHouse * selectedHouseCount).toFixed(2)} {currencyLabel(values.currency)}
+                {formatAmount(preview.totalPerHouse * selectedHouseCount, values.currency)}
               </Text>
             </Row>
             <Feedback variant="info" description={t('preview.noConversionNote')} />

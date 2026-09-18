@@ -7,13 +7,9 @@ import { es, enUS } from 'date-fns/locale';
 import { Column, Grid, Card, Heading, Text, SmartLink, Button } from '@once-ui-system/core';
 import { displayStatus, groupByDueMonth, type DisplayStatus } from '@/lib/resident/portal';
 import type { ResidentPortalData, ResidentInstallment } from '@/lib/resident/queries';
-import { currencyLabel } from '@/lib/currency';
+import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import { ListRow } from './ListRow';
-
-function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
-}
 
 function statusVariant(status: DisplayStatus): 'success' | 'info' | 'warning' | 'neutral' | 'danger' {
   if (status === 'paid') return 'success';

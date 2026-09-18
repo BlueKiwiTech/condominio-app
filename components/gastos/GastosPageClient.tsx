@@ -20,13 +20,9 @@ import {
 } from '@once-ui-system/core';
 import { markExpensePaidSchema, type MarkExpensePaidInput } from '@/lib/validation/gastos';
 import { markExpensePaid, deleteExpense, deleteExpenseTemplate } from '@/lib/actions/gastos';
-import { currencyLabel } from '@/lib/currency';
+import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import type { CategoryOption, ExpenseRow, ExpenseStatus } from './types';
-
-function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
-}
 
 export function GastosPageClient({
   initialExpenses,

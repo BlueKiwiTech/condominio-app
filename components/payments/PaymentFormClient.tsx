@@ -25,7 +25,7 @@ import { registerPayment } from '@/lib/actions/payments';
 import { extractPaymentFromScreenshot } from '@/lib/actions/paymentOcr';
 import { allocateFunds, sortOldestFirst } from '@/lib/payments/allocate';
 import { toDateOnly } from '@/lib/cuotas/generate';
-import { currencyLabel, CURRENCY_SELECT_OPTIONS } from '@/lib/currency';
+import { currencyLabel, formatAmount, formatMoney, CURRENCY_SELECT_OPTIONS } from '@/lib/currency';
 import { referenceUsdAmount, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 import type { HouseOption, PendingInstallment, HouseCredit, Currency } from './types';
 
@@ -224,7 +224,7 @@ export function PaymentFormClient({
     />,
     inst.name,
     inst.due_date,
-    `${balanceDue(inst).toFixed(2)} ${currencyLabel(inst.currency)}`,
+    formatAmount(balanceDue(inst), inst.currency),
     <Tag key={`status-${inst.id}`} variant={inst.status === 'partial' ? 'warning' : 'info'} label={t(`status.${inst.status}`)} />,
   ]);
 
@@ -252,7 +252,7 @@ export function PaymentFormClient({
             {existingCredit > 0 && (
               <Feedback
                 variant="success"
-                description={t('existingCredit', { amount: existingCredit.toFixed(2), currency: currency ? currencyLabel(currency) : '' })}
+                description={t('existingCredit', { amount: formatMoney(existingCredit), currency: currency ? currencyLabel(currency) : '' })}
               />
             )}
 
@@ -312,7 +312,7 @@ export function PaymentFormClient({
                 </Row>
                 {usdReference !== null && (
                   <Text variant="body-default-xs" onBackground="neutral-weak">
-                    {t('usdReference', { amount: usdReference.toFixed(2), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
+                    {t('usdReference', { amount: formatMoney(usdReference), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
                   </Text>
                 )}
                 <Text variant="body-default-xs" onBackground="neutral-weak">
@@ -358,7 +358,7 @@ export function PaymentFormClient({
                   <Text variant="body-default-s">{inst.name}</Text>
                   <Row gap="8" vertical="center">
                     <Text variant="body-default-s">
-                      {a.amountApplied.toFixed(2)} {currency ? currencyLabel(currency) : ''}
+                      {formatMoney(a.amountApplied)} {currency ? currencyLabel(currency) : ''}
                     </Text>
                     <Tag variant={a.newStatus === 'paid' ? 'success' : 'warning'} label={t(`status.${a.newStatus}`)} />
                   </Row>
@@ -370,7 +370,7 @@ export function PaymentFormClient({
                 {t('summary.total')}
               </Text>
               <Text variant="label-strong-s">
-                {amountReceived.toFixed(2)} {currency ? currencyLabel(currency) : ''}
+                {formatMoney(amountReceived)} {currency ? currencyLabel(currency) : ''}
               </Text>
             </Row>
             {existingCredit > 0 && (
@@ -379,7 +379,7 @@ export function PaymentFormClient({
                   {t('summary.creditUsed')}
                 </Text>
                 <Text variant="label-strong-s">
-                  {existingCredit.toFixed(2)} {currency ? currencyLabel(currency) : ''}
+                  {formatMoney(existingCredit)} {currency ? currencyLabel(currency) : ''}
                 </Text>
               </Row>
             )}
@@ -387,7 +387,7 @@ export function PaymentFormClient({
               <Feedback
                 variant="info"
                 description={t('summary.resultingCredit', {
-                  amount: (preview.leftoverCents / 100).toFixed(2),
+                  amount: formatMoney(preview.leftoverCents / 100),
                   currency: currency ? currencyLabel(currency) : '',
                 })}
               />

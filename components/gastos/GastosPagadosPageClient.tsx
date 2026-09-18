@@ -3,13 +3,9 @@
 import { useMemo, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Column, Row, Select, Input, Table, type TableHeader } from '@once-ui-system/core';
-import { currencyLabel } from '@/lib/currency';
+import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import type { CategoryOption, ExpenseRow } from './types';
-
-function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
-}
 
 export function GastosPagadosPageClient({
   expenses,

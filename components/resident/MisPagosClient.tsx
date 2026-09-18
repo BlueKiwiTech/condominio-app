@@ -5,7 +5,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { Column, Row, Card, Heading, Text, Chip, Button } from '@once-ui-system/core';
 import { groupPaymentsByBatch, type PaymentBatch, type PaymentRow } from '@/components/payments/types';
-import { currencyLabel } from '@/lib/currency';
+import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import type { CurrencyAmountMap } from '@/lib/reporting/dashboard';
 import { ReportPaymentDialog } from './ReportPaymentDialog';
@@ -13,10 +13,6 @@ import { ListRow } from './ListRow';
 import { CurrencyAmountList } from './CurrencyAmountList';
 import type { ResidentInstallment, ResidentPaymentReport, ResidentReportStatus } from '@/lib/resident/queries';
 import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
-
-function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
-}
 
 function reportTagVariant(status: ResidentReportStatus): 'warning' | 'success' | 'danger' {
   if (status === 'confirmed') return 'success';

@@ -5,11 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Card, Column, Grid, Heading, Text } from '@once-ui-system/core';
 import { buildMonthlyReport, reportTotalsByCurrency, type ReportInstallment, type CreditForReport } from '@/lib/reporting/monthlyReport';
 import { paidExpensesInMonth, totalExpensesInMonth, type ExpenseForReport, type CurrencyAmountMap } from '@/lib/reporting/dashboard';
-import { currencyLabel } from '@/lib/currency';
-
-function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
-}
+import { formatAmount } from '@/lib/currency';
 
 function CurrencyAmountList({ amounts, emptyLabel }: { amounts: CurrencyAmountMap; emptyLabel: string }) {
   const entries = Object.entries(amounts).filter(([, v]) => v !== undefined);

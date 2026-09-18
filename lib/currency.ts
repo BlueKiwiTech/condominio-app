@@ -17,6 +17,18 @@ export function currencyLabel(code: string): string {
   return (CURRENCY_LABELS as Record<string, string>)[code] ?? code;
 }
 
+// Community-wide formatting request (2026-09-18): every displayed amount
+// uses "." for thousands and "," for decimals (es-VE reads that way
+// natively) -- centralized here so every screen stays consistent instead of
+// each component reimplementing its own toFixed(2).
+export function formatMoney(amount: number): string {
+  return amount.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+export function formatAmount(amount: number, currency: string): string {
+  return `${formatMoney(amount)} ${currencyLabel(currency)}`;
+}
+
 export const CURRENCY_SELECT_OPTIONS: { label: string; value: CurrencyCode }[] = (
   Object.keys(CURRENCY_LABELS) as CurrencyCode[]
 ).map((value) => ({ label: CURRENCY_LABELS[value], value }));

@@ -9,13 +9,9 @@ import { creditsByCurrency } from '@/lib/reporting/dashboard';
 import { upcomingInstallments } from '@/lib/resident/portal';
 import { ReportPaymentDialog } from './ReportPaymentDialog';
 import { CommunityBalanceCard } from './CommunityBalanceCard';
-import { currencyLabel } from '@/lib/currency';
+import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import type { ResidentPortalData, CommunityBalanceData } from '@/lib/resident/queries';
-
-function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
-}
 
 export function MiHogarClient({
   data,

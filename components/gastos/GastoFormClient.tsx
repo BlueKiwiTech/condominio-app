@@ -19,7 +19,7 @@ import {
 import { createExpenseTemplateSchema, type CreateExpenseTemplateInput, type Cadence } from '@/lib/validation/gastos';
 import { createExpenseTemplate } from '@/lib/actions/gastos';
 import { computeVariablePeriodDates, splitAmount, toDateOnly } from '@/lib/gastos/generate';
-import { CURRENCY_SELECT_OPTIONS, currencyLabel } from '@/lib/currency';
+import { CURRENCY_SELECT_OPTIONS, formatAmount, formatMoney } from '@/lib/currency';
 import type { CategoryOption } from './types';
 
 type FormValues = {
@@ -285,15 +285,15 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
                   {t('form.amountTotal')}
                 </Text>
                 <Text variant="label-strong-s">
-                  {amountsSum.toFixed(2)} {currencyLabel(values.currency)}
+                  {formatAmount(amountsSum, values.currency)}
                 </Text>
               </Row>
               {amountsMismatch && (
                 <Feedback
                   variant="danger"
                   description={t('form.amountsSumMismatch', {
-                    sum: amountsSum.toFixed(2),
-                    total: (values.default_amount || 0).toFixed(2),
+                    sum: formatMoney(amountsSum),
+                    total: formatMoney(values.default_amount || 0),
                   })}
                 />
               )}

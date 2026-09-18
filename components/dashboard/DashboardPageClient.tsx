@@ -31,15 +31,11 @@ import { daysToCloseOfMonth } from '@/lib/reporting/dateMath';
 import { groupPaymentsByBatch } from '@/components/payments/types';
 import { CURRENCIES, type DashboardExpense, type DashboardHouse, type DashboardInstallment, type PaymentRow } from './types';
 import { subMonths } from 'date-fns';
-import { currencyLabel } from '@/lib/currency';
+import { currencyLabel, formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import { ExchangeRateCard } from './ExchangeRateCard';
 import { StatCard } from './StatCard';
 import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
-
-function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
-}
 
 // Fixed per-currency identity across the three income charts below (Once
 // UI's --data-* chart-color tokens, not raw hex, so they stay theme/dark-

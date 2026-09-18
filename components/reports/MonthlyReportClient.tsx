@@ -15,7 +15,7 @@ import {
   type CreditForReport,
   type Currency,
 } from '@/lib/reporting/monthlyReport';
-import { currencyLabel } from '@/lib/currency';
+import { currencyLabel, formatAmount, formatMoney } from '@/lib/currency';
 
 const CURRENCIES: Currency[] = ['USD', 'Bs', 'USDT'];
 const STATUSES: MonthlyReportStatus[] = ['pending', 'partial', 'paid', 'overdue'];
@@ -25,10 +25,6 @@ function statusVariant(status: MonthlyReportStatus): 'info' | 'warning' | 'succe
   if (status === 'overdue') return 'danger';
   if (status === 'partial') return 'warning';
   return 'info';
-}
-
-function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
 }
 
 export function MonthlyReportClient({
@@ -91,10 +87,10 @@ export function MonthlyReportClient({
   const rows = filteredRows.map((row) => [
     row.house_name ? `${row.house_number} · ${row.house_name}` : row.house_number,
     currencyLabel(row.currency),
-    row.expected.toFixed(2),
-    row.paid.toFixed(2),
-    row.pending.toFixed(2),
-    row.favor > 0 ? row.favor.toFixed(2) : '—',
+    formatMoney(row.expected),
+    formatMoney(row.paid),
+    formatMoney(row.pending),
+    row.favor > 0 ? formatMoney(row.favor) : '—',
     <Tag key={`${row.house_id}-${row.currency}`} variant={statusVariant(row.status)} label={t(`status.${row.status}`)} />,
   ]);
 

@@ -10,12 +10,8 @@ import { updateTemplateSchema, type UpdateTemplateInput } from '@/lib/validation
 import { updateInstallmentTemplate, getPriceHistory, type PriceHistoryEntry } from '@/lib/actions/cuotas';
 import { toDateOnly } from '@/lib/cuotas/generate';
 import { formatShortDate } from '@/lib/dateFormat';
-import { CURRENCY_SELECT_OPTIONS, currencyLabel } from '@/lib/currency';
+import { CURRENCY_SELECT_OPTIONS, formatAmount } from '@/lib/currency';
 import type { TemplateWithInstallments } from './types';
-
-function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
-}
 
 // Edit is intentionally narrow — see lib/validation/cuotas.ts's
 // updateTemplateSchema comment: structural fields (cadence, dates,

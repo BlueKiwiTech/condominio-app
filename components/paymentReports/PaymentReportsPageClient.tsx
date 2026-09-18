@@ -6,13 +6,9 @@ import { useTranslations, useLocale } from 'next-intl';
 import { parseISO } from 'date-fns';
 import { Column, Row, Card, Text, Tag, Button, SegmentedControl, Feedback } from '@once-ui-system/core';
 import { confirmPaymentReport, rejectPaymentReport, getReportScreenshotUrl } from '@/lib/actions/paymentReports';
-import { currencyLabel } from '@/lib/currency';
+import { formatAmount } from '@/lib/currency';
 import { formatShortDate, formatDateTime } from '@/lib/dateFormat';
 import type { PaymentReportRow, InstallmentLookup, ReportStatus } from './types';
-
-function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
-}
 
 function statusVariant(status: ReportStatus): 'warning' | 'success' | 'danger' {
   if (status === 'confirmed') return 'success';

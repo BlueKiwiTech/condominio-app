@@ -6,15 +6,11 @@ import { format, getMonth, getYear, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import { Column, Row, Grid, Card, Heading, Text, Select, Chip } from '@once-ui-system/core';
 import { creditsByCurrency, outstandingByCurrency, type CurrencyAmountMap } from '@/lib/reporting/dashboard';
-import { currencyLabel } from '@/lib/currency';
+import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import type { ResidentPortalData, CommunityBalanceData } from '@/lib/resident/queries';
 import { ListRow } from './ListRow';
 import { CurrencyAmountList } from './CurrencyAmountList';
-
-function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
-}
 
 function capitalize(s: string): string {
   return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);

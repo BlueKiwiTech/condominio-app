@@ -1,10 +1,6 @@
 import { Column, Text } from '@once-ui-system/core';
 import type { CurrencyAmountMap } from '@/lib/reporting/dashboard';
-import { currencyLabel } from '@/lib/currency';
-
-function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
-}
+import { formatAmount } from '@/lib/currency';
 
 // Stacks one amount line per currency present (never a cross-currency sum,
 // RPRT-03) -- used wherever a single card/row needs to show a total that

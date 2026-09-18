@@ -18,15 +18,11 @@ import {
 import { reportPayment } from '@/lib/actions/residentPayments';
 import { extractResidentPaymentFromScreenshot } from '@/lib/actions/residentPaymentOcr';
 import { toDateOnly } from '@/lib/cuotas/generate';
-import { CURRENCY_SELECT_OPTIONS, currencyLabel } from '@/lib/currency';
+import { CURRENCY_SELECT_OPTIONS, formatAmount, formatMoney } from '@/lib/currency';
 import { referenceUsdAmount, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 import type { ResidentInstallment, Currency } from '@/lib/resident/queries';
 import { formatShortDate } from '@/lib/dateFormat';
 import { ListRow } from './ListRow';
-
-function formatAmount(amount: number, currency: string): string {
-  return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
-}
 
 // V2's "Reportar un pago que hice" (Phase 7 mockup) — user-requested,
 // admin-side deliberately untouched. Submits to condo_payment_reports
@@ -286,7 +282,7 @@ export function ReportPaymentDialog({
               </Row>
               {usdReference !== null && (
                 <Text variant="body-default-xs" onBackground="neutral-weak">
-                  {t('usdReference', { amount: usdReference.toFixed(2), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
+                  {t('usdReference', { amount: formatMoney(usdReference), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
                 </Text>
               )}
               <Text variant="body-default-xs" onBackground="neutral-weak">
