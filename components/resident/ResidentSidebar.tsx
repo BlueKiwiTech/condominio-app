@@ -5,15 +5,23 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Row, Column, SmartLink, Icon, Text, Button, IconButton, Dialog, type IconName } from '@once-ui-system/core';
 import { residentLogout } from '@/lib/actions/residentAuth';
-import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 
-type NavItem = { href: string; icon: IconName; labelKey: 'home' | 'cuotas' | 'payments' | 'profile' };
+type NavItem = {
+  href: string;
+  icon: IconName;
+  labelKey: 'reportPayment' | 'community' | 'home' | 'cuotas' | 'payments' | 'profile';
+};
 
+// "Reportar pago" (PO request 2026-09-18) deep-links into /mis-pagos with a
+// query flag that MisPagosClient reads on mount to auto-open the existing
+// ReportPaymentDialog -- a shortcut into the same flow the "Reportar un pago
+// que hice" button there already triggers, not a separate screen/dialog.
 const ITEMS: NavItem[] = [
-  { href: '/mi-hogar', icon: 'radialGauge', labelKey: 'home' },
+  { href: '/mis-pagos?report=1', icon: 'plus', labelKey: 'reportPayment' },
+  { href: '/mi-comunidad', icon: 'radialGauge', labelKey: 'community' },
   { href: '/mis-cuotas', icon: 'calendar', labelKey: 'cuotas' },
   { href: '/mis-pagos', icon: 'document', labelKey: 'payments' },
-  { href: '/perfil', icon: 'person', labelKey: 'profile' },
+  // { href: '/perfil', icon: 'person', labelKey: 'profile' },
 ];
 
 // Resident (resident)/* sidebar -- deliberately mirrors components/admin/
@@ -92,7 +100,6 @@ export function ResidentSidebar({ houseLabel }: { houseLabel: string | null }) {
 
   const accountFooter = (
     <Column gap="8" style={{ marginTop: 'auto' }}>
-      <LocaleSwitcher />
       <Row gap="8" vertical="center" paddingX="8" paddingY="8" radius="s" background="neutral-alpha-weak">
         <Column
           horizontal="center"

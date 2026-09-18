@@ -60,7 +60,7 @@ export async function residentLogin(input: ResidentLoginInput, locale: string): 
   }
 
   await createResidentSession(result.house_id, result.community_id);
-  redirect('/mi-hogar');
+  redirect('/mi-comunidad');
 }
 
 export async function residentLogout(): Promise<void> {

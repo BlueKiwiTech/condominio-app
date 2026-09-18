@@ -1,12 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { Column, Row, Card, Heading, Text, Chip, Tag, Button } from '@once-ui-system/core';
+import { Column, Row, Card, Heading, Text, Chip, Button } from '@once-ui-system/core';
 import { groupPaymentsByBatch, type PaymentBatch, type PaymentRow } from '@/components/payments/types';
 import { currencyLabel } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
+import type { CurrencyAmountMap } from '@/lib/reporting/dashboard';
 import { ReportPaymentDialog } from './ReportPaymentDialog';
+import { ListRow } from './ListRow';
+import { CurrencyAmountList } from './CurrencyAmountList';
 import type { ResidentInstallment, ResidentPaymentReport, ResidentReportStatus } from '@/lib/resident/queries';
 import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
 
@@ -40,7 +44,18 @@ export function MisPagosClient({
   const t = useTranslations('residentPayments');
   const tHome = useTranslations('residentHome');
   const locale = useLocale();
-  const [reportOpen, setReportOpen] = useState(false);
+  // Sidebar's "Reportar pago" item (PO request 2026-09-18) deep-links here
+  // with ?report=1 to auto-open the dialog -- read once via a lazy
+  // initializer (not an effect-driven setState, which cascading-render
+  // lint rules flag) and stripped from the URL right after so a refresh or
+  // back-nav doesn't reopen it.
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [reportOpen, setReportOpen] = useState(() => searchParams.get('report') === '1');
+  useEffect(() => {
+    if (searchParams.get('report') === '1') router.replace(pathname);
+  }, [searchParams, pathname, router]);
 
   const batches = useMemo(() => groupPaymentsByBatch(payments), [payments]);
 
@@ -74,13 +89,40 @@ export function MisPagosClient({
   // lib/actions/residentPayments.ts) -- excluded from the totals so the
   // per-currency sum only ever reflects real, registered payments.
   const totalsByCurrency = useMemo(() => {
-    const totals: Record<string, number> = {};
+    const totals: CurrencyAmountMap = {};
     for (const item of filtered) {
       if (item.kind !== 'payment') continue;
       totals[item.batch.currency] = (totals[item.batch.currency] ?? 0) + item.batch.totalAmount;
     }
     return totals;
   }, [filtered]);
+
+  // An untagged report confirmed with no cuotas picked doesn't pay anything
+  // off directly -- it becomes wallet credit (board request 2026-09-18:
+  // "adding money to the wallet" vs. "applying that money to a specific
+  // debt" are two different events). Labeled as such instead of looking
+  // like a numbered receipt for a specific cuota, which is what a bare
+  // #0024-style title would otherwise imply.
+  const reportRow = (report: ResidentPaymentReport) => {
+    const isCreditTopUp =
+      report.status === 'confirmed' && report.installment_ids.length === 0 && report.resulting_receipt_number !== null;
+    const date = formatShortDate(new Date(report.payment_date), locale);
+    return (
+      <ListRow
+        key={report.id}
+        title={
+          isCreditTopUp
+            ? t('creditAdded')
+            : report.installment_ids.length > 0
+              ? report.installment_ids.map((id) => installmentNameById.get(id) ?? '—').join(', ')
+              : t('reportFallback')
+        }
+        subtitle={isCreditTopUp ? `${date} · #${String(report.resulting_receipt_number).padStart(4, '0')}` : date}
+        amount={formatAmount(report.amount, report.currency)}
+        tag={{ label: t(`reportStatus.${report.status}`), variant: reportTagVariant(report.status) }}
+      />
+    );
+  };
 
   return (
     <Column fillWidth gap="24" paddingY="32" paddingX="32">
@@ -99,18 +141,14 @@ export function MisPagosClient({
       </Row>
 
       {Object.keys(totalsByCurrency).length > 0 && (
-        <Row gap="16" wrap fillWidth>
-          {Object.entries(totalsByCurrency).map(([currency, amount]) => (
-            <Card key={currency} padding="16" radius="s" background="neutral-alpha-weak" flex={1} minWidth={12}>
-              <Column gap="4">
-                <Text variant="label-default-s" onBackground="neutral-weak">
-                  {t('totalFor', { period: yearFilter === 'all' ? t('filterAll') : yearFilter })}
-                </Text>
-                <Text variant="heading-strong-m">{formatAmount(amount, currency)}</Text>
-              </Column>
-            </Card>
-          ))}
-        </Row>
+        <Card padding="16" radius="s" background="neutral-alpha-weak" fillWidth>
+          <Column gap="4">
+            <Text variant="label-default-s" onBackground="neutral-weak">
+              {t('totalFor', { period: yearFilter === 'all' ? t('filterAll') : yearFilter })}
+            </Text>
+            <CurrencyAmountList amounts={totalsByCurrency} emptyLabel={t('empty')} />
+          </Column>
+        </Card>
       )}
 
       {filtered.length === 0 ? (
@@ -121,53 +159,20 @@ export function MisPagosClient({
         <Column gap="8" fillWidth>
           {filtered.map((item) =>
             item.kind === 'payment' ? (
-              <Card key={item.batch.batchId} padding="16" radius="s" fillWidth border="neutral-alpha-weak">
-                <Column gap="8">
-                  <Row horizontal="between" vertical="center" fillWidth>
-                    <Text variant="label-strong-s">
-                      {item.batch.receiptNumber ? `#${String(item.batch.receiptNumber).padStart(4, '0')}` : t('receipt')}
-                    </Text>
-                    <Text variant="body-default-xs" onBackground="neutral-weak">
-                      {formatShortDate(new Date(item.batch.paymentDate), locale)}
-                    </Text>
-                  </Row>
-                  <Text variant="body-default-s" onBackground="neutral-weak">
-                    {t('cuotas')}: {item.batch.installmentNames.join(', ')}
-                  </Text>
-                  <Row horizontal="between" fillWidth>
-                    <Text variant="body-default-s">{item.batch.reference ?? '—'}</Text>
-                    <Text variant="heading-strong-s">{formatAmount(item.batch.totalAmount, item.batch.currency)}</Text>
-                  </Row>
-                </Column>
-              </Card>
+              <ListRow
+                key={item.batch.batchId}
+                title={[
+                  item.batch.receiptNumber ? `#${String(item.batch.receiptNumber).padStart(4, '0')}` : t('receipt'),
+                  item.batch.installmentNames.join(', '),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+                subtitle={formatShortDate(new Date(item.batch.paymentDate), locale)}
+                amount={formatAmount(item.batch.totalAmount, item.batch.currency)}
+                tag={{ label: t('reportStatus.confirmed'), variant: 'success' }}
+              />
             ) : (
-              <Card
-                key={item.report.id}
-                padding="16"
-                radius="s"
-                fillWidth
-                border="neutral-alpha-weak"
-                background={`${reportTagVariant(item.report.status)}-alpha-weak`}
-              >
-                <Column gap="8">
-                  <Row horizontal="between" vertical="center" fillWidth>
-                    <Tag variant={reportTagVariant(item.report.status)} label={t(`reportStatus.${item.report.status}`)} />
-                    <Text variant="body-default-xs" onBackground="neutral-weak">
-                      {formatShortDate(new Date(item.report.payment_date), locale)}
-                    </Text>
-                  </Row>
-                  {item.report.installment_ids.length > 0 && (
-                    <Text variant="body-default-s" onBackground="neutral-weak">
-                      {t('cuotas')}:{' '}
-                      {item.report.installment_ids.map((id) => installmentNameById.get(id) ?? '—').join(', ')}
-                    </Text>
-                  )}
-                  <Row horizontal="between" fillWidth>
-                    <Text variant="body-default-s">{item.report.reference ?? '—'}</Text>
-                    <Text variant="heading-strong-s">{formatAmount(item.report.amount, item.report.currency)}</Text>
-                  </Row>
-                </Column>
-              </Card>
+              reportRow(item.report)
             ),
           )}
         </Column>

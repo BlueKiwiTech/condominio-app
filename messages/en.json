@@ -38,7 +38,7 @@
       "invalidDate": "Invalid date.",
       "houseRequired": "Select a house.",
       "installmentsRequired": "Select at least one cuota.",
-      "amountPositive": "Amount received must be greater than 0.",
+      "amountPositive": "Amount received cannot be negative.",
       "referenceTooLong": "Reference is too long.",
       "notesTooLong": "Notes are too long."
     },
@@ -570,6 +570,8 @@
       "name": "ASOBARCELONA",
       "subtitle": "Resident portal"
     },
+    "reportPayment": "Report a payment",
+    "community": "My community",
     "home": "My home",
     "cuotas": "My cuotas",
     "payments": "My payments",
@@ -596,6 +598,24 @@
       "totalExpenses": "This month's expenses",
       "empty": "No data."
     },
+    "communityDashboard": {
+      "subtitle": "Here you can check your community's balance.",
+      "heading": "Community balance",
+      "available": "Available balance",
+      "availableCaption": "Amount accumulated by the community",
+      "pending": "Pending balance",
+      "pendingCaption": "Total amount still owed",
+      "expensesHeading": "Expenses",
+      "expensesOfMonth": "Expenses for {period}",
+      "expensesOfYear": "Expenses for all of {year}",
+      "expensesCaption": "Total amount spent in the period",
+      "monthFilterLabel": "Month",
+      "yearFilterLabel": "Year",
+      "allYear": "Whole year",
+      "breakdownHeading": "Expense breakdown",
+      "breakdownEmpty": "No expenses recorded for this period.",
+      "empty": "No data."
+    },
     "upcoming": {
       "heading": "Coming up",
       "empty": "You have no upcoming cuotas."
@@ -605,7 +625,7 @@
     "reportPaymentDialog": {
       "heading": "Report a payment",
       "intro": "Let the board know you already made a payment. This doesn't mark your cuota as paid instantly — the board reviews and confirms it.",
-      "whichCuotas": "Which cuotas is this for? (optional)",
+      "whichCuotas": "Your pending cuotas",
       "fields": {
         "currency": "Currency",
         "amount": "Amount",
@@ -650,8 +670,8 @@
       "since": "Since {date}",
       "contact": "Write to the board"
     },
-    "recurringHeading": "This month's cuotas",
-    "specialHeading": "Special cuotas",
+    "overdueHeading": "Overdue debt",
+    "upcomingHeading": "Coming up",
     "empty": {
       "pending": "You have no pending cuotas.",
       "history": "You don't have any payment history yet."
@@ -671,6 +691,8 @@
     "totalFor": "Total {period}",
     "receipt": "No receipt",
     "cuotas": "Cuotas",
+    "reportFallback": "Reported payment",
+    "creditAdded": "Added to your balance",
     "reportStatus": {
       "pending": "Under review",
       "confirmed": "Confirmed",

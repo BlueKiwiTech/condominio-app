@@ -11,7 +11,6 @@ import {
   Textarea,
   DateInput,
   Select,
-  Checkbox,
   Button,
   Feedback,
   Text,
@@ -23,6 +22,7 @@ import { CURRENCY_SELECT_OPTIONS, currencyLabel } from '@/lib/currency';
 import { referenceUsdAmount, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 import type { ResidentInstallment, Currency } from '@/lib/resident/queries';
 import { formatShortDate } from '@/lib/dateFormat';
+import { ListRow } from './ListRow';
 
 function formatAmount(amount: number, currency: string): string {
   return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
@@ -31,9 +31,13 @@ function formatAmount(amount: number, currency: string): string {
 // V2's "Reportar un pago que hice" (Phase 7 mockup) — user-requested,
 // admin-side deliberately untouched. Submits to condo_payment_reports
 // (lib/actions/residentPayments.ts's reportPayment), a pending claim for
-// later admin review, NOT a confirmed payment -- selecting cuotas here only
-// prefills the amount and tags the report for the admin's convenience, it
-// never marks anything paid.
+// later admin review, NOT a confirmed payment. The pending-cuotas list is
+// read-only context (board request 2026-09-18: residents can't tag which
+// cuota(s) a report is for anymore) -- every report submits with an empty
+// installment_ids, so on confirm it always goes through the untagged/wallet
+// path (lib/actions/paymentReports.ts's confirmPaymentReport): a receipt
+// number + condo_house_credits credit, never auto-marking a specific cuota
+// paid.
 export function ReportPaymentDialog({
   pendingInstallments,
   exchangeRates,
@@ -50,9 +54,7 @@ export function ReportPaymentDialog({
   const [success, setSuccess] = useState(false);
 
   const [currency, setCurrency] = useState<Currency>(pendingInstallments[0]?.currency ?? 'USD');
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [amount, setAmount] = useState<number | ''>('');
-  const [amountEdited, setAmountEdited] = useState(false);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
@@ -109,10 +111,7 @@ export function ReportPaymentDialog({
         return;
       }
       const { data } = result;
-      if (data.amount !== null) {
-        setAmountEdited(true);
-        setAmount(data.amount);
-      }
+      if (data.amount !== null) setAmount(data.amount);
       if (data.currency !== null) setCurrency(data.currency);
       if (data.payment_date !== null) setPaymentDate(parseISO(data.payment_date));
       if (data.reference !== null) setReference(data.reference);
@@ -128,22 +127,7 @@ export function ReportPaymentDialog({
     setScreenshotPreviewUrl(null);
   };
 
-  // Not filtered by currency -- reporting a payment doesn't require it to
-  // match the tagged cuota(s)' own currency (user decision, 2026-09-08): a
-  // cuota's amount is denominated in one currency, but residents pay with
-  // whatever they have (cash, Bs transfer, USDT). Every pending cuota is
-  // selectable regardless of currency; each checkbox still shows its own.
   const balanceDue = (i: ResidentInstallment) => i.amount - i.amount_paid;
-  const suggestedAmount = (ids: string[]) =>
-    pendingInstallments.filter((i) => ids.includes(i.id)).reduce((sum, i) => sum + balanceDue(i), 0);
-
-  const toggleInstallment = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      if (!amountEdited) setAmount(suggestedAmount(next));
-      return next;
-    });
-  };
 
   const handleCurrencySelect = (value: string | string[]) => {
     setCurrency((Array.isArray(value) ? value[0] : value) as Currency);
@@ -170,7 +154,7 @@ export function ReportPaymentDialog({
           payment_date: toDateOnly(paymentDate),
           reference: reference || undefined,
           notes: notes || undefined,
-          installment_ids: selectedIds,
+          installment_ids: [],
         },
         locale,
         screenshot,
@@ -221,12 +205,11 @@ export function ReportPaymentDialog({
               </Text>
               <Column gap="8" fillWidth>
                 {pendingInstallments.map((inst) => (
-                  <Checkbox
+                  <ListRow
                     key={inst.id}
-                    isChecked={selectedIds.includes(inst.id)}
-                    onToggle={() => toggleInstallment(inst.id)}
-                    label={`${inst.name} — ${formatShortDate(parseISO(inst.due_date), locale)}`}
-                    description={formatAmount(balanceDue(inst), inst.currency)}
+                    title={inst.name}
+                    subtitle={formatShortDate(parseISO(inst.due_date), locale)}
+                    amount={formatAmount(balanceDue(inst), inst.currency)}
                   />
                 ))}
               </Column>
@@ -291,10 +274,7 @@ export function ReportPaymentDialog({
                   type="number"
                   label={t('fields.amount')}
                   value={amount}
-                  onChange={(e) => {
-                    setAmountEdited(true);
-                    setAmount(e.target.valueAsNumber || 0);
-                  }}
+                  onChange={(e) => setAmount(e.target.valueAsNumber || 0)}
                 />
                 <Select
                   id="currency"

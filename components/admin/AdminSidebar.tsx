@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Row, Column, SmartLink, Icon, Text, Tag, Button, IconButton, Dialog, type IconName } from '@once-ui-system/core';
 import { logout } from '@/lib/actions/auth';
-import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 
 type NavItem = { href: string; icon: IconName; labelKey: string };
 type NavGroup = { titleKey: string; items: NavItem[] };
@@ -148,7 +147,6 @@ export function AdminSidebar({
 
   const accountFooter = (
     <Column gap="8" style={{ marginTop: 'auto' }}>
-      <LocaleSwitcher />
       <Row gap="8" vertical="center" paddingX="8" paddingY="8" radius="s" background="neutral-alpha-weak">
         <Column
           horizontal="center"

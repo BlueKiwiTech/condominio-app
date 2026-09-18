@@ -5,6 +5,7 @@ import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { applyPaymentAllocation } from '@/lib/payments/applyAllocation';
+import { getHouseCredit, setHouseCredit } from '@/lib/payments/creditSweep';
 import { logAudit } from '@/lib/audit';
 
 type ActionResult = { error: string } | { success: true };
@@ -73,8 +74,15 @@ export async function rejectPaymentReport(reportId: string, locale: string): Pro
  *
  * If the resident didn't tag any cuotas (installment_ids is optional on
  * submission), there's nothing to allocate against -- condo_payments.
- * installment_id is NOT NULL -- so this falls back to the old plain
- * status-flag behavior; the admin has to register that one manually.
+ * installment_id is NOT NULL, so no condo_payments row is created -- but the
+ * amount still needs to land somewhere real (2026-09-18 fix: it used to just
+ * vanish, confirmed with no receipt number and no credit). It's added to the
+ * house's condo_house_credits balance (never auto-swept against PRE-EXISTING
+ * pending/overdue installments -- lib/payments/creditSweep.ts's documented
+ * PLAN.md decision, so this doesn't silently clear old debt -- only applied
+ * automatically the next time a cuota is generated for this house) and still
+ * gets its own sequential receipt number from the same community-wide
+ * counter, so residents see a numbered confirmation like any other payment.
  */
 export async function confirmPaymentReport(reportId: string, locale: string): Promise<ActionResult> {
   const [tc, tp] = await Promise.all([
@@ -95,9 +103,17 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
   if (report.status !== 'pending') return { error: tc('invalidData') };
 
   if (report.installment_ids.length === 0) {
+    const { data: receiptData, error: receiptError } = await supabase.rpc('condo_next_receipt_number');
+    if (receiptError) return { error: receiptError.message };
+    const receiptNumber = receiptData as number;
+
+    const existingCredit = await getHouseCredit(supabase, report.house_id, report.currency);
+    const { error: creditError } = await setHouseCredit(supabase, report.house_id, report.currency, existingCredit + report.amount);
+    if (creditError) return { error: creditError };
+
     const { error } = await supabase
       .from('condo_payment_reports')
-      .update({ status: 'confirmed' })
+      .update({ status: 'confirmed', resulting_receipt_number: receiptNumber })
       .eq('id', reportId);
     if (error) return { error: error.message };
 
@@ -109,6 +125,7 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
     });
 
     revalidatePath('/pagos-reportados');
+    revalidatePath('/pagos');
     return { success: true };
   }
 

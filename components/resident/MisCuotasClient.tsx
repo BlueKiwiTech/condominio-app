@@ -1,15 +1,15 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { format, parseISO } from 'date-fns';
+import { endOfMonth, format, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { Column, Row, Grid, Card, Heading, Text, Tag, SegmentedControl, SmartLink, Button } from '@once-ui-system/core';
-import { computeMorosos } from '@/lib/reporting/morosos';
+import { Column, Grid, Card, Heading, Text, SmartLink, Button } from '@once-ui-system/core';
 import { displayStatus, groupByDueMonth, type DisplayStatus } from '@/lib/resident/portal';
 import type { ResidentPortalData, ResidentInstallment } from '@/lib/resident/queries';
 import { currencyLabel } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
+import { ListRow } from './ListRow';
 
 function formatAmount(amount: number, currency: string): string {
   return `${amount.toFixed(2)} ${currencyLabel(currency)}`;
@@ -27,18 +27,12 @@ function InstallmentCard({ inst, today, statusLabels }: { inst: ResidentInstallm
   const locale = useLocale();
   const status = displayStatus(inst, today);
   return (
-    <Card padding="16" radius="s" fillWidth border="neutral-alpha-weak">
-      <Column gap="8">
-        <Text variant="label-strong-s">{inst.name}</Text>
-        <Text variant="body-default-xs" onBackground="neutral-weak">
-          {formatShortDate(parseISO(inst.due_date), locale)}
-        </Text>
-        <Row horizontal="between" vertical="center" fillWidth>
-          <Text variant="body-default-s">{formatAmount(inst.amount - inst.amount_paid, inst.currency)}</Text>
-          <Tag variant={statusVariant(status)} label={statusLabels[status]} marginLeft="8" />
-        </Row>
-      </Column>
-    </Card>
+    <ListRow
+      title={inst.name}
+      subtitle={formatShortDate(parseISO(inst.due_date), locale)}
+      amount={formatAmount(inst.amount - inst.amount_paid, inst.currency)}
+      tag={{ label: statusLabels[status], variant: statusVariant(status) }}
+    />
   );
 }
 
@@ -47,8 +41,6 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
   const locale = useLocale();
   const dateLocale = locale === 'en' ? enUS : es;
   const today = useMemo(() => new Date(), []);
-  const [tab, setTab] = useState<'pending' | 'history'>('pending');
-  const house = data.house!;
 
   const statusLabels: Record<DisplayStatus, string> = {
     paid: t('status.paid'),
@@ -59,73 +51,86 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
   };
 
   const pending = useMemo(() => data.installments.filter((i) => i.status !== 'paid'), [data.installments]);
-  const history = useMemo(
-    () => data.installments.filter((i) => i.status === 'paid').sort((a, b) => b.due_date.localeCompare(a.due_date)),
-    [data.installments],
+
+  // Board request (2026-09-18): split "Mis cuotas" by urgency instead of by
+  // installment type. "Deuda vencida" is every already-overdue cuota
+  // (recurring or special, flat list). "Lo que viene" is everything else --
+  // but a recurring template can have several months already generated
+  // ahead (the cuota engine generates in advance), so only the single
+  // nearest upcoming due-month's recurring cuotas show here, not all of
+  // them; special cuotas have no such cadence, so all non-overdue ones show.
+  const overdueItems = useMemo(
+    () => pending.filter((i) => displayStatus(i, today) === 'overdue').sort((a, b) => a.due_date.localeCompare(b.due_date)),
+    [pending, today],
   );
 
-  const recurringPending = useMemo(
-    () => pending.filter((i) => (i.condo_installment_templates?.installment_type ?? 'recurring') === 'recurring'),
-    [pending],
-  );
-  const specialPending = useMemo(
-    () => pending.filter((i) => i.condo_installment_templates?.installment_type === 'special'),
-    [pending],
+  const notOverduePending = useMemo(
+    () => pending.filter((i) => displayStatus(i, today) !== 'overdue'),
+    [pending, today],
   );
 
-  const monthGroups = useMemo(() => {
-    const groups = groupByDueMonth(recurringPending);
-    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [recurringPending]);
+  const nextRecurringMonth = useMemo(() => {
+    const recurring = notOverduePending.filter(
+      (i) => (i.condo_installment_templates?.installment_type ?? 'recurring') === 'recurring',
+    );
+    const groups = groupByDueMonth(recurring);
+    const nextKey = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b))[0];
+    return nextKey ? { monthKey: nextKey, items: groups.get(nextKey)! } : null;
+  }, [notOverduePending]);
 
-  const morosos = useMemo(
+  const specialUpcoming = useMemo(
+    () => notOverduePending.filter((i) => i.condo_installment_templates?.installment_type === 'special'),
+    [notOverduePending],
+  );
+
+  // "Deuda acumulada" (board request 2026-09-18): everything unpaid due in
+  // the current month or earlier -- NOT the grace-period-gated admin
+  // morosos definition (computeMorosos) and NOT the stricter "already past
+  // its due day" isOverdue check (displayStatus === 'overdue') -- a cuota
+  // due later this month still counts here, since it's still "del mes
+  // actual". Future months' cuotas are excluded even if already generated.
+  const debtItems = useMemo(
     () =>
-      computeMorosos(
-        data.installments,
-        [{ id: house.id, house_number: house.house_number, house_name: house.house_name, owner_name: house.owner_name }],
-        data.community?.grace_period_days ?? 0,
-        today,
-      ),
-    [data.installments, house, data.community, today],
+      pending
+        .filter((i) => parseISO(i.due_date) <= endOfMonth(today))
+        .sort((a, b) => a.due_date.localeCompare(b.due_date)),
+    [pending, today],
   );
-  const overdueItems = useMemo(() => pending.filter((i) => displayStatus(i, today) === 'overdue'), [pending, today]);
+
+  const debtTotals = useMemo(() => {
+    const byCurrency = new Map<string, { currency: string; owed: number; since: string }>();
+    for (const inst of debtItems) {
+      const owedAmount = inst.amount - inst.amount_paid;
+      if (owedAmount <= 0) continue;
+      const existing = byCurrency.get(inst.currency);
+      if (existing) {
+        existing.owed += owedAmount;
+        if (inst.due_date < existing.since) existing.since = inst.due_date;
+      } else {
+        byCurrency.set(inst.currency, { currency: inst.currency, owed: owedAmount, since: inst.due_date });
+      }
+    }
+    return Array.from(byCurrency.values());
+  }, [debtItems]);
 
   return (
     <Column fillWidth gap="24" paddingY="32" paddingX="32">
       <Heading variant="display-strong-s">{t('heading')}</Heading>
 
-      <SegmentedControl
-        fillWidth
-        buttons={[
-          { value: 'pending', label: t('tabs.pending') },
-          { value: 'history', label: t('tabs.history') },
-        ]}
-        selected={tab}
-        onToggle={(value) => setTab(value as 'pending' | 'history')}
-      />
-
-      {tab === 'pending' && morosos.length > 0 && (
+      {debtItems.length > 0 && (
         <Card padding="20" radius="s" background="danger-alpha-weak" fillWidth>
-          <Column gap="12">
+          <Column gap="12" fillWidth>
             <Heading variant="heading-strong-s" onBackground="danger-strong">
               {t('overdueCard.heading')}
             </Heading>
-            {morosos.map((m) => (
-              <Column key={m.currency} gap="4">
-                <Text variant="heading-strong-m">{formatAmount(m.owed, m.currency)}</Text>
+            {debtTotals.map((d) => (
+              <Column key={d.currency} gap="4">
+                <Text variant="heading-strong-m">{formatAmount(d.owed, d.currency)}</Text>
                 <Text variant="body-default-xs" onBackground="neutral-weak">
-                  {t('overdueCard.since', { date: formatShortDate(parseISO(m.owedSince), locale) })}
+                  {t('overdueCard.since', { date: formatShortDate(parseISO(d.since), locale) })}
                 </Text>
               </Column>
             ))}
-            <Column gap="4">
-              {overdueItems.map((inst) => (
-                <Row key={inst.id} horizontal="between" fillWidth>
-                  <Text variant="body-default-s">{inst.name}</Text>
-                  <Text variant="body-default-s">{formatAmount(inst.amount - inst.amount_paid, inst.currency)}</Text>
-                </Row>
-              ))}
-            </Column>
             {data.community?.phone && (
               <SmartLink href={`tel:${data.community.phone}`} unstyled fillWidth>
                 <Button type="button" variant="danger" fillWidth>
@@ -137,52 +142,48 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
         </Card>
       )}
 
-      {tab === 'pending' ? (
-        <Column gap="24" fillWidth>
-          <Column gap="12" fillWidth>
-            <Heading variant="heading-strong-s">{t('recurringHeading')}</Heading>
-            {monthGroups.length === 0 ? (
-              <Text variant="body-default-s" onBackground="neutral-weak">
-                {t('empty.pending')}
-              </Text>
-            ) : (
-              monthGroups.map(([monthKey, items]) => (
-                <Column key={monthKey} gap="8" fillWidth>
-                  <Text variant="label-default-s" onBackground="neutral-weak">
-                    {format(parseISO(`${monthKey}-01`), 'MMMM yyyy', { locale: dateLocale })}
-                  </Text>
-                  <Grid columns="2" gap="12" fillWidth s={{ columns: 1 }}>
-                    {items.map((inst) => (
-                      <InstallmentCard key={inst.id} inst={inst} today={today} statusLabels={statusLabels} />
-                    ))}
-                  </Grid>
-                </Column>
-              ))
-            )}
+      {overdueItems.length > 0 && (
+        <Column gap="12" fillWidth>
+          <Heading variant="heading-strong-s">{t('overdueHeading')}</Heading>
+          <Column gap="8" fillWidth>
+            {overdueItems.map((inst) => (
+              <InstallmentCard key={inst.id} inst={inst} today={today} statusLabels={statusLabels} />
+            ))}
           </Column>
+        </Column>
+      )}
 
-          {specialPending.length > 0 && (
-            <Column gap="12" fillWidth>
-              <Heading variant="heading-strong-s">{t('specialHeading')}</Heading>
+      <Column gap="12" fillWidth>
+        <Heading variant="heading-strong-s">{t('upcomingHeading')}</Heading>
+        {!nextRecurringMonth && specialUpcoming.length === 0 ? (
+          <Text variant="body-default-s" onBackground="neutral-weak">
+            {t('empty.pending')}
+          </Text>
+        ) : (
+          <Column gap="24" fillWidth>
+            {nextRecurringMonth && (
               <Column gap="8" fillWidth>
-                {specialPending.map((inst) => (
+                <Text variant="label-default-s" onBackground="neutral-weak">
+                  {format(parseISO(`${nextRecurringMonth.monthKey}-01`), 'MMMM yyyy', { locale: dateLocale })}
+                </Text>
+                <Grid columns="2" gap="12" fillWidth s={{ columns: 1 }}>
+                  {nextRecurringMonth.items.map((inst) => (
+                    <InstallmentCard key={inst.id} inst={inst} today={today} statusLabels={statusLabels} />
+                  ))}
+                </Grid>
+              </Column>
+            )}
+
+            {specialUpcoming.length > 0 && (
+              <Column gap="8" fillWidth>
+                {specialUpcoming.map((inst) => (
                   <InstallmentCard key={inst.id} inst={inst} today={today} statusLabels={statusLabels} />
                 ))}
               </Column>
-            </Column>
-          )}
-        </Column>
-      ) : (
-        <Column gap="8" fillWidth>
-          {history.length === 0 ? (
-            <Text variant="body-default-s" onBackground="neutral-weak">
-              {t('empty.history')}
-            </Text>
-          ) : (
-            history.map((inst) => <InstallmentCard key={inst.id} inst={inst} today={today} statusLabels={statusLabels} />)
-          )}
-        </Column>
-      )}
+            )}
+          </Column>
+        )}
+      </Column>
     </Column>
   );
 }

@@ -103,8 +103,13 @@ export function PaymentFormClient({
   }));
 
   const balanceDue = (i: PendingInstallment) => i.amount - i.amount_paid;
-  const suggestedAmountFor = (ids: string[], installments: PendingInstallment[]) =>
-    installments.filter((i) => ids.includes(i.id)).reduce((sum, i) => sum + balanceDue(i), 0);
+  // Nets out any existing saldo a favor -- if the house already has enough
+  // credit to cover the selected cuota(s), the suggested "new cash" amount
+  // is 0, not the cuotas' raw total (which would double-count credit that's
+  // already there and inflate the leftover credit written back after
+  // allocation).
+  const suggestedAmountFor = (ids: string[], installments: PendingInstallment[], credit: number) =>
+    Math.max(0, installments.filter((i) => ids.includes(i.id)).reduce((sum, i) => sum + balanceDue(i), 0) - credit);
 
   // Not filtered by currency -- a payment can be received in any currency
   // regardless of what currency the selected cuota(s) are denominated in
@@ -125,11 +130,15 @@ export function PaymentFormClient({
     [houseCredits, houseId, currency],
   );
 
+  const fundsAvailable = useMemo(
+    () => (Number.isFinite(amountReceived) ? amountReceived : 0) + existingCredit,
+    [amountReceived, existingCredit],
+  );
+
   const preview = useMemo(() => {
     if (selectedInstallments.length === 0) return null;
-    const fundsAvailable = (Number.isFinite(amountReceived) ? amountReceived : 0) + existingCredit;
     return allocateFunds(selectedInstallments, fundsAvailable);
-  }, [selectedInstallments, amountReceived, existingCredit]);
+  }, [selectedInstallments, fundsAvailable]);
 
   // Reference only (PLAN.md's "cada quien saca la cuenta" decision) -- never
   // sent to the server, never affects the allocation above. Null (renders
@@ -163,12 +172,16 @@ export function PaymentFormClient({
   const toggleInstallment = (id: string) => {
     setSelectedIds((prev) => {
       const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      if (!amountEdited) setAmountReceived(suggestedAmountFor(next, houseInstallments));
+      if (!amountEdited) setAmountReceived(suggestedAmountFor(next, houseInstallments, existingCredit));
       return next;
     });
   };
 
-  const canSubmit = houseId && currency && selectedIds.length > 0 && amountReceived > 0;
+  // amountReceived (new cash) can be 0 -- a house with enough existing
+  // credit can have a cuota fully paid off from that credit alone, with
+  // nothing new received. fundsAvailable (cash + credit) still has to cover
+  // something, or there's nothing to register.
+  const canSubmit = houseId && currency && selectedIds.length > 0 && amountReceived >= 0 && fundsAvailable > 0;
 
   const onSubmit = () => {
     setServerError(null);

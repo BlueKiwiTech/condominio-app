@@ -68,6 +68,10 @@ export type ResidentPaymentReport = {
   // lib/actions/paymentReports.ts's confirmPaymentReport) -- null while
   // pending/rejected, and for a confirmed report with no tagged cuotas.
   resulting_payment_batch_id: string | null;
+  // Set on confirm either way (tagged or not) -- an untagged confirm gets a
+  // receipt number of its own even though it has no resulting batch/cuota
+  // allocation, so residents still see a numbered confirmation.
+  resulting_receipt_number: number | null;
 };
 
 export type ResidentPortalData = {
@@ -131,7 +135,9 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
         .order('payment_date', { ascending: false }),
       supabase
         .from('condo_payment_reports')
-        .select('id, amount, currency, payment_date, reference, installment_ids, status, resulting_payment_batch_id')
+        .select(
+          'id, amount, currency, payment_date, reference, installment_ids, status, resulting_payment_batch_id, resulting_receipt_number',
+        )
         .eq('house_id', houseId)
         .order('payment_date', { ascending: false }),
       supabase.from('condo_house_credits').select('currency, balance').eq('house_id', houseId),
@@ -167,20 +173,37 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
   };
 }
 
+// Superset of ExpenseForReport -- adds `id` + the expense's template name so
+// /mi-comunidad's "Desglose de gastos" list can show each line item, while
+// staying structurally assignable to ExpenseForReport for CommunityBalanceCard
+// (still used by /mi-hogar), which only reads the narrower shape.
+export type CommunityExpenseRow = ExpenseForReport & { id: string; name: string };
+
 export type CommunityBalanceData = {
   installments: ReportInstallment[];
   credits: MonthlyReportCredit[];
-  expenses: ExpenseForReport[];
+  expenses: CommunityExpenseRow[];
+};
+
+type CommunityExpenseQueryRow = {
+  id: string;
+  currency: Currency;
+  amount: number;
+  period_date: string;
+  status: 'pending' | 'paid';
+  paid_date: string | null;
+  condo_expense_templates: { name: string } | null;
 };
 
 /**
  * Community-wide (every house, every gasto) totals for the "Balance de la
- * comunidad" card on /mi-hogar -- residents see the same expected/collected/
- * pending/saldo-a-favor figures the admin's monthly report already computes,
- * plus the month's expense totals. Same service-role client as
- * getResidentPortalData (Pattern A: residents never get a Supabase Auth
- * session), just unscoped by house_id since this is a community aggregate,
- * not one house's data.
+ * comunidad" card on /mi-hogar and /mi-comunidad -- residents see the same
+ * expected/collected/pending/saldo-a-favor figures the admin's monthly
+ * report already computes, plus the month's expense totals and (for
+ * /mi-comunidad's breakdown list) each expense's own name/date/amount. Same
+ * service-role client as getResidentPortalData (Pattern A: residents never
+ * get a Supabase Auth session), just unscoped by house_id since this is a
+ * community aggregate, not one house's data.
  */
 export async function getCommunityBalanceData(): Promise<CommunityBalanceData> {
   const supabase = createServiceClient();
@@ -188,12 +211,24 @@ export async function getCommunityBalanceData(): Promise<CommunityBalanceData> {
   const [{ data: installments }, { data: credits }, { data: expenses }] = await Promise.all([
     supabase.from('condo_installments').select('house_id, amount, amount_paid, currency, due_date, status'),
     supabase.from('condo_house_credits').select('house_id, currency, balance'),
-    supabase.from('condo_expenses').select('currency, amount, period_date, status, paid_date').is('deleted_at', null),
+    supabase
+      .from('condo_expenses')
+      .select('id, currency, amount, period_date, status, paid_date, condo_expense_templates(name)')
+      .is('deleted_at', null)
+      .order('period_date', { ascending: true }),
   ]);
 
   return {
     installments: (installments as unknown as ReportInstallment[] | null) ?? [],
     credits: (credits as MonthlyReportCredit[] | null) ?? [],
-    expenses: (expenses as ExpenseForReport[] | null) ?? [],
+    expenses: ((expenses as unknown as CommunityExpenseQueryRow[] | null) ?? []).map((e) => ({
+      id: e.id,
+      currency: e.currency,
+      amount: e.amount,
+      period_date: e.period_date,
+      status: e.status,
+      paid_date: e.paid_date,
+      name: e.condo_expense_templates?.name ?? '',
+    })),
   };
 }

@@ -12,7 +12,7 @@ export default async function Home() {
   if (data?.claims) redirect('/dashboard');
 
   const residentSession = await getResidentSession();
-  if (residentSession) redirect('/mi-hogar');
+  if (residentSession) redirect('/mi-comunidad');
 
   redirect('/login');
 }

@@ -21,8 +21,10 @@ const PROTECTED_PATHS = [
 ];
 
 // Resident-only routes — gated by the signed jose cookie (Pattern A), never
-// Supabase Auth.
-const RESIDENT_PROTECTED_PATHS = ['/mi-hogar', '/mis-cuotas', '/mis-pagos'];
+// Supabase Auth. /mi-hogar stays listed even though it's no longer linked
+// from the sidebar (superseded by /mi-comunidad, 2026-09-18) -- the route
+// still exists and resolves directly, so it still needs the same gate.
+const RESIDENT_PROTECTED_PATHS = ['/mi-comunidad', '/mi-hogar', '/mis-cuotas', '/mis-pagos', '/perfil'];
 
 function stripLocalePrefix(pathname: string): { localePrefix: string; path: string } {
   const match = pathname.match(/^\/(es|en)(?=\/|$)/);

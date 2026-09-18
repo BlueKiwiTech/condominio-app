@@ -1,5 +1,6 @@
+import Image from 'next/image';
 import { getTranslations } from 'next-intl/server';
-import { Column, Heading } from '@once-ui-system/core';
+import { Column, Heading, Row } from '@once-ui-system/core';
 import { createServiceClient } from '@/lib/supabase/service';
 import { ResidentLoginForm } from '@/components/residentAuth/ResidentLoginForm';
 
@@ -18,7 +19,10 @@ export default async function ResidentLoginPage() {
 
   return (
     <Column gap="24" fillWidth style={{ maxWidth: 400 }}>
-      <Heading variant="display-strong-s">{t('heading')}</Heading>
+      <Row horizontal="center" fillWidth>
+        <Image src="/logo-abc.png" alt="ASOBARCELONA" width={256} height={256} priority />
+      </Row>
+      <Heading>{t('heading')}</Heading>
       <ResidentLoginForm houses={houses ?? []} />
     </Column>
   );

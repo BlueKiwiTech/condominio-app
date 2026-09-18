@@ -10,9 +10,12 @@ export function registerPaymentSchema(t: Translator) {
     house_id: z.string().uuid(t('houseRequired')),
     installment_ids: z.array(z.string().uuid()).min(1, t('installmentsRequired')),
     currency: currencySchema,
-    // decimal(12,2) in the DB — validated as a positive number here, cents-safe
-    // allocation happens in lib/payments/allocate.ts.
-    amount_received: z.coerce.number().positive(t('amountPositive')),
+    // decimal(12,2) in the DB — validated as non-negative here (zero is
+    // valid: the admin can register a payment funded entirely by an
+    // existing saldo a favor, with no new cash received -- see
+    // applyPaymentAllocation's credit-netting), cents-safe allocation
+    // happens in lib/payments/allocate.ts.
+    amount_received: z.coerce.number().nonnegative(t('amountPositive')),
     payment_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t('invalidDate')),
     reference: z.string().trim().max(120, t('referenceTooLong')).optional(),
     notes: z.string().trim().max(500, t('notesTooLong')).optional(),

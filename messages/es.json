@@ -38,7 +38,7 @@
       "invalidDate": "Fecha inválida.",
       "houseRequired": "Selecciona una casa.",
       "installmentsRequired": "Selecciona al menos una cuota.",
-      "amountPositive": "El monto recibido debe ser mayor a 0.",
+      "amountPositive": "El monto recibido no puede ser negativo.",
       "referenceTooLong": "La referencia es demasiado larga.",
       "notesTooLong": "Las notas son demasiado largas."
     },
@@ -570,6 +570,8 @@
       "name": "ASOBARCELONA",
       "subtitle": "Portal de vecinos"
     },
+    "reportPayment": "Reportar pago",
+    "community": "Mi comunidad",
     "home": "Mi hogar",
     "cuotas": "Mis cuotas",
     "payments": "Mis pagos",
@@ -596,6 +598,24 @@
       "totalExpenses": "Gastos de este mes",
       "empty": "Sin datos."
     },
+    "communityDashboard": {
+      "subtitle": "Aquí puedes ver el balance de tu comunidad.",
+      "heading": "Balance de la comunidad",
+      "available": "Saldo disponible",
+      "availableCaption": "Monto acumulado por la comunidad",
+      "pending": "Saldo pendiente",
+      "pendingCaption": "Monto total que queda por pagar",
+      "expensesHeading": "Gastos",
+      "expensesOfMonth": "Gastos de {period}",
+      "expensesOfYear": "Gastos de todo {year}",
+      "expensesCaption": "Monto total gastado en el periodo",
+      "monthFilterLabel": "Mes",
+      "yearFilterLabel": "Año",
+      "allYear": "Todo el año",
+      "breakdownHeading": "Desglose de gastos",
+      "breakdownEmpty": "No hay gastos registrados en este periodo.",
+      "empty": "Sin datos."
+    },
     "upcoming": {
       "heading": "Lo que viene",
       "empty": "No tienes cuotas próximas."
@@ -605,7 +625,7 @@
     "reportPaymentDialog": {
       "heading": "Reportar un pago",
       "intro": "Cuéntale a la junta que ya hiciste un pago. Esto no marca tu cuota como pagada al instante — la junta lo revisa y lo confirma.",
-      "whichCuotas": "¿A qué cuotas corresponde? (opcional)",
+      "whichCuotas": "Tus cuotas pendientes",
       "fields": {
         "currency": "Moneda",
         "amount": "Monto",
@@ -650,8 +670,8 @@
       "since": "Desde {date}",
       "contact": "Escribir a la junta"
     },
-    "recurringHeading": "Cuotas del mes",
-    "specialHeading": "Cuotas especiales",
+    "overdueHeading": "Deuda vencida",
+    "upcomingHeading": "Lo que viene",
     "empty": {
       "pending": "No tienes cuotas pendientes.",
       "history": "Aún no tienes historial de pagos."
@@ -671,6 +691,8 @@
     "totalFor": "Total {period}",
     "receipt": "Sin recibo",
     "cuotas": "Cuotas",
+    "reportFallback": "Pago reportado",
+    "creditAdded": "Saldo agregado a tu cuenta",
     "reportStatus": {
       "pending": "Por revisar",
       "confirmed": "Confirmado",
