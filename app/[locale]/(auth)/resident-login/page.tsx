@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { createServiceClient } from '@/lib/supabase/service';
 import { ResidentLoginForm } from '@/components/residentAuth/ResidentLoginForm';
@@ -17,16 +18,23 @@ export default async function ResidentLoginPage() {
     .order('house_number');
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="items-center gap-4 text-center">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary text-lg font-bold text-primary-foreground">
-          AB
-        </div>
+    <div className="flex w-full max-w-md flex-col items-center gap-6">
+      <Image
+        src="/logo-abc-mark.png"
+        alt="ABC"
+        width={200}
+        height={205}
+        className="h-[205px] w-[200px]"
+        priority
+      />
+      <Card className="w-full">
+      <CardHeader className="items-center text-center">
         <h1 className="text-2xl font-bold">{t('heading')}</h1>
       </CardHeader>
       <CardContent>
         <ResidentLoginForm houses={houses ?? []} />
       </CardContent>
     </Card>
+    </div>
   );
 }

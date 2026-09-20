@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import Image from 'next/image';
 import { useTranslations, useLocale } from 'next-intl';
 import { endOfMonth, format, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
@@ -124,18 +125,23 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
     <div className="flex w-full flex-col gap-6">
       <h1 className="text-xl font-bold md:text-2xl">{t('heading')}</h1>
 
-      {debtItems.length > 0 && (
+      {debtItems.length > 0 ? (
         <Card className="border-destructive/20 bg-destructive/5 p-5">
-          <div className="flex w-full flex-col gap-3">
-            <h2 className="text-base font-semibold text-destructive">{t('overdueCard.heading')}</h2>
-            {debtTotals.map((d) => (
-              <div key={d.currency} className="flex flex-col gap-1">
-                <span className="text-xl font-bold">{formatAmount(d.owed, d.currency)}</span>
-                <span className="text-xs text-muted-foreground">
-                  {t('overdueCard.since', { date: formatShortDate(parseISO(d.since), locale) })}
-                </span>
+          <div className="flex w-full flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <Image src="/mascota_bad.png" alt="" width={72} height={72} className="w-[72px] h-[72px] shrink-0" priority />
+              <div className="flex flex-col gap-2">
+                <h2 className="text-base font-semibold text-destructive">{t('overdueCard.heading')}</h2>
+                {debtTotals.map((d) => (
+                  <div key={d.currency} className="flex flex-col gap-1">
+                    <span className="text-xl font-bold">{formatAmount(d.owed, d.currency)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t('overdueCard.since', { date: formatShortDate(parseISO(d.since), locale) })}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
             {data.community?.phone && (
               <Button
                 variant="destructive"
@@ -148,6 +154,16 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
                 {t('overdueCard.contact')}
               </Button>
             )}
+          </div>
+        </Card>
+      ) : (
+        <Card className="border-success/20 bg-success/5 p-5">
+          <div className="flex items-center gap-4">
+            <Image src="/mascota_good.png" alt="" width={72} height={69} className="w-[72px] h-[69px] shrink-0" priority />
+            <div className="flex flex-col gap-1">
+              <h2 className="text-base font-semibold text-success">{t('allCaughtUp.heading')}</h2>
+              <p className="text-sm text-muted-foreground">{t('allCaughtUp.subtitle')}</p>
+            </div>
           </div>
         </Card>
       )}

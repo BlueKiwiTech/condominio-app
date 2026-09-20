@@ -7,13 +7,20 @@
 > This file replaces the tool's first auto-generated draft, which mis-categorized the
 > project (it read "community" as a social forum and proposed claymorphism — chunky,
 > toy-like, bubbly). This app tracks who owes money and since when; residents and admins
-> need to trust the numbers at a glance. This version keeps the warmth the user asked for
-> (warm palette, rounded shapes, approachable type) but grounds it in a "Soft UI Evolution"
-> / financial-dashboard foundation instead of a playful one.
+> need to trust the numbers at a glance. It grounds the UI in a "Soft UI Evolution" /
+> financial-dashboard foundation instead of a playful one.
+>
+> **2026-09-19 update:** the community's actual brand is "ABC" (ASOBARCELONA CENTRO) — an
+> illustrated navy/yellow logo (gate house + barrier + car) supplied by the board, plus a
+> "mascot" used elsewhere to indicate debe/no debe (owes/doesn't owe). The color system
+> below now uses the board's official palette in place of the earlier placeholder
+> terracotta. The illustrated logo mark and mascot are not yet integrated as image assets
+> — pending the source files — the sidebar/auth "ABC" monogram is a text placeholder until
+> then.
 
 ---
 
-**Project:** ASOBARCELONA — condominio-app
+**Project:** ASOBARCELONA CENTRO ("ABC") — condominio-app
 **Product type:** Payments/dues management (admin) + self-service balance portal (resident)
 **Stack:** Tailwind CSS v4 + shadcn/ui (replacing Once UI)
 
@@ -23,28 +30,39 @@
 
 ### Color Palette
 
-Warm-neutral base (not cold slate/gray) + terracotta brand accent + teal secondary +
-semantic status colors that must stay visually distinct from the brand color, since
-"who's paid / who's late" is the core thing this app communicates.
+Official ABC institutional palette (navy + yellow, from the board-supplied brand sheet) +
+semantic status colors that must stay visually distinct from the brand colors, since
+"who's paid / who's late" is the core thing this app communicates. The sidebar is
+navy-branded (a deliberate identity statement matching the logo's dominant navy field);
+the main content area stays light for data readability.
 
 | Role | Light | Dark | CSS Variable |
 |------|-------|------|--------------|
-| Background | `#FBF9F6` | `#1C1917` | `--background` |
-| Surface/Card | `#FFFFFF` | `#292524` | `--card` |
-| Foreground (text) | `#292118` | `#FAFAF9` | `--foreground` |
-| Muted text | `#57534E` | `#A8A29E` | `--muted-foreground` |
-| Border | `#E7E2DA` | `#3F3A34` | `--border` |
-| Primary (brand/terracotta) | `#C2410C` | `#FB923C` | `--primary` |
-| Primary hover | `#9A3412` | `#F97316` | — |
-| Primary foreground | `#FFFFFF` | `#1C1917` | `--primary-foreground` |
-| Secondary (teal accent) | `#0F766E` | `#2DD4BF` | `--secondary` |
-| Success / al día | `#15803D` bg `#F0FDF4` | `#4ADE80` bg `#14251A` | `--success` |
-| Warning / próximo a vencer | `#B45309` bg `#FFFBEB` | `#FBBF24` bg `#2A2011` | `--warning` |
-| Danger / moroso | `#B91C1C` bg `#FEF2F2` | `#F87171` bg `#2A1616` | `--destructive` |
+| Background | `#FCFAF1` (abc-white) | `#000C1D` (abc-navy-dark) | `--background` |
+| Surface/Card | `#FFFFFF` | `#00152F` (abc-navy-deep) | `--card` |
+| Foreground (text) | `#022856` (abc-navy) | `#FCFAF1` | `--foreground` |
+| Muted text | `#45566E` | `#9AB0C9` | `--muted-foreground` |
+| Border | `#E6E2D2` | `#FFFFFF1A` | `--border` |
+| Primary (brand/navy) | `#022856` | `#FBCB32` (abc-yellow) | `--primary` |
+| Primary foreground | `#FFFFFF` | `#022856` | `--primary-foreground` |
+| Secondary (brand/yellow) | `#FBCB32` (abc-yellow) | `#134E87` (abc-blue) | `--secondary` |
+| Success / al día | `#2B6C3C` (abc-green-dark) bg tint 10% | `#6FBF7F` | `--success` |
+| Warning / próximo a vencer | `#92600F` (deep gold, distinct from brand yellow) | `#FCE392` | `--warning` |
+| Danger / moroso | `#FA482C` (abc-red) | `#FA482C` | `--destructive` |
+| Sidebar background | `#022856` (abc-navy) | `#000C1D` | `--sidebar` |
+| Sidebar active item | `#FBCB32` bg / `#022856` text | same | `--sidebar-primary` |
 
-**Rule:** Primary (terracotta) is for brand/interactive elements (buttons, active nav, links).
-Never use it to encode payment status — status always uses success/warning/destructive so the
-two systems (brand vs. "is this house behind") never get confused at a glance.
+**Rule:** Primary (navy) and secondary (yellow) are for brand/interactive elements (buttons,
+active nav, links, the sidebar's dark field). Never use them to encode payment status —
+status always uses success/warning/destructive so the two systems (brand vs. "is this
+house behind") never get confused at a glance. Warning deliberately uses a deep gold
+(`#92600F`), not the vivid brand yellow, so a "pay soon" badge is never mistaken for a
+brand CTA.
+
+**Sidebar-specific tokens:** anything rendered directly on the navy `Sidebar` background
+must use `text-sidebar-foreground` / `text-sidebar-foreground/70` (muted) / `bg-sidebar-accent`
+— the generic `--muted-foreground`/`--accent` tokens are tuned for the light main-content
+area and will be unreadable against navy.
 
 ### Typography
 
@@ -72,9 +90,9 @@ Use Tailwind's default scale directly (`p-4`, `gap-6`, etc.) rather than inventi
 
 ## Component Guidance (shadcn/ui primitives)
 
-- **Buttons:** shadcn `Button` — primary variant uses terracotta; destructive variant (e.g. "eliminar
-  cuota") uses `--destructive`; never repurpose destructive-red for anything except actual
-  destructive actions or the "vencido" status badge.
+- **Buttons:** shadcn `Button` — primary variant uses navy (yellow in dark mode); destructive
+  variant (e.g. "eliminar cuota") uses `--destructive`; never repurpose destructive-red for
+  anything except actual destructive actions or the "vencido" status badge.
 - **Status badges:** small pill, colored background tint + matching text color from the
   success/warning/destructive trio above (e.g. `bg-[--success]/10 text-[--success]`). This is the
   single most-repeated component in the app (morosos tables, cuota lists, payment history) — build
@@ -96,8 +114,8 @@ Use Tailwind's default scale directly (`p-4`, `gap-6`, etc.) rather than inventi
 - ❌ Claymorphism / toy-like shadows, thick borders, bubbly shapes — wrong trust register for money
 - ❌ Emojis as icons — use `lucide-react` (shadcn's default icon set)
 - ❌ Missing `cursor-pointer` on clickable rows/cards
-- ❌ Using the primary/terracotta color to mean "paid" or "overdue" — status colors only
-- ❌ Low-contrast muted text (never below `#57534E` on light backgrounds)
+- ❌ Using the primary/navy or secondary/yellow color to mean "paid" or "overdue" — status colors only
+- ❌ Low-contrast muted text (never below `#45566E` on light backgrounds, or `text-sidebar-foreground/70` on the navy sidebar)
 - ❌ Summing or comparing amounts across currencies (USD/Bs/USDT) — unrelated to visuals but a
   standing project rule worth repeating since reporting UI will display these side by side
 

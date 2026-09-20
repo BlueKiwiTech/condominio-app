@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { getResidentSession } from '@/lib/auth/residentSession';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -31,9 +32,9 @@ export default async function ResidentLayout({ children }: { children: React.Rea
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4 md:hidden">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-5" />
-          <span className="text-sm font-semibold">ASOBARCELONA</span>
+          <Image src="/logo-abc-mark.png" alt="ABC" width={28} height={29} className="w-[28px] h-[29px]" />
         </header>
-        <div className="flex flex-1 flex-col">{children}</div>
+        <div className="flex flex-1 flex-col p-4 md:p-6">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

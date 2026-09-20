@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -86,12 +87,10 @@ export function AdminSidebar({
     <Sidebar collapsible="offcanvas">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-            AB
-          </div>
+          <Image src="/logo-abc-mark.png" alt="ABC" width={36} height={37} className="w-[36px] h-[37px] shrink-0" priority />
           <div className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-semibold">{t('brand.name')}</span>
-            <span className="truncate text-xs text-muted-foreground">{t('brand.subtitle')}</span>
+            <span className="truncate text-xs font-semibold">{t('brand.name')}</span>
+            <span className="truncate text-xs text-sidebar-foreground/70">{t('brand.subtitle')}</span>
           </div>
         </div>
       </SidebarHeader>
@@ -126,17 +125,22 @@ export function AdminSidebar({
         ))}
       </SidebarContent>
       <SidebarFooter>
-        <div className="flex items-center gap-2 rounded-lg bg-muted px-2 py-2">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+        <div className="flex items-center gap-2 rounded-lg bg-sidebar-accent px-2 py-2">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
             {initials}
           </div>
           <div className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-medium">{adminEmail ?? t('unknownAdmin')}</span>
-            <span className="truncate text-xs text-muted-foreground">{t('roleLabel')}</span>
+            <span className="truncate text-sm font-medium text-sidebar-foreground">{adminEmail ?? t('unknownAdmin')}</span>
+            <span className="truncate text-xs text-sidebar-foreground/70">{t('roleLabel')}</span>
           </div>
         </div>
         <form action={logout}>
-          <Button type="submit" variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground">
+          <Button
+            type="submit"
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          >
             <LogOut className="size-4" />
             {t('logout')}
           </Button>

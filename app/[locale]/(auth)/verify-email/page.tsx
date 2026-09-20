@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { VerifyEmailActions } from '@/components/auth/VerifyEmailActions';
 
@@ -11,11 +12,17 @@ export default async function VerifyEmailPage({
   const { email = '' } = await searchParams;
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="items-center gap-4 text-center">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary text-lg font-bold text-primary-foreground">
-          AB
-        </div>
+    <div className="flex w-full max-w-md flex-col items-center gap-6">
+      <Image
+        src="/logo-abc-mark.png"
+        alt="ABC"
+        width={200}
+        height={205}
+        className="h-[205px] w-[200px]"
+        priority
+      />
+      <Card className="w-full">
+      <CardHeader className="items-center text-center">
         <h1 className="text-2xl font-bold">{t('verifyEmail.heading')}</h1>
         <p className="text-center text-sm text-muted-foreground">{t('verifyEmail.body', { email })}</p>
       </CardHeader>
@@ -23,5 +30,6 @@ export default async function VerifyEmailPage({
         <VerifyEmailActions email={email} />
       </CardContent>
     </Card>
+    </div>
   );
 }

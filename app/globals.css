@@ -50,93 +50,97 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
-    --shadow-color: 41 33 24;
+    --shadow-color: 2 40 86;
 }
 
 /*
-  ASOBARCELONA design tokens — warm-neutral base + terracotta brand accent.
-  See design-system/asobarcelona/MASTER.md for the full rationale. Status
-  colors (success/warning/destructive) are semantic and reserved for
+  ASOBARCELONA CENTRO (ABC) institutional design tokens — official brand
+  palette (navy + yellow, from the ABC logo/brand sheet), replacing the
+  earlier placeholder terracotta system. See
+  design-system/asobarcelona/MASTER.md for the full rationale. Status
+  colors (success/warning/destructive) stay semantic and reserved for
   payment status (al día / próximo a vencer / moroso) — never repurposed
-  for brand emphasis, and the brand color is never used to mean status.
+  for brand emphasis, and the brand navy/yellow are never used to mean
+  status (warning uses a deeper gold, distinct from the vivid brand
+  yellow, so "pay soon" is never visually confused with a brand CTA).
 */
 :root {
-    --background: #fbf9f6;
-    --foreground: #292118;
+    --background: #fcfaf1;
+    --foreground: #022856;
     --card: #ffffff;
-    --card-foreground: #292118;
+    --card-foreground: #022856;
     --popover: #ffffff;
-    --popover-foreground: #292118;
-    --primary: #c2410c;
+    --popover-foreground: #022856;
+    --primary: #022856;
     --primary-foreground: #ffffff;
-    --secondary: #0f766e;
-    --secondary-foreground: #ffffff;
-    --muted: #f3efe8;
-    --muted-foreground: #57534e;
-    --accent: #fdeee6;
-    --accent-foreground: #9a3412;
-    --destructive: #b91c1c;
+    --secondary: #fbcb32;
+    --secondary-foreground: #022856;
+    --muted: #f2efe1;
+    --muted-foreground: #45566e;
+    --accent: #fff3c4;
+    --accent-foreground: #022856;
+    --destructive: #fa482c;
     --destructive-foreground: #ffffff;
-    --warning: #b45309;
+    --warning: #92600f;
     --warning-foreground: #ffffff;
-    --success: #15803d;
+    --success: #2b6c3c;
     --success-foreground: #ffffff;
-    --border: #e7e2da;
-    --input: #e7e2da;
-    --ring: #c2410c80;
-    --chart-1: #c2410c;
-    --chart-2: #0f766e;
-    --chart-3: #b45309;
-    --chart-4: #57534e;
-    --chart-5: #9a3412;
+    --border: #e6e2d2;
+    --input: #e6e2d2;
+    --ring: #02285680;
+    --chart-1: #134e87;
+    --chart-2: #2b6c3c;
+    --chart-3: #92600f;
+    --chart-4: #45566e;
+    --chart-5: #fa482c;
     --radius: 0.65rem;
-    --sidebar: #f3efe8;
-    --sidebar-foreground: #292118;
-    --sidebar-primary: #c2410c;
-    --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #fdeee6;
-    --sidebar-accent-foreground: #9a3412;
-    --sidebar-border: #e7e2da;
-    --sidebar-ring: #c2410c80;
+    --sidebar: #022856;
+    --sidebar-foreground: #fcfaf1;
+    --sidebar-primary: #fbcb32;
+    --sidebar-primary-foreground: #022856;
+    --sidebar-accent: #0b3a70;
+    --sidebar-accent-foreground: #fcfaf1;
+    --sidebar-border: #ffffff1a;
+    --sidebar-ring: #fbcb3280;
 }
 
 .dark {
-    --background: #1c1917;
-    --foreground: #fafaf9;
-    --card: #292524;
-    --card-foreground: #fafaf9;
-    --popover: #292524;
-    --popover-foreground: #fafaf9;
-    --primary: #fb923c;
-    --primary-foreground: #1c1917;
-    --secondary: #2dd4bf;
-    --secondary-foreground: #0f2e2b;
-    --muted: #292524;
-    --muted-foreground: #a8a29e;
-    --accent: #3a2416;
-    --accent-foreground: #fdba74;
-    --destructive: #f87171;
-    --destructive-foreground: #2a1616;
-    --warning: #fbbf24;
+    --background: #000c1d;
+    --foreground: #fcfaf1;
+    --card: #00152f;
+    --card-foreground: #fcfaf1;
+    --popover: #00152f;
+    --popover-foreground: #fcfaf1;
+    --primary: #fbcb32;
+    --primary-foreground: #022856;
+    --secondary: #134e87;
+    --secondary-foreground: #ffffff;
+    --muted: #00152f;
+    --muted-foreground: #9ab0c9;
+    --accent: #0b3a70;
+    --accent-foreground: #fce392;
+    --destructive: #fa482c;
+    --destructive-foreground: #ffffff;
+    --warning: #fce392;
     --warning-foreground: #2a2011;
-    --success: #4ade80;
-    --success-foreground: #14251a;
+    --success: #6fbf7f;
+    --success-foreground: #0e2414;
     --border: #ffffff1a;
     --input: #ffffff26;
-    --ring: #fb923c80;
-    --chart-1: #fb923c;
-    --chart-2: #2dd4bf;
-    --chart-3: #fbbf24;
-    --chart-4: #a8a29e;
-    --chart-5: #f87171;
-    --sidebar: #1c1917;
-    --sidebar-foreground: #fafaf9;
-    --sidebar-primary: #fb923c;
-    --sidebar-primary-foreground: #1c1917;
-    --sidebar-accent: #3a2416;
-    --sidebar-accent-foreground: #fdba74;
+    --ring: #fbcb3280;
+    --chart-1: #9ad7fa;
+    --chart-2: #6fbf7f;
+    --chart-3: #fce392;
+    --chart-4: #9ab0c9;
+    --chart-5: #fa7a64;
+    --sidebar: #000c1d;
+    --sidebar-foreground: #fcfaf1;
+    --sidebar-primary: #fbcb32;
+    --sidebar-primary-foreground: #022856;
+    --sidebar-accent: #0b3a70;
+    --sidebar-accent-foreground: #fcfaf1;
     --sidebar-border: #ffffff1a;
-    --sidebar-ring: #fb923c80;
+    --sidebar-ring: #fbcb3280;
 }
 
 @layer base {

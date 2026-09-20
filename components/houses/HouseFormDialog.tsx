@@ -84,7 +84,16 @@ export function HouseFormDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? t('editHouse') : t('newHouse')}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
+        {/*
+          ResidentsManager below has its own independent <form> (a separate
+          add-resident Server Action, not part of this house-edit submit) —
+          nesting it inside this form would be invalid HTML (a <form> can't
+          contain another <form>) and throws a hydration error. So this outer
+          form only wraps the house fields; the Save button in DialogFooter
+          is linked to it via `form="house-form"` instead of living inside it.
+        */}
+        <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
+          <form id="house-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           {serverError && (
             <Alert variant="destructive">
               <AlertDescription>{serverError}</AlertDescription>
@@ -187,13 +196,14 @@ export function HouseFormDialog({
             />
             {errors.pin && <p className="text-sm text-destructive">{errors.pin.message}</p>}
           </div>
+          </form>
           {isEdit && <ResidentsManager houseId={house.id} initialResidents={house.condo_house_residents} />}
-        </form>
+        </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} type="button">
             {t('cancel')}
           </Button>
-          <Button disabled={isPending} onClick={handleSubmit(onSubmit)} type="button">
+          <Button disabled={isPending} type="submit" form="house-form">
             {isPending && <Loader2 className="size-4 animate-spin" />}
             {t('save')}
           </Button>

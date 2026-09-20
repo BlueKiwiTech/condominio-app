@@ -1,21 +1,23 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
 import { Loader2 } from 'lucide-react';
+import { Combobox as BaseCombobox } from '@base-ui/react';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from '@/components/ui/combobox';
 import { residentLoginSchema, type ResidentLoginInput } from '@/lib/validation/residentAuth';
 import { residentLogin } from '@/lib/actions/residentAuth';
 
@@ -36,12 +38,41 @@ export function ResidentLoginForm({ houses }: { houses: HouseOption[] }) {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ResidentLoginInput>({ resolver: zodResolver(residentLoginSchema(tv)) });
+  } = useForm<ResidentLoginInput>({
+    resolver: zodResolver(residentLoginSchema(tv)),
+    // Select must never receive `value={undefined}` on first render (Base
+    // UI treats that as "uncontrolled" and warns when it later flips to
+    // controlled once a house is picked) — an explicit '' default keeps it
+    // controlled from the start; SelectValue shows its placeholder for it.
+    defaultValues: { house_number: '', pin: '' },
+  });
 
-  const options = houses.map((h) => ({
-    label: [h.house_number, h.house_name, h.owner_name].filter(Boolean).join(' — '),
-    value: h.house_number,
-  }));
+  const options = useMemo(
+    () =>
+      houses.map((h) => ({
+        label: [h.house_number, h.house_name, h.owner_name].filter(Boolean).join(' — '),
+        value: h.house_number,
+      })),
+    [houses],
+  );
+  const labelByValue = useMemo(() => new Map(options.map((o) => [o.value, o.label])), [options]);
+  const houseValues = useMemo(() => options.map((o) => o.value), [options]);
+  const [houseQuery, setHouseQuery] = useState('');
+
+  // Board request: the house list must start empty and only start matching
+  // once the resident has typed at least 3 characters — with ~60 houses,
+  // dumping the full list open on focus is more noise than help on a phone.
+  // The `filter` prop alone doesn't cover this: Base UI special-cases an
+  // empty query to show every item regardless of a custom filter function,
+  // so the list still opened full on focus. `filteredItems` (externally
+  // computed, per Base UI's own docs for "control filtering logic
+  // externally") bypasses that default entirely.
+  const baseFilter = BaseCombobox.useFilter();
+  const filteredHouseValues = useMemo(() => {
+    if (houseQuery.trim().length < 3) return [];
+    const itemToString = (value: string) => labelByValue.get(value) ?? value;
+    return houseValues.filter((value) => baseFilter.contains(value, houseQuery, itemToString));
+  }, [baseFilter, houseQuery, houseValues, labelByValue]);
 
   const onSubmit = (data: ResidentLoginInput) => {
     setServerError(null);
@@ -64,18 +95,33 @@ export function ResidentLoginForm({ houses }: { houses: HouseOption[] }) {
           control={control}
           name="house_number"
           render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger id="house_number" className="w-full" aria-invalid={!!errors.house_number}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              items={houseValues}
+              filteredItems={filteredHouseValues}
+              value={field.value || null}
+              onValueChange={(value) => field.onChange(value ?? '')}
+              itemToStringLabel={(value) => labelByValue.get(value) ?? value}
+              onInputValueChange={(value) => setHouseQuery(value)}
+            >
+              <ComboboxInput
+                id="house_number"
+                placeholder={t('housePlaceholder')}
+                aria-invalid={!!errors.house_number}
+                className="w-full"
+              />
+              <ComboboxContent>
+                <ComboboxEmpty>
+                  {houseQuery.trim().length < 3 ? t('houseMinChars') : t('houseNoResults')}
+                </ComboboxEmpty>
+                <ComboboxList>
+                  {(value: string) => (
+                    <ComboboxItem key={value} value={value}>
+                      {labelByValue.get(value) ?? value}
+                    </ComboboxItem>
+                  )}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
           )}
         />
         {errors.house_number && (

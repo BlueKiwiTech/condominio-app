@@ -108,7 +108,7 @@
   },
   "adminNav": {
     "brand": {
-      "name": "ASOBARCELONA",
+      "name": "ASOBARCELONA CENTRO",
       "subtitle": "HOA board"
     },
     "groups": {
@@ -563,11 +563,14 @@
       "invalidCredentials": "Incorrect house or PIN.",
       "wrongPin": "Incorrect PIN.",
       "wrongPinAttempts": "Incorrect PIN. {remaining, plural, one {You have # attempt left.} other {You have # attempts left.}}"
-    }
+    },
+    "housePlaceholder": "Type your house number or name...",
+    "houseNoResults": "No house found.",
+    "houseMinChars": "Type at least 3 letters to search."
   },
   "residentNav": {
     "brand": {
-      "name": "ASOBARCELONA",
+      "name": "ASOBARCELONA CENTRO",
       "subtitle": "Resident portal"
     },
     "reportPayment": "Report a payment",
@@ -682,6 +685,10 @@
       "partial": "Partial",
       "pending": "Pending",
       "overdue": "Overdue"
+    },
+    "allCaughtUp": {
+      "heading": "You're all caught up!",
+      "subtitle": "You have no pending dues."
     }
   },
   "residentPayments": {

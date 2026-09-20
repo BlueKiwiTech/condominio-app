@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
@@ -32,7 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4 md:hidden">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-5" />
-          <span className="text-sm font-semibold">ASOBARCELONA</span>
+          <Image src="/logo-abc-mark.png" alt="ABC" width={28} height={29} className="w-[28px] h-[29px]" />
         </header>
         <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>
