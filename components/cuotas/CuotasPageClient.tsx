@@ -3,7 +3,14 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { Column, Row, Button, Table, Tag, Feedback, SmartLink, type TableHeader } from '@once-ui-system/core';
+import { Plus } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { deleteInstallmentTemplate } from '@/lib/actions/cuotas';
 import { summarizeTemplate } from '@/lib/cuotas/status';
 import { CuotaEditDialog } from './CuotaEditDialog';
@@ -16,12 +23,19 @@ export function CuotasPageClient({ initialTemplates }: { initialTemplates: Templ
   const router = useRouter();
   const [editing, setEditing] = useState<TemplateWithInstallments | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [isPending, startTransition] = useTransition();
 
   // Computed once per render, server clock (this component only ever runs
   // after server-fetched data lands) -- "overdue" is never stored, always
   // derived at query/render time (CLAUDE.md anti-pattern rule).
   const today = useMemo(() => new Date(), []);
+
+  const filteredTemplates = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return initialTemplates;
+    return initialTemplates.filter((template) => template.name.toLowerCase().includes(query));
+  }, [initialTemplates, search]);
 
   const handleDelete = (template: TemplateWithInstallments) => {
     if (typeof window !== 'undefined' && !window.confirm(t('confirmDelete', { name: template.name }))) {
@@ -38,57 +52,101 @@ export function CuotasPageClient({ initialTemplates }: { initialTemplates: Templ
     });
   };
 
-  const headers: TableHeader[] = [
-    { key: 'name', content: t('table.name') },
-    { key: 'type', content: t('table.type') },
-    { key: 'amount', content: t('table.amount') },
-    { key: 'houses', content: t('table.houses') },
-    { key: 'status', content: t('table.status') },
-    { key: 'actions', content: '' },
-  ];
-
-  const rows = initialTemplates.map((template) => {
-    const summary = summarizeTemplate(template.condo_installments, today);
-    const typeLabel =
-      template.installment_type === 'recurring'
-        ? t(`cadence.${template.cadence ?? 'monthly'}`)
-        : template.is_divided
-          ? t('type.specialDivided')
-          : t('type.specialSingle');
-
-    return [
-      template.name,
-      typeLabel,
-      formatAmount(summary.totalAmount, template.currency),
-      String(summary.housesCount),
-      <Row key={`status-${template.id}`} gap="8" wrap>
-        {summary.pendingCount > 0 && <Tag variant="info" label={t('status.pending', { count: summary.pendingCount })} />}
-        {summary.partialCount > 0 && <Tag variant="warning" label={t('status.partial', { count: summary.partialCount })} />}
-        {summary.overdueCount > 0 && <Tag variant="danger" label={t('status.overdue', { count: summary.overdueCount })} />}
-        {summary.paidCount > 0 && <Tag variant="success" label={t('status.paid', { count: summary.paidCount })} />}
-      </Row>,
-      <Row key={`actions-${template.id}`} gap="8">
-        <Button size="s" variant="secondary" type="button" onClick={() => setEditing(template)}>
-          {t('actions.edit')}
-        </Button>
-        <Button size="s" variant="danger" type="button" disabled={isPending} onClick={() => handleDelete(template)}>
-          {t('actions.delete')}
-        </Button>
-      </Row>,
-    ];
-  });
-
   return (
-    <Column gap="16" fillWidth>
-      {error && <Feedback variant="danger" description={error} />}
-      <Row horizontal="end" fillWidth>
-        <SmartLink href="/cuotas/new">
-          <Button variant="primary" type="button">
+    <div className="flex w-full flex-col gap-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <div className="flex w-full flex-wrap items-center justify-between gap-3">
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('searchPlaceholder')}
+          className="max-w-xs"
+        />
+        <Link href="/cuotas/new" className="inline-flex">
+          <Button type="button">
+            <Plus className="size-4" />
             {t('newCuota')}
           </Button>
-        </SmartLink>
-      </Row>
-      <Table data={{ headers, rows }} searchable searchPlaceholder={t('searchPlaceholder')} emptyState={t('empty')} />
+        </Link>
+      </div>
+      <div className="rounded-[var(--radius)] border bg-card shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('table.name')}</TableHead>
+              <TableHead>{t('table.type')}</TableHead>
+              <TableHead className="text-right">{t('table.amount')}</TableHead>
+              <TableHead className="text-right">{t('table.houses')}</TableHead>
+              <TableHead>{t('table.status')}</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredTemplates.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-11 text-center text-sm text-muted-foreground">
+                  {t('empty')}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredTemplates.map((template) => {
+                const summary = summarizeTemplate(template.condo_installments, today);
+                const typeLabel =
+                  template.installment_type === 'recurring'
+                    ? t(`cadence.${template.cadence ?? 'monthly'}`)
+                    : template.is_divided
+                      ? t('type.specialDivided')
+                      : t('type.specialSingle');
+
+                return (
+                  <TableRow key={template.id}>
+                    <TableCell className="h-11">{template.name}</TableCell>
+                    <TableCell className="h-11">{typeLabel}</TableCell>
+                    <TableCell className="h-11 text-right">{formatAmount(summary.totalAmount, template.currency)}</TableCell>
+                    <TableCell className="h-11 text-right">{summary.housesCount}</TableCell>
+                    <TableCell className="h-11">
+                      <div className="flex flex-wrap gap-1.5">
+                        {summary.pendingCount > 0 && (
+                          <Badge variant="outline">{t('status.pending', { count: summary.pendingCount })}</Badge>
+                        )}
+                        {summary.partialCount > 0 && (
+                          <StatusBadge status="proximo" label={t('status.partial', { count: summary.partialCount })} />
+                        )}
+                        {summary.overdueCount > 0 && (
+                          <StatusBadge status="vencido" label={t('status.overdue', { count: summary.overdueCount })} />
+                        )}
+                        {summary.paidCount > 0 && (
+                          <StatusBadge status="al-dia" label={t('status.paid', { count: summary.paidCount })} />
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="h-11">
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" type="button" onClick={() => setEditing(template)}>
+                          {t('actions.edit')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => handleDelete(template)}
+                        >
+                          {t('actions.delete')}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
       {editing && (
         <CuotaEditDialog
           template={editing}
@@ -99,6 +157,6 @@ export function CuotasPageClient({ initialTemplates }: { initialTemplates: Templ
           }}
         />
       )}
-    </Column>
+    </div>
   );
 }

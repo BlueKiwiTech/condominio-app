@@ -1,15 +1,20 @@
-import { Column, Row, Text, Tag, type TagProps } from '@once-ui-system/core';
+import { cn } from 'cn';
+
+type TagVariant = 'success' | 'warning' | 'destructive' | 'neutral';
+
+const TAG_CLASSES: Record<TagVariant, string> = {
+  success: 'bg-success/10 text-success',
+  warning: 'bg-warning/10 text-warning',
+  destructive: 'bg-destructive/10 text-destructive',
+  neutral: 'bg-muted text-muted-foreground',
+};
 
 // Standard resident-portal list row: title + subtitle on the left, amount
-// (+ optional status tag) right-aligned as a block on the right -- used by
+// (+ optional status tag) right-aligned on the right — used by
 // MisCuotasClient's InstallmentCard, MiComunidadClient's expense breakdown,
 // and MisPagosClient's payment/report rows so every list row in the portal
-// reads the same way. Always a plain white/bordered row -- status is
-// communicated only through the tag, never a colored background, so every
-// row (paid, pending, rejected, confirmed) looks the same shape (board
-// request 2026-09-18: consistency over status-coded backgrounds). A plain
-// Row here (not nested inside a non-fillWidth Column) so `between` actually
-// has the full card width to distribute across.
+// reads the same way. Always a plain bordered row — status is communicated
+// only through the tag, never a colored background.
 export function ListRow({
   title,
   subtitle,
@@ -19,20 +24,27 @@ export function ListRow({
   title: string;
   subtitle: string;
   amount: string;
-  tag?: { label: string; variant: TagProps['variant'] };
+  tag?: { label: string; variant: TagVariant };
 }) {
   return (
-    <Row fillWidth horizontal="between" vertical="center" padding="16" radius="s" border="neutral-alpha-weak">
-      <Column gap="2">
-        <Text variant="label-strong-s">{title}</Text>
-        <Text variant="body-default-xs" onBackground="neutral-weak">
-          {subtitle}
-        </Text>
-      </Column>
-      <Column gap="4" horizontal="end">
-        <Text variant="label-strong-s">{amount}</Text>
-        {tag && <Tag variant={tag.variant} label={tag.label} />}
-      </Column>
-    </Row>
+    <div className="flex w-full items-center justify-between gap-4 rounded-[var(--radius)] border p-4">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="truncate text-sm font-semibold">{title}</span>
+        <span className="truncate text-xs text-muted-foreground">{subtitle}</span>
+      </div>
+      <div className="flex flex-col items-end gap-1">
+        <span className="whitespace-nowrap text-sm font-semibold">{amount}</span>
+        {tag && (
+          <span
+            className={cn(
+              'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap',
+              TAG_CLASSES[tag.variant]
+            )}
+          >
+            {tag.label}
+          </span>
+        )}
+      </div>
+    </div>
   );
 }

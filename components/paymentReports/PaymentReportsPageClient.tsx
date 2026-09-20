@@ -4,17 +4,22 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { parseISO } from 'date-fns';
-import { Column, Row, Card, Text, Tag, Button, SegmentedControl, Feedback } from '@once-ui-system/core';
+import { FileText } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { confirmPaymentReport, rejectPaymentReport, getReportScreenshotUrl } from '@/lib/actions/paymentReports';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate, formatDateTime } from '@/lib/dateFormat';
 import type { PaymentReportRow, InstallmentLookup, ReportStatus } from './types';
 
-function statusVariant(status: ReportStatus): 'warning' | 'success' | 'danger' {
-  if (status === 'confirmed') return 'success';
-  if (status === 'rejected') return 'danger';
-  return 'warning';
-}
+const STATUS_CLASSES: Record<ReportStatus, string> = {
+  confirmed: 'bg-success/10 text-success',
+  rejected: 'bg-destructive/10 text-destructive',
+  pending: 'bg-warning/10 text-warning',
+};
 
 function ReportCard({
   report,
@@ -77,90 +82,88 @@ function ReportCard({
   };
 
   return (
-    <Card padding="20" radius="s" border="neutral-alpha-weak" fillWidth>
-      <Column gap="12" fillWidth>
-        <Row horizontal="between" vertical="center" fillWidth wrap>
-          <Column gap="2">
-            <Text variant="label-strong-s">{houseLabel}</Text>
-            <Text variant="body-default-xs" onBackground="neutral-weak">
+    <Card>
+      <CardContent className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-semibold">{houseLabel}</span>
+            <span className="text-xs text-muted-foreground">
               {t('reportedAt', { date: formatDateTime(parseISO(report.created_at), locale) })}
-            </Text>
-          </Column>
-          <Tag
-            variant={statusVariant(report.status)}
-            label={
-              report.status === 'confirmed' && report.resulting_receipt_number
-                ? t('statusWithReceipt', {
-                    status: t('status.confirmed'),
-                    receipt: `#${String(report.resulting_receipt_number).padStart(4, '0')}`,
-                  })
-                : t(`status.${report.status}`)
-            }
-          />
-        </Row>
+            </span>
+          </div>
+          <Badge variant="outline" className={STATUS_CLASSES[report.status]}>
+            {report.status === 'confirmed' && report.resulting_receipt_number
+              ? t('statusWithReceipt', {
+                  status: t('status.confirmed'),
+                  receipt: `#${String(report.resulting_receipt_number).padStart(4, '0')}`,
+                })
+              : t(`status.${report.status}`)}
+          </Badge>
+        </div>
 
-        <Row horizontal="between" vertical="center" fillWidth wrap>
-          <Text variant="heading-strong-m">{formatAmount(report.amount, report.currency)}</Text>
-          <Text variant="body-default-s" onBackground="neutral-weak">
-            {t('paidOn', { date: formatShortDate(parseISO(report.payment_date), locale) })}
-          </Text>
-        </Row>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-lg font-semibold">{formatAmount(report.amount, report.currency)}</span>
+          <span className="text-sm text-muted-foreground">{t('paidOn', { date: formatShortDate(parseISO(report.payment_date), locale) })}</span>
+        </div>
 
         {report.reference && (
-          <Text variant="body-default-s">
-            <Text as="span" onBackground="neutral-weak">
-              {t('fields.reference')}:
-            </Text>{' '}
-            {report.reference}
-          </Text>
+          <p className="text-sm">
+            <span className="text-muted-foreground">{t('fields.reference')}:</span> {report.reference}
+          </p>
         )}
         {report.notes && (
-          <Text variant="body-default-s">
-            <Text as="span" onBackground="neutral-weak">
-              {t('fields.notes')}:
-            </Text>{' '}
-            {report.notes}
-          </Text>
+          <p className="text-sm">
+            <span className="text-muted-foreground">{t('fields.notes')}:</span> {report.notes}
+          </p>
         )}
 
         {taggedInstallments.length > 0 && (
-          <Column gap="4">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('fields.cuotas')}
-            </Text>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('fields.cuotas')}</span>
             {taggedInstallments.map((inst, idx) => (
-              <Text key={idx} variant="body-default-s">
+              <p key={idx} className="text-sm">
                 {inst.name} — {formatShortDate(parseISO(inst.due_date), locale)}
-              </Text>
+              </p>
             ))}
-          </Column>
+          </div>
         )}
 
         {report.status === 'confirmed' && !report.resulting_receipt_number && (
-          <Feedback variant="warning" description={t('noReceiptHint')} />
+          <Alert className="border-warning/30 bg-warning/10">
+            <AlertDescription className="text-warning">{t('noReceiptHint')}</AlertDescription>
+          </Alert>
         )}
 
-        {screenshotError && <Feedback variant="danger" description={screenshotError} />}
-        {actionError && <Feedback variant="danger" description={actionError} />}
+        {screenshotError && (
+          <Alert variant="destructive">
+            <AlertDescription>{screenshotError}</AlertDescription>
+          </Alert>
+        )}
+        {actionError && (
+          <Alert variant="destructive">
+            <AlertDescription>{actionError}</AlertDescription>
+          </Alert>
+        )}
 
-        <Row gap="8" wrap>
+        <div className="flex flex-wrap gap-2">
           {report.screenshot_path && (
-            <Button type="button" variant="secondary" size="s" loading={screenshotLoading} onClick={handleViewScreenshot}>
+            <Button type="button" variant="outline" size="sm" disabled={screenshotLoading} onClick={handleViewScreenshot}>
+              <FileText />
               {t('viewScreenshot')}
             </Button>
           )}
           {report.status === 'pending' && (
             <>
-              <Button type="button" variant="primary" size="s" loading={isPending} onClick={handleConfirm}>
+              <Button type="button" size="sm" disabled={isPending} onClick={handleConfirm}>
                 {t('confirm')}
               </Button>
-              <Button type="button" variant="danger" size="s" loading={isPending} onClick={handleReject}>
+              <Button type="button" variant="destructive" size="sm" disabled={isPending} onClick={handleReject}>
                 {t('reject')}
               </Button>
             </>
           )}
-        </Row>
-      </Column>
+        </div>
+      </CardContent>
     </Card>
   );
 }
@@ -181,28 +184,23 @@ export function PaymentReportsPageClient({
   );
 
   return (
-    <Column gap="16" fillWidth>
-      <SegmentedControl
-        fillWidth={false}
-        buttons={[
-          { value: 'pending', label: t('tabs.pending', { count: reports.filter((r) => r.status === 'pending').length }) },
-          { value: 'all', label: t('tabs.all') },
-        ]}
-        selected={tab}
-        onToggle={(value) => setTab(value as 'pending' | 'all')}
-      />
+    <div className="flex w-full flex-col gap-4">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as 'pending' | 'all')}>
+        <TabsList>
+          <TabsTrigger value="pending">{t('tabs.pending', { count: reports.filter((r) => r.status === 'pending').length })}</TabsTrigger>
+          <TabsTrigger value="all">{t('tabs.all')}</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {visibleReports.length === 0 ? (
-        <Text variant="body-default-s" onBackground="neutral-weak">
-          {t('empty')}
-        </Text>
+        <p className="text-sm text-muted-foreground">{t('empty')}</p>
       ) : (
-        <Column gap="12" fillWidth>
+        <div className="flex w-full flex-col gap-3">
           {visibleReports.map((report) => (
             <ReportCard key={report.id} report={report} installmentLookup={installmentLookup} />
           ))}
-        </Column>
+        </div>
       )}
-    </Column>
+    </div>
   );
 }

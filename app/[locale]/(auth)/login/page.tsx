@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import { getTranslations } from 'next-intl/server';
-import { Card, Column, Heading, Row } from '@once-ui-system/core';
+import Image from 'next/image';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { LoginForm } from '@/components/auth/LoginForm';
 
 export default async function LoginPage({
@@ -12,21 +12,26 @@ export default async function LoginPage({
   const params = await searchParams;
 
   return (
-    <Row maxWidth={24} fillWidth>
-      <Card fillWidth padding="24" radius="s">
-        <Column gap="24" fillWidth>
-          <Row horizontal="center" fillWidth>
-            <Image src="/logo-abc.png" alt="ASOBARCELONA" width={256} height={256} priority />
-          </Row>
-          <Heading variant="heading-strong-m" align="center">
-            {t('login.heading')}
-          </Heading>
-          <LoginForm
-            initialSuccess={params.resetSuccess ? t('login.resetSuccess') : undefined}
-            initialError={params.confirmError ? t('errors.confirmError') : undefined}
-          />
-        </Column>
-      </Card>
-    </Row>
+    <div className="flex w-full max-w-md flex-col items-center gap-6">
+      <Image
+        src="/logo-abc-mark.png"
+        alt="ABC"
+        width={200}
+        height={205}
+        className="h-[205px] w-[200px]"
+        priority
+      />
+      <Card className="w-full">
+      <CardHeader className="items-center text-center">
+        <h1 className="text-2xl font-bold">{t('login.heading')}</h1>
+      </CardHeader>
+      <CardContent>
+        <LoginForm
+          initialSuccess={params.resetSuccess ? t('login.resetSuccess') : undefined}
+          initialError={params.confirmError ? t('errors.confirmError') : undefined}
+        />
+      </CardContent>
+    </Card>
+    </div>
   );
 }

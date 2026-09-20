@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
-import { Card, Column, Heading, Text, Row } from '@once-ui-system/core';
+import Image from 'next/image';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { VerifyEmailActions } from '@/components/auth/VerifyEmailActions';
 
 export default async function VerifyEmailPage({
@@ -11,18 +12,24 @@ export default async function VerifyEmailPage({
   const { email = '' } = await searchParams;
 
   return (
-    <Row maxWidth={24} fillWidth>
-      <Card fillWidth padding="24" radius="s">
-        <Column gap="24" fillWidth>
-          <Heading variant="heading-strong-m" align="center">
-            {t('verifyEmail.heading')}
-          </Heading>
-          <Text variant="body-default-m" onBackground="neutral-weak" align="center">
-            {t('verifyEmail.body', { email })}
-          </Text>
-          <VerifyEmailActions email={email} />
-        </Column>
-      </Card>
-    </Row>
+    <div className="flex w-full max-w-md flex-col items-center gap-6">
+      <Image
+        src="/logo-abc-mark.png"
+        alt="ABC"
+        width={200}
+        height={205}
+        className="h-[205px] w-[200px]"
+        priority
+      />
+      <Card className="w-full">
+      <CardHeader className="items-center text-center">
+        <h1 className="text-2xl font-bold">{t('verifyEmail.heading')}</h1>
+        <p className="text-center text-sm text-muted-foreground">{t('verifyEmail.body', { email })}</p>
+      </CardHeader>
+      <CardContent>
+        <VerifyEmailActions email={email} />
+      </CardContent>
+    </Card>
+    </div>
   );
 }

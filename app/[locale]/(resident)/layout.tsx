@@ -1,25 +1,21 @@
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
-import { Row, Column } from '@once-ui-system/core';
 import { getResidentSession } from '@/lib/auth/residentSession';
 import { createServiceClient } from '@/lib/supabase/service';
 import { ResidentSidebar } from '@/components/resident/ResidentSidebar';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
 
-// Shared shell for every /mi-hogar, /mis-cuotas, /mis-pagos screen (Phase 7).
-// proxy.ts already gates all three via RESIDENT_PROTECTED_PATHS + the signed
-// jose cookie (Pattern A) -- this redirect is defense in depth, same
-// rationale the old mi-hogar placeholder used, just centralized here once
-// instead of repeated per page.
-//
-// User request: unify with the admin shell (app/[locale]/(admin)/layout.tsx)
-// instead of the old mobile-app-style bottom-tab-bar shell -- fixed left
-// sidebar on desktop, hamburger + Dialog on mobile, same as AdminSidebar.
+// Shared shell for every /mi-hogar, /mis-cuotas, /mis-pagos screen.
+// proxy.ts already gates all of these via RESIDENT_PROTECTED_PATHS + the
+// signed jose cookie (Pattern A) — this redirect is defense in depth.
 export default async function ResidentLayout({ children }: { children: React.ReactNode }) {
   const session = await getResidentSession();
   if (!session) redirect('/resident-login');
 
   // Pattern A: no Supabase Auth session for residents, so this is the same
   // service-role client + house_id-scoped read every other resident query
-  // uses (lib/resident/queries.ts) -- just the two columns needed for the
+  // uses (lib/resident/queries.ts) — just the two columns needed for the
   // sidebar's account footer label.
   const service = createServiceClient();
   const { data: house } = await service
@@ -30,11 +26,16 @@ export default async function ResidentLayout({ children }: { children: React.Rea
   const houseLabel = house ? (house.house_name ? `${house.house_number} · ${house.house_name}` : house.house_number) : null;
 
   return (
-    <Row fillWidth style={{ minHeight: '100vh' }} s={{ direction: 'column' }}>
+    <SidebarProvider>
       <ResidentSidebar houseLabel={houseLabel} />
-      <Column fillWidth flex={1} style={{ overflowY: 'auto' }}>
-        {children}
-      </Column>
-    </Row>
+      <SidebarInset>
+        <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4 md:hidden">
+          <SidebarTrigger />
+          <Separator orientation="vertical" className="h-5" />
+          <Image src="/logo-abc-mark.png" alt="ABC" width={28} height={29} className="w-[28px] h-[29px]" />
+        </header>
+        <div className="flex flex-1 flex-col p-4 md:p-6">{children}</div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

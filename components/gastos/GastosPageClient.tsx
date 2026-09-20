@@ -4,25 +4,26 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { format } from 'date-fns';
-import {
-  Column,
-  Row,
-  Select,
-  Input,
-  Table,
-  Tag,
-  Button,
-  Dialog,
-  DateInput,
-  Feedback,
-  SmartLink,
-  type TableHeader,
-} from '@once-ui-system/core';
+import { Link } from '@/i18n/navigation';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { DateInput } from '@/components/ui/date-input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { markExpensePaidSchema, type MarkExpensePaidInput } from '@/lib/validation/gastos';
 import { markExpensePaid, deleteExpense, deleteExpenseTemplate } from '@/lib/actions/gastos';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import type { CategoryOption, ExpenseRow, ExpenseStatus } from './types';
+
+const STATUS_CLASSES: Record<ExpenseStatus, string> = {
+  pending: 'bg-warning/10 text-warning',
+  paid: 'bg-success/10 text-success',
+};
 
 export function GastosPageClient({
   initialExpenses,
@@ -126,137 +127,166 @@ export function GastosPageClient({
     });
   };
 
-  const headers: TableHeader[] = [
-    { key: 'name', content: t('table.name') },
-    { key: 'category', content: t('table.category') },
-    { key: 'provider', content: t('table.provider') },
-    { key: 'amount', content: t('table.amount') },
-    { key: 'period', content: t('table.period') },
-    { key: 'status', content: t('table.status') },
-    { key: 'actions', content: '' },
-  ];
-
-  const rows = filtered.map((e) => [
-    e.condo_expense_templates?.name ?? '—',
-    e.condo_expense_categories?.name ?? '—',
-    e.provider ?? '—',
-    formatAmount(e.amount, e.currency),
-    formatShortDate(new Date(`${e.period_date}T00:00:00`), locale),
-    <Tag key={`${e.id}-status`} variant={e.status === 'paid' ? 'success' : 'warning'} label={t(`status.${e.status}`)} />,
-    e.status === 'pending' ? (
-      <Row key={`${e.id}-action`} gap="8">
-        <Button size="s" variant="secondary" onClick={() => openMarkPaid(e)}>
-          {t('actions.markPaid')}
-        </Button>
-        {e.condo_expense_templates?.kind === 'variable' && (installmentCountByTemplate.get(e.template_id) ?? 1) > 1 ? (
-          <Button size="s" variant="danger" disabled={isDeleting} onClick={() => handleDeleteTemplate(e.template_id)}>
-            {t('actions.deleteAll')}
-          </Button>
-        ) : (
-          <Button size="s" variant="danger" disabled={isDeleting} onClick={() => handleDeleteExpense(e)}>
-            {t('actions.delete')}
-          </Button>
-        )}
-      </Row>
-    ) : (
-      '—'
-    ),
-  ]);
-
   return (
-    <Column fillWidth gap="24">
-      {serverError && <Feedback variant="danger" description={serverError} />}
-      <Row horizontal="end" fillWidth>
-        <SmartLink href="/gastos/new">
-          <Button variant="primary" type="button">
-            {t('newExpense')}
-          </Button>
-        </SmartLink>
-      </Row>
-      <Row
-        gap="16"
-        wrap
-        vertical="end"
-        fillWidth
-        background="surface"
-        border="neutral-alpha-weak"
-        radius="s"
-        padding="16"
-      >
-        <Select
-          id="statusFilter"
-          label={t('filters.status')}
-          fillWidth={false}
-          minWidth={12}
-          options={[
-            { label: t('filters.allStatuses'), value: 'all' },
-            { label: t('status.pending'), value: 'pending' },
-            { label: t('status.paid'), value: 'paid' },
-          ]}
-          value={statusFilter}
-          onSelect={(value) => setStatusFilter((Array.isArray(value) ? value[0] : value) as 'all' | ExpenseStatus)}
-        />
-        <Select
-          id="categoryFilter"
-          label={t('filters.category')}
-          fillWidth={false}
-          minWidth={12}
-          options={[
-            { label: t('filters.allCategories'), value: 'all' },
-            ...categories.map((c) => ({ label: c.name, value: c.id })),
-          ]}
-          value={categoryFilter}
-          onSelect={(value) => setCategoryFilter(Array.isArray(value) ? value[0] : value)}
-        />
-        <Column minWidth={16}>
+    <div className="flex w-full flex-col gap-6">
+      {serverError && (
+        <Alert variant="destructive">
+          <AlertDescription>{serverError}</AlertDescription>
+        </Alert>
+      )}
+      <div className="flex w-full justify-end">
+        <Button render={<Link href="/gastos/new" />} nativeButton={false}>{t('newExpense')}</Button>
+      </div>
+
+      <div className="flex w-full flex-wrap items-end gap-4 rounded-[var(--radius)] border bg-card p-4 shadow-sm">
+        <div className="flex min-w-[180px] flex-col gap-2">
+          <Label htmlFor="statusFilter">{t('filters.status')}</Label>
+          <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v as 'all' | ExpenseStatus)}>
+            <SelectTrigger id="statusFilter" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('filters.allStatuses')}</SelectItem>
+              <SelectItem value="pending">{t('status.pending')}</SelectItem>
+              <SelectItem value="paid">{t('status.paid')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex min-w-[180px] flex-col gap-2">
+          <Label htmlFor="categoryFilter">{t('filters.category')}</Label>
+          <Select value={categoryFilter} onValueChange={(v) => v && setCategoryFilter(v)}>
+            <SelectTrigger id="categoryFilter" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('filters.allCategories')}</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex min-w-[220px] flex-1 flex-col gap-2">
+          <Label htmlFor="providerFilter">{t('filters.provider')}</Label>
           <Input
             id="providerFilter"
-            label={t('filters.provider')}
             placeholder={t('filters.providerPlaceholder')}
             value={providerFilter}
             onChange={(e) => setProviderFilter(e.target.value)}
           />
-        </Column>
-        <Column minWidth={12}>
-          <Input
-            id="monthFilter"
-            type="month"
-            label={t('filters.month')}
-            value={monthFilter}
-            onChange={(e) => setMonthFilter(e.target.value)}
-          />
-        </Column>
-      </Row>
+        </div>
+        <div className="flex min-w-[160px] flex-col gap-2">
+          <Label htmlFor="monthFilter">{t('filters.month')}</Label>
+          <Input id="monthFilter" type="month" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} />
+        </div>
+      </div>
 
-      <Table data={{ headers, rows }} emptyState={t('empty')} />
+      <div className="w-full overflow-hidden rounded-[var(--radius)] border shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('table.name')}</TableHead>
+              <TableHead>{t('table.category')}</TableHead>
+              <TableHead>{t('table.provider')}</TableHead>
+              <TableHead className="text-right">{t('table.amount')}</TableHead>
+              <TableHead>{t('table.period')}</TableHead>
+              <TableHead>{t('table.status')}</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  {t('empty')}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((e) => (
+                <TableRow key={e.id} className="h-11">
+                  <TableCell className="whitespace-normal font-medium">{e.condo_expense_templates?.name ?? '—'}</TableCell>
+                  <TableCell className="whitespace-normal">{e.condo_expense_categories?.name ?? '—'}</TableCell>
+                  <TableCell className="whitespace-normal">{e.provider ?? '—'}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatAmount(e.amount, e.currency)}</TableCell>
+                  <TableCell>{formatShortDate(new Date(`${e.period_date}T00:00:00`), locale)}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={STATUS_CLASSES[e.status]}>
+                      {t(`status.${e.status}`)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {e.status === 'pending' ? (
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => openMarkPaid(e)}>
+                          {t('actions.markPaid')}
+                        </Button>
+                        {e.condo_expense_templates?.kind === 'variable' &&
+                        (installmentCountByTemplate.get(e.template_id) ?? 1) > 1 ? (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={isDeleting}
+                            onClick={() => handleDeleteTemplate(e.template_id)}
+                          >
+                            {t('actions.deleteAll')}
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="destructive" disabled={isDeleting} onClick={() => handleDeleteExpense(e)}>
+                            {t('actions.delete')}
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      '—'
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-      <Dialog isOpen={!!markPaidTarget} onClose={() => setMarkPaidTarget(null)} title={t('markPaidDialog.heading')}>
-        <Column gap="16" fillWidth>
-          {serverError && <Feedback variant="danger" description={serverError} />}
-          <Input
-            id="markPaidAmount"
-            type="number"
-            label={t('markPaidDialog.amount')}
-            value={amount}
-            onChange={(e) => setAmount(e.target.valueAsNumber)}
-          />
-          <DateInput
-            id="markPaidDate"
-            label={t('markPaidDialog.paidDate')}
-            value={paidDate}
-            onChange={(date) => date && setPaidDate(date)}
-          />
-          <Input
-            id="markPaidNotes"
-            label={t('markPaidDialog.notes')}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-          <Button variant="primary" loading={isMarkingPaid} onClick={confirmMarkPaid}>
-            {t('markPaidDialog.confirm')}
-          </Button>
-        </Column>
+      <Dialog open={!!markPaidTarget} onOpenChange={(open) => !open && setMarkPaidTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('markPaidDialog.heading')}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            {serverError && (
+              <Alert variant="destructive">
+                <AlertDescription>{serverError}</AlertDescription>
+              </Alert>
+            )}
+            <div className="grid gap-2">
+              <Label htmlFor="markPaidAmount">{t('markPaidDialog.amount')}</Label>
+              <Input
+                id="markPaidAmount"
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.valueAsNumber)}
+              />
+            </div>
+            <DateInput
+              id="markPaidDate"
+              label={t('markPaidDialog.paidDate')}
+              value={paidDate}
+              onChange={(date) => date && setPaidDate(date)}
+            />
+            <div className="grid gap-2">
+              <Label htmlFor="markPaidNotes">{t('markPaidDialog.notes')}</Label>
+              <Input id="markPaidNotes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button disabled={isMarkingPaid} onClick={confirmMarkPaid}>
+              {t('markPaidDialog.confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </Column>
+    </div>
   );
 }

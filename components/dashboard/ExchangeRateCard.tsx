@@ -3,7 +3,11 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { Row, Column, Text, Button, Input, Feedback } from '@once-ui-system/core';
+import { Loader2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { setExchangeRate } from '@/lib/actions/exchangeRate';
 import { isRateFresh, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 import { formatShortDateTime } from '@/lib/dateFormat';
@@ -49,53 +53,60 @@ function RateColumn({ rateType, label, row }: { rateType: ExchangeRateType; labe
   };
 
   return (
-    <Column gap="8" fillWidth>
-      <Text variant="label-default-s" onBackground="neutral-weak">
-        {label}
-      </Text>
+    <div className="flex w-full flex-col gap-2">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
 
       {editing ? (
-        <Column gap="8">
-          <Row gap="8" wrap>
-            <Input
-              id={`rate-${rateType}`}
-              type="number"
-              label={t('fieldLabel')}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-            />
-          </Row>
-          {error && <Feedback variant="danger" description={error} />}
-          <Row gap="8">
-            <Button type="button" variant="primary" size="s" loading={isPending} onClick={handleSave}>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor={`rate-${rateType}`}>{t('fieldLabel')}</Label>
+              <Input
+                id={`rate-${rateType}`}
+                type="number"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+              />
+            </div>
+          </div>
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <div className="flex gap-2">
+            <Button type="button" size="sm" disabled={isPending} onClick={handleSave}>
+              {isPending && <Loader2 className="size-4 animate-spin" />}
               {t('save')}
             </Button>
-            <Button type="button" variant="tertiary" size="s" onClick={() => setEditing(false)}>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)}>
               {t('cancel')}
             </Button>
-          </Row>
-        </Column>
+          </div>
+        </div>
       ) : fresh && row ? (
-        <Column gap="4">
-          <Text variant="heading-strong-m">{t('rateValue', { rate: row.rate.toFixed(4) })}</Text>
-          <Row gap="8" vertical="center" wrap>
-            <Text variant="body-default-xs" onBackground="neutral-weak">
+        <div className="flex flex-col gap-1">
+          <span className="text-xl font-bold">{t('rateValue', { rate: row.rate.toFixed(4) })}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">
               {t('updatedAt', { date: formatShortDateTime(new Date(row.updated_at), locale) })}
-            </Text>
-            <Button type="button" variant="tertiary" size="s" onClick={startEditing}>
+            </span>
+            <Button type="button" variant="ghost" size="sm" onClick={startEditing}>
               {t('edit')}
             </Button>
-          </Row>
-        </Column>
+          </div>
+        </div>
       ) : (
-        <Column gap="8">
-          <Feedback variant="warning" description={row ? t('stale') : t('noData')} />
-          <Button type="button" variant="secondary" size="s" onClick={startEditing}>
+        <div className="flex flex-col gap-2">
+          <Alert>
+            <AlertDescription>{row ? t('stale') : t('noData')}</AlertDescription>
+          </Alert>
+          <Button type="button" variant="outline" size="sm" onClick={startEditing}>
             {t('setNow')}
           </Button>
-        </Column>
+        </div>
       )}
-    </Column>
+    </div>
   );
 }
 
@@ -110,14 +121,12 @@ export function ExchangeRateCard({ rates }: { rates: Record<ExchangeRateType, Ex
   const t = useTranslations('dashboard.exchangeRate');
 
   return (
-    <StatCard stripeColor="brand-strong">
-      <Column gap="16" fillWidth>
-        <Text variant="label-default-s" onBackground="neutral-weak">
-          {t('heading')}
-        </Text>
+    <StatCard stripeColor="primary">
+      <div className="flex w-full flex-col gap-4">
+        <span className="text-xs font-medium text-muted-foreground">{t('heading')}</span>
         <RateColumn rateType="bcv" label={t('bcv')} row={rates.bcv} />
         <RateColumn rateType="binance" label={t('binance')} row={rates.binance} />
-      </Column>
+      </div>
     </StatCard>
   );
 }

@@ -1,58 +1,56 @@
-import { Column, Row, Skeleton } from '@once-ui-system/core';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Shared loading-skeleton patterns (Phase 8 polish pass — PLAN.md flagged
-// "a shared loading-skeleton pattern for slower data fetches has not been
-// added anywhere"). Dropped into each admin/resident route's `loading.tsx`
-// — Next.js's App Router renders this automatically while the sibling
-// `page.tsx` (an async Server Component awaiting Supabase queries) is still
-// resolving, no Suspense boundary wiring needed beyond the file convention.
+// Shared loading-skeleton patterns, dropped into each admin/resident
+// route's `loading.tsx` — Next.js's App Router renders this automatically
+// while the sibling `page.tsx` (an async Server Component awaiting
+// Supabase queries) is still resolving.
 
 // Generic list/table screens: Houses, Cuotas, Pagos, Reporte.
 export function ListPageSkeleton({ rows = 6 }: { rows?: number }) {
   return (
-    <Column fillWidth gap="24" paddingY="32" paddingX="32">
-      <Skeleton shape="line" width="l" height="l" />
-      <Row gap="12" wrap>
-        <Skeleton shape="block" height="xl" style={{ flex: '1 1 220px' }} />
-        <Skeleton shape="block" height="xl" style={{ flex: '0 1 140px' }} />
-      </Row>
-      <Column gap="8" fillWidth>
+    <div className="flex w-full flex-col gap-6 px-4 py-8 md:px-8">
+      <Skeleton className="h-8 w-48" />
+      <div className="flex flex-wrap gap-3">
+        <Skeleton className="h-11 flex-1 basis-[220px]" />
+        <Skeleton className="h-11 flex-none basis-[140px]" />
+      </div>
+      <div className="flex w-full flex-col gap-2">
         {Array.from({ length: rows }).map((_, i) => (
-          <Skeleton key={i} shape="block" height="l" fillWidth />
+          <Skeleton key={i} className="h-11 w-full" />
         ))}
-      </Column>
-    </Column>
+      </div>
+    </div>
   );
 }
 
 // A2 · Dashboard: heading + KPI card row + chart + list.
 export function DashboardSkeleton() {
   return (
-    <Column fillWidth gap="24" paddingY="32" paddingX="32">
-      <Skeleton shape="line" width="l" height="l" />
-      <Row gap="16" wrap fillWidth>
+    <div className="flex w-full flex-col gap-6 px-4 py-8 md:px-8">
+      <Skeleton className="h-8 w-48" />
+      <div className="flex w-full flex-wrap gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} shape="block" height="xl" style={{ flex: '1 1 220px' }} />
+          <Skeleton key={i} className="h-24 flex-1 basis-[220px]" />
         ))}
-      </Row>
-      <Skeleton shape="block" height="xl" fillWidth style={{ height: 220 }} />
-      <Column gap="8" fillWidth>
+      </div>
+      <Skeleton className="h-56 w-full" />
+      <div className="flex w-full flex-col gap-2">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} shape="block" height="l" fillWidth />
+          <Skeleton key={i} className="h-11 w-full" />
         ))}
-      </Column>
-    </Column>
+      </div>
+    </div>
   );
 }
 
 // Resident (mobile) screens: greeting/card stack, no table.
 export function ResidentPageSkeleton({ cards = 3 }: { cards?: number }) {
   return (
-    <Column fillWidth gap="16" paddingY="24" paddingX="20">
-      <Skeleton shape="line" width="m" height="m" />
+    <div className="flex w-full flex-col gap-4 px-5 py-6">
+      <Skeleton className="h-6 w-32" />
       {Array.from({ length: cards }).map((_, i) => (
-        <Skeleton key={i} shape="block" height="xl" fillWidth />
+        <Skeleton key={i} className="h-24 w-full" />
       ))}
-    </Column>
+    </div>
   );
 }

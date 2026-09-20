@@ -1,21 +1,24 @@
 'use client';
 
 import { useMemo } from 'react';
+import Image from 'next/image';
 import { useTranslations, useLocale } from 'next-intl';
 import { endOfMonth, format, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { Column, Grid, Card, Heading, Text, SmartLink, Button } from '@once-ui-system/core';
+import { Phone } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { displayStatus, groupByDueMonth, type DisplayStatus } from '@/lib/resident/portal';
 import type { ResidentPortalData, ResidentInstallment } from '@/lib/resident/queries';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import { ListRow } from './ListRow';
 
-function statusVariant(status: DisplayStatus): 'success' | 'info' | 'warning' | 'neutral' | 'danger' {
+function statusVariant(status: DisplayStatus): 'success' | 'neutral' | 'warning' | 'destructive' {
   if (status === 'paid') return 'success';
-  if (status === 'advance') return 'info';
+  if (status === 'advance') return 'neutral';
   if (status === 'partial') return 'warning';
-  if (status === 'overdue') return 'danger';
+  if (status === 'overdue') return 'destructive';
   return 'neutral';
 }
 
@@ -119,76 +122,92 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
   }, [debtItems]);
 
   return (
-    <Column fillWidth gap="24" paddingY="32" paddingX="32">
-      <Heading variant="display-strong-s">{t('heading')}</Heading>
+    <div className="flex w-full flex-col gap-6">
+      <h1 className="text-xl font-bold md:text-2xl">{t('heading')}</h1>
 
-      {debtItems.length > 0 && (
-        <Card padding="20" radius="s" background="danger-alpha-weak" fillWidth>
-          <Column gap="12" fillWidth>
-            <Heading variant="heading-strong-s" onBackground="danger-strong">
-              {t('overdueCard.heading')}
-            </Heading>
-            {debtTotals.map((d) => (
-              <Column key={d.currency} gap="4">
-                <Text variant="heading-strong-m">{formatAmount(d.owed, d.currency)}</Text>
-                <Text variant="body-default-xs" onBackground="neutral-weak">
-                  {t('overdueCard.since', { date: formatShortDate(parseISO(d.since), locale) })}
-                </Text>
-              </Column>
-            ))}
+      {debtItems.length > 0 ? (
+        <Card className="border-destructive/20 bg-destructive/5 p-5">
+          <div className="flex w-full flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <Image src="/mascota_bad.png" alt="" width={72} height={72} className="w-[72px] h-[72px] shrink-0" priority />
+              <div className="flex flex-col gap-2">
+                <h2 className="text-base font-semibold text-destructive">{t('overdueCard.heading')}</h2>
+                {debtTotals.map((d) => (
+                  <div key={d.currency} className="flex flex-col gap-1">
+                    <span className="text-xl font-bold">{formatAmount(d.owed, d.currency)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t('overdueCard.since', { date: formatShortDate(parseISO(d.since), locale) })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
             {data.community?.phone && (
-              <SmartLink href={`tel:${data.community.phone}`} unstyled fillWidth>
-                <Button type="button" variant="danger" fillWidth>
-                  {t('overdueCard.contact')}
-                </Button>
-              </SmartLink>
+              <Button
+                variant="destructive"
+                size="lg"
+                className="w-full"
+                render={<a href={`tel:${data.community.phone}`} />}
+                nativeButton={false}
+              >
+                <Phone className="size-4" />
+                {t('overdueCard.contact')}
+              </Button>
             )}
-          </Column>
+          </div>
+        </Card>
+      ) : (
+        <Card className="border-success/20 bg-success/5 p-5">
+          <div className="flex items-center gap-4">
+            <Image src="/mascota_good.png" alt="" width={72} height={69} className="w-[72px] h-[69px] shrink-0" priority />
+            <div className="flex flex-col gap-1">
+              <h2 className="text-base font-semibold text-success">{t('allCaughtUp.heading')}</h2>
+              <p className="text-sm text-muted-foreground">{t('allCaughtUp.subtitle')}</p>
+            </div>
+          </div>
         </Card>
       )}
 
       {overdueItems.length > 0 && (
-        <Column gap="12" fillWidth>
-          <Heading variant="heading-strong-s">{t('overdueHeading')}</Heading>
-          <Column gap="8" fillWidth>
+        <div className="flex w-full flex-col gap-3">
+          <h2 className="text-base font-semibold">{t('overdueHeading')}</h2>
+          <div className="flex w-full flex-col gap-2">
             {overdueItems.map((inst) => (
               <InstallmentCard key={inst.id} inst={inst} today={today} statusLabels={statusLabels} />
             ))}
-          </Column>
-        </Column>
+          </div>
+        </div>
       )}
 
-      <Column gap="12" fillWidth>
-        <Heading variant="heading-strong-s">{t('upcomingHeading')}</Heading>
+      <div className="flex w-full flex-col gap-3">
+        <h2 className="text-base font-semibold">{t('upcomingHeading')}</h2>
         {!nextRecurringMonth && specialUpcoming.length === 0 ? (
-          <Text variant="body-default-s" onBackground="neutral-weak">
-            {t('empty.pending')}
-          </Text>
+          <p className="text-sm text-muted-foreground">{t('empty.pending')}</p>
         ) : (
-          <Column gap="24" fillWidth>
+          <div className="flex w-full flex-col gap-6">
             {nextRecurringMonth && (
-              <Column gap="8" fillWidth>
-                <Text variant="label-default-s" onBackground="neutral-weak">
+              <div className="flex w-full flex-col gap-2">
+                <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                   {format(parseISO(`${nextRecurringMonth.monthKey}-01`), 'MMMM yyyy', { locale: dateLocale })}
-                </Text>
-                <Grid columns="2" gap="12" fillWidth s={{ columns: 1 }}>
+                </span>
+                <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
                   {nextRecurringMonth.items.map((inst) => (
                     <InstallmentCard key={inst.id} inst={inst} today={today} statusLabels={statusLabels} />
                   ))}
-                </Grid>
-              </Column>
+                </div>
+              </div>
             )}
 
             {specialUpcoming.length > 0 && (
-              <Column gap="8" fillWidth>
+              <div className="flex w-full flex-col gap-2">
                 {specialUpcoming.map((inst) => (
                   <InstallmentCard key={inst.id} inst={inst} today={today} statusLabels={statusLabels} />
                 ))}
-              </Column>
+              </div>
             )}
-          </Column>
+          </div>
         )}
-      </Column>
-    </Column>
+      </div>
+    </div>
   );
 }

@@ -4,23 +4,17 @@ import { useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { parseISO } from 'date-fns';
-import {
-  Column,
-  Row,
-  Input,
-  Textarea,
-  DateInput,
-  Select,
-  Checkbox,
-  Button,
-  Feedback,
-  Text,
-  Heading,
-  Table,
-  Tag,
-  useToast,
-  type TableHeader,
-} from '@once-ui-system/core';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { DateInput } from '@/components/ui/date-input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { registerPayment } from '@/lib/actions/payments';
 import { extractPaymentFromScreenshot } from '@/lib/actions/paymentOcr';
 import { allocateFunds, sortOldestFirst } from '@/lib/payments/allocate';
@@ -43,7 +37,6 @@ export function PaymentFormClient({
   const t = useTranslations('payments.new');
   const locale = useLocale();
   const router = useRouter();
-  const { addToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -203,201 +196,241 @@ export function PaymentFormClient({
         setServerError(result.error);
         return;
       }
-      addToast({ variant: 'success', message: t('toastSuccess') });
+      toast.success(t('toastSuccess'));
       router.push(`/pagos/${result.batchId}`);
     });
   };
 
-  const headers: TableHeader[] = [
-    { key: 'select', content: '' },
-    { key: 'name', content: t('table.cuota') },
-    { key: 'due', content: t('table.due') },
-    { key: 'balance', content: t('table.balance') },
-    { key: 'status', content: t('table.status') },
-  ];
-
-  const rows = houseInstallments.map((inst) => [
-    <Checkbox
-      key={`check-${inst.id}`}
-      isChecked={selectedIds.includes(inst.id)}
-      onToggle={() => toggleInstallment(inst.id)}
-    />,
-    inst.name,
-    inst.due_date,
-    formatAmount(balanceDue(inst), inst.currency),
-    <Tag key={`status-${inst.id}`} variant={inst.status === 'partial' ? 'warning' : 'info'} label={t(`status.${inst.status}`)} />,
-  ]);
-
   return (
-    <Row gap="32" fillWidth wrap>
-      <Column gap="16" flex={2} minWidth={24}>
-        {serverError && <Feedback variant="danger" description={serverError} />}
+    <div className="flex w-full flex-wrap gap-8">
+      <div className="flex min-w-[380px] flex-2 flex-col gap-4">
+        {serverError && (
+          <Alert variant="destructive">
+            <AlertDescription>{serverError}</AlertDescription>
+          </Alert>
+        )}
 
-        <Select
-          id="house"
-          label={t('fields.house')}
-          options={houseOptions}
-          value={houseId}
-          onSelect={(value) => handleHouseSelect(Array.isArray(value) ? value[0] : value)}
-          fillWidth
-          emptyState={t('noHouses')}
-        />
+        <div className="grid gap-2">
+          <Label htmlFor="house">{t('fields.house')}</Label>
+          <Select value={houseId} onValueChange={(v) => v && handleHouseSelect(v)}>
+            <SelectTrigger id="house" className="w-full">
+              <SelectValue placeholder={t('noHouses')} />
+            </SelectTrigger>
+            <SelectContent>
+              {houseOptions.length === 0 ? (
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">{t('noHouses')}</div>
+              ) : (
+                houseOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
 
         {houseId && houseInstallments.length === 0 && (
-          <Feedback variant="info" description={t('noPendingInstallments')} />
+          <Alert>
+            <AlertDescription>{t('noPendingInstallments')}</AlertDescription>
+          </Alert>
         )}
 
         {houseId && houseInstallments.length > 0 && (
           <>
             {existingCredit > 0 && (
-              <Feedback
-                variant="success"
-                description={t('existingCredit', { amount: formatMoney(existingCredit), currency: currency ? currencyLabel(currency) : '' })}
-              />
+              <Alert className="border-success/30 bg-success/10">
+                <AlertDescription className="text-success">
+                  {t('existingCredit', { amount: formatMoney(existingCredit), currency: currency ? currencyLabel(currency) : '' })}
+                </AlertDescription>
+              </Alert>
             )}
 
-            <Table data={{ headers, rows }} emptyState={t('noPendingInstallments')} />
+            <div className="w-full overflow-hidden rounded-[var(--radius)] border shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead />
+                    <TableHead>{t('table.cuota')}</TableHead>
+                    <TableHead>{t('table.due')}</TableHead>
+                    <TableHead className="text-right">{t('table.balance')}</TableHead>
+                    <TableHead>{t('table.status')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {houseInstallments.map((inst) => (
+                    <TableRow key={inst.id} className="h-11">
+                      <TableCell>
+                        <Checkbox checked={selectedIds.includes(inst.id)} onCheckedChange={() => toggleInstallment(inst.id)} />
+                      </TableCell>
+                      <TableCell className="whitespace-normal font-medium">{inst.name}</TableCell>
+                      <TableCell>{inst.due_date}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatAmount(balanceDue(inst), inst.currency)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={inst.status === 'partial' ? 'bg-warning/10 text-warning' : ''}>
+                          {t(`status.${inst.status}`)}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
             <input
               ref={scanInputRef}
               type="file"
               accept="image/*"
               capture="environment"
-              style={{ display: 'none' }}
+              className="hidden"
               onChange={handleScanFile}
             />
 
             {!ocrStepDone && (
-              <Column gap="12" padding="24" radius="s" background="neutral-alpha-weak">
-                <Text variant="body-default-s">{t('ocr.stepHint')}</Text>
-                <Row gap="12" vertical="center" wrap>
-                  <Button type="button" variant="primary" loading={isScanning} onClick={() => scanInputRef.current?.click()}>
+              <div className="flex flex-col gap-3 rounded-[var(--radius)] bg-muted p-6">
+                <p className="text-sm">{t('ocr.stepHint')}</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button type="button" disabled={isScanning} onClick={() => scanInputRef.current?.click()}>
                     {t('ocr.scanButton')}
                   </Button>
-                  <Button type="button" variant="tertiary" disabled={isScanning} onClick={() => setOcrStepDone(true)}>
+                  <Button type="button" variant="ghost" disabled={isScanning} onClick={() => setOcrStepDone(true)}>
                     {t('ocr.manualEntry')}
                   </Button>
-                </Row>
-              </Column>
+                </div>
+              </div>
             )}
 
             {ocrStepDone && (
               <>
-                {ocrError && <Feedback variant="danger" description={ocrError} />}
-                {ocrPrefilled && !ocrError && <Feedback variant="success" description={t('ocr.prefilled')} />}
-                <Row>
-                  <Button type="button" variant="tertiary" size="s" loading={isScanning} onClick={() => scanInputRef.current?.click()}>
+                {ocrError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{ocrError}</AlertDescription>
+                  </Alert>
+                )}
+                {ocrPrefilled && !ocrError && (
+                  <Alert className="border-success/30 bg-success/10">
+                    <AlertDescription className="text-success">{t('ocr.prefilled')}</AlertDescription>
+                  </Alert>
+                )}
+                <div>
+                  <Button type="button" variant="ghost" size="sm" disabled={isScanning} onClick={() => scanInputRef.current?.click()}>
                     {t('ocr.rescan')}
                   </Button>
-                </Row>
+                </div>
 
-                <Row gap="16" wrap>
-                  <Input
-                    id="amount"
-                    type="number"
-                    label={t('fields.amountReceived')}
-                    value={Number.isNaN(amountReceived) ? '' : amountReceived}
-                    onChange={(e) => {
-                      setAmountEdited(true);
-                      setAmountReceived(e.target.valueAsNumber);
-                    }}
-                  />
-                  <Select
-                    id="currency"
-                    label={t('fields.currency')}
-                    options={CURRENCY_SELECT_OPTIONS}
-                    value={currency ?? undefined}
-                    onSelect={(value) => setCurrency((Array.isArray(value) ? value[0] : value) as Currency)}
-                  />
-                </Row>
+                <div className="flex flex-wrap gap-4">
+                  <div className="grid min-w-[180px] flex-1 gap-2">
+                    <Label htmlFor="amount">{t('fields.amountReceived')}</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      value={Number.isNaN(amountReceived) ? '' : amountReceived}
+                      onChange={(e) => {
+                        setAmountEdited(true);
+                        setAmountReceived(e.target.valueAsNumber);
+                      }}
+                    />
+                  </div>
+                  <div className="grid min-w-[160px] flex-1 gap-2">
+                    <Label htmlFor="currency">{t('fields.currency')}</Label>
+                    <Select value={currency ?? undefined} onValueChange={(v) => v && setCurrency(v as Currency)}>
+                      <SelectTrigger id="currency" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCY_SELECT_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 {usdReference !== null && (
-                  <Text variant="body-default-xs" onBackground="neutral-weak">
+                  <p className="text-xs text-muted-foreground">
                     {t('usdReference', { amount: formatMoney(usdReference), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
-                  </Text>
+                  </p>
                 )}
-                <Text variant="body-default-xs" onBackground="neutral-weak">
-                  {t('currencyFreeHint')}
-                </Text>
+                <p className="text-xs text-muted-foreground">{t('currencyFreeHint')}</p>
 
-                <DateInput
-                  id="payment_date"
-                  label={t('fields.paymentDate')}
-                  value={paymentDate}
-                  onChange={(date) => setPaymentDate(date)}
-                />
-                <Input id="reference" label={t('fields.reference')} value={reference} onChange={(e) => setReference(e.target.value)} />
-                <Textarea id="notes" label={t('fields.notes')} value={notes} onChange={(e) => setNotes(e.target.value)} />
+                <DateInput id="payment_date" label={t('fields.paymentDate')} value={paymentDate} onChange={(date) => setPaymentDate(date)} />
+                <div className="grid gap-2">
+                  <Label htmlFor="reference">{t('fields.reference')}</Label>
+                  <Input id="reference" value={reference} onChange={(e) => setReference(e.target.value)} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="notes">{t('fields.notes')}</Label>
+                  <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+                </div>
 
-                <Row gap="12">
-                  <Button type="button" variant="primary" loading={isPending} disabled={!canSubmit} onClick={onSubmit}>
+                <div className="flex gap-3">
+                  <Button type="button" disabled={isPending || !canSubmit} onClick={onSubmit}>
                     {t('submit')}
                   </Button>
-                  <Button type="button" variant="secondary" onClick={() => router.push('/pagos')}>
+                  <Button type="button" variant="outline" onClick={() => router.push('/pagos')}>
                     {t('cancel')}
                   </Button>
-                </Row>
+                </div>
               </>
             )}
           </>
         )}
-      </Column>
+      </div>
 
-      <Column gap="12" flex={1} minWidth={16} padding="24" radius="s" background="neutral-alpha-weak" fitHeight>
-        <Heading variant="heading-strong-s">{t('summary.heading')}</Heading>
-        {!preview && (
-          <Text variant="body-default-s" onBackground="neutral-weak">
-            {t('summary.empty')}
-          </Text>
-        )}
+      <div className="flex h-fit min-w-[280px] flex-1 flex-col gap-3 rounded-[var(--radius)] bg-muted p-6">
+        <h3 className="text-base font-semibold">{t('summary.heading')}</h3>
+        {!preview && <p className="text-sm text-muted-foreground">{t('summary.empty')}</p>}
         {preview && (
-          <Column gap="12">
+          <div className="flex flex-col gap-3">
             {preview.allocations.map((a) => {
               const inst = selectedInstallments.find((i) => i.id === a.installment_id)!;
               return (
-                <Row key={a.installment_id} horizontal="between" wrap>
-                  <Text variant="body-default-s">{inst.name}</Text>
-                  <Row gap="8" vertical="center">
-                    <Text variant="body-default-s">
+                <div key={a.installment_id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm">{inst.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm tabular-nums">
                       {formatMoney(a.amountApplied)} {currency ? currencyLabel(currency) : ''}
-                    </Text>
-                    <Tag variant={a.newStatus === 'paid' ? 'success' : 'warning'} label={t(`status.${a.newStatus}`)} />
-                  </Row>
-                </Row>
+                    </span>
+                    <Badge variant="outline" className={a.newStatus === 'paid' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}>
+                      {t(`status.${a.newStatus}`)}
+                    </Badge>
+                  </div>
+                </div>
               );
             })}
-            <Row horizontal="between">
-              <Text variant="label-default-s" onBackground="neutral-weak">
-                {t('summary.total')}
-              </Text>
-              <Text variant="label-strong-s">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('summary.total')}</span>
+              <span className="text-sm font-semibold">
                 {formatMoney(amountReceived)} {currency ? currencyLabel(currency) : ''}
-              </Text>
-            </Row>
+              </span>
+            </div>
             {existingCredit > 0 && (
-              <Row horizontal="between">
-                <Text variant="label-default-s" onBackground="neutral-weak">
-                  {t('summary.creditUsed')}
-                </Text>
-                <Text variant="label-strong-s">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('summary.creditUsed')}</span>
+                <span className="text-sm font-semibold">
                   {formatMoney(existingCredit)} {currency ? currencyLabel(currency) : ''}
-                </Text>
-              </Row>
+                </span>
+              </div>
             )}
             {preview.leftoverCents > 0 && (
-              <Feedback
-                variant="info"
-                description={t('summary.resultingCredit', {
-                  amount: formatMoney(preview.leftoverCents / 100),
-                  currency: currency ? currencyLabel(currency) : '',
-                })}
-              />
+              <Alert>
+                <AlertDescription>
+                  {t('summary.resultingCredit', {
+                    amount: formatMoney(preview.leftoverCents / 100),
+                    currency: currency ? currencyLabel(currency) : '',
+                  })}
+                </AlertDescription>
+              </Alert>
             )}
             {preview.leftoverCents === 0 && preview.allocations.every((a) => a.newStatus === 'paid') && (
-              <Feedback variant="success" description={t('summary.upToDate')} />
+              <Alert className="border-success/30 bg-success/10">
+                <AlertDescription className="text-success">{t('summary.upToDate')}</AlertDescription>
+              </Alert>
             )}
-          </Column>
+          </div>
         )}
-      </Column>
-    </Row>
+      </div>
+    </div>
   );
 }

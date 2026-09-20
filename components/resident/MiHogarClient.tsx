@@ -3,12 +3,14 @@
 import { useMemo, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { parseISO } from 'date-fns';
-import { Column, Row, Card, Heading, Text, Tag, Button } from '@once-ui-system/core';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { computeMorosos } from '@/lib/reporting/morosos';
 import { creditsByCurrency } from '@/lib/reporting/dashboard';
 import { upcomingInstallments } from '@/lib/resident/portal';
 import { ReportPaymentDialog } from './ReportPaymentDialog';
 import { CommunityBalanceCard } from './CommunityBalanceCard';
+import { ListRow } from './ListRow';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import type { ResidentPortalData, CommunityBalanceData } from '@/lib/resident/queries';
@@ -45,13 +47,11 @@ export function MiHogarClient({
   const isUpToDate = credits.length === 0 && morosos.length === 0;
 
   return (
-    <Column fillWidth gap="24" paddingY="32" paddingX="32">
-      <Column gap="4">
-        <Heading variant="display-strong-s">{t('greeting', { house: houseLabel })}</Heading>
-        <Text variant="body-default-m" onBackground="neutral-weak">
-          {t('subtitle')}
-        </Text>
-      </Column>
+    <div className="flex w-full flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-bold md:text-2xl">{t('greeting', { house: houseLabel })}</h1>
+        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+      </div>
 
       <CommunityBalanceCard
         installments={communityBalance.installments}
@@ -60,63 +60,56 @@ export function MiHogarClient({
         today={today}
       />
 
-      <Column gap="12" fillWidth>
+      <div className="flex w-full flex-col gap-3">
         {isUpToDate && (
-          <Card padding="20" radius="s" background="success-alpha-weak" fillWidth>
-            <Text variant="heading-strong-s" onBackground="success-strong">
-              {t('upToDate')}
-            </Text>
+          <Card className="border-success/20 bg-success/5 p-5">
+            <span className="text-base font-semibold text-success">{t('upToDate')}</span>
           </Card>
         )}
         {credits.map(([currency, amount]) => (
-          <Card key={`credit-${currency}`} padding="20" radius="s" background="success-alpha-weak" fillWidth>
-            <Column gap="4">
-              <Text variant="label-default-s" onBackground="neutral-weak">
+          <Card key={`credit-${currency}`} className="border-success/20 bg-success/5 p-5">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {t('creditLabel')}
-              </Text>
-              <Text variant="heading-strong-l">{formatAmount(amount ?? 0, currency)}</Text>
-            </Column>
+              </span>
+              <span className="text-2xl font-bold">{formatAmount(amount ?? 0, currency)}</span>
+            </div>
           </Card>
         ))}
         {morosos.map((m) => (
-          <Card key={`debt-${m.currency}`} padding="20" radius="s" background="danger-alpha-weak" fillWidth>
-            <Column gap="4">
-              <Text variant="label-default-s" onBackground="neutral-weak">
+          <Card key={`debt-${m.currency}`} className="border-destructive/20 bg-destructive/5 p-5">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {t('debtLabel', { date: formatShortDate(parseISO(m.owedSince), locale) })}
-              </Text>
-              <Text variant="heading-strong-l">{formatAmount(m.owed, m.currency)}</Text>
-            </Column>
+              </span>
+              <span className="text-2xl font-bold">{formatAmount(m.owed, m.currency)}</span>
+            </div>
           </Card>
         ))}
-      </Column>
+      </div>
 
-      <Column gap="12" fillWidth>
-        <Row horizontal="between" vertical="center" fillWidth wrap gap="8">
-          <Heading variant="heading-strong-s">{t('upcoming.heading')}</Heading>
-          <Button type="button" variant="secondary" size="s" onClick={() => setReportOpen(true)}>
+      <div className="flex w-full flex-col gap-3">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold">{t('upcoming.heading')}</h2>
+          <Button type="button" variant="outline" size="sm" onClick={() => setReportOpen(true)}>
             {t('reportPayment')}
           </Button>
-        </Row>
+        </div>
         {upcoming.length === 0 ? (
-          <Text variant="body-default-s" onBackground="neutral-weak">
-            {t('upcoming.empty')}
-          </Text>
+          <p className="text-sm text-muted-foreground">{t('upcoming.empty')}</p>
         ) : (
-          <Column gap="8" fillWidth>
+          <div className="flex w-full flex-col gap-2">
             {upcoming.map((inst) => (
-              <Row key={inst.id} fillWidth horizontal="between" vertical="center" padding="12" radius="s" border="neutral-alpha-weak">
-                <Column gap="2">
-                  <Text variant="label-strong-s">{inst.name}</Text>
-                  <Text variant="body-default-xs" onBackground="neutral-weak">
-                    {formatShortDate(parseISO(inst.due_date), locale)}
-                  </Text>
-                </Column>
-                <Tag variant="info" label={formatAmount(inst.amount - inst.amount_paid, inst.currency)} />
-              </Row>
+              <ListRow
+                key={inst.id}
+                title={inst.name}
+                subtitle={formatShortDate(parseISO(inst.due_date), locale)}
+                amount={formatAmount(inst.amount - inst.amount_paid, inst.currency)}
+              />
             ))}
-          </Column>
+          </div>
         )}
-      </Column>
+      </div>
 
       {reportOpen && (
         <ReportPaymentDialog
@@ -125,6 +118,6 @@ export function MiHogarClient({
           onClose={() => setReportOpen(false)}
         />
       )}
-    </Column>
+    </div>
   );
 }

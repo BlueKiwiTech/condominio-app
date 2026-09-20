@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import { getTranslations } from 'next-intl/server';
-import { Column, Heading, Row } from '@once-ui-system/core';
+import Image from 'next/image';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { createServiceClient } from '@/lib/supabase/service';
 import { ResidentLoginForm } from '@/components/residentAuth/ResidentLoginForm';
 
@@ -18,12 +18,23 @@ export default async function ResidentLoginPage() {
     .order('house_number');
 
   return (
-    <Column gap="24" fillWidth style={{ maxWidth: 400 }}>
-      <Row horizontal="center" fillWidth>
-        <Image src="/logo-abc.png" alt="ASOBARCELONA" width={256} height={256} priority />
-      </Row>
-      <Heading>{t('heading')}</Heading>
-      <ResidentLoginForm houses={houses ?? []} />
-    </Column>
+    <div className="flex w-full max-w-md flex-col items-center gap-6">
+      <Image
+        src="/logo-abc-mark.png"
+        alt="ABC"
+        width={200}
+        height={205}
+        className="h-[205px] w-[200px]"
+        priority
+      />
+      <Card className="w-full">
+      <CardHeader className="items-center text-center">
+        <h1 className="text-2xl font-bold">{t('heading')}</h1>
+      </CardHeader>
+      <CardContent>
+        <ResidentLoginForm houses={houses ?? []} />
+      </CardContent>
+    </Card>
+    </div>
   );
 }

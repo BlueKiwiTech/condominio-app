@@ -108,7 +108,7 @@
   },
   "adminNav": {
     "brand": {
-      "name": "ASOBARCELONA",
+      "name": "ASOBARCELONA CENTRO",
       "subtitle": "Junta de condominio"
     },
     "groups": {
@@ -555,7 +555,7 @@
     "forgotPin": "¿Olvidaste tu PIN? Contacta al administrador.",
     "labels": {
       "house": "Mi casa",
-      "pin": "Mi PIN"
+      "pin": "Mi Pin"
     },
     "errors": {
       "verifyFailed": "No se pudo verificar el PIN. Intenta de nuevo.",
@@ -563,11 +563,14 @@
       "invalidCredentials": "Casa o PIN incorrectos.",
       "wrongPin": "PIN incorrecto.",
       "wrongPinAttempts": "PIN incorrecto. {remaining, plural, one {Te queda # intento.} other {Te quedan # intentos.}}"
-    }
+    },
+    "housePlaceholder": "Escribe el número o nombre de tu casa...",
+    "houseNoResults": "No se encontró ninguna casa.",
+    "houseMinChars": "Escribe al menos 3 letras para buscar."
   },
   "residentNav": {
     "brand": {
-      "name": "ASOBARCELONA",
+      "name": "ASOBARCELONA CENTRO",
       "subtitle": "Portal de vecinos"
     },
     "reportPayment": "Reportar pago",
@@ -682,6 +685,10 @@
       "partial": "Parcial",
       "pending": "Pendiente",
       "overdue": "Vencida"
+    },
+    "allCaughtUp": {
+      "heading": "¡Estás al día!",
+      "subtitle": "No tienes cuotas pendientes por pagar."
     }
   },
   "residentPayments": {

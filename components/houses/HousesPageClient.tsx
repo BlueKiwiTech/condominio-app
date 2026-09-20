@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { Column, Row, Button, Table, Feedback, type TableHeader } from '@once-ui-system/core';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { deleteHouse } from '@/lib/actions/houses';
 import { HouseFormDialog } from './HouseFormDialog';
 import type { HouseWithResidents } from './types';
@@ -15,7 +19,18 @@ export function HousesPageClient({ initialHouses }: { initialHouses: HouseWithRe
   const router = useRouter();
   const [dialogState, setDialogState] = useState<HouseWithResidents | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [isPending, startTransition] = useTransition();
+
+  const filteredHouses = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return initialHouses;
+    return initialHouses.filter((house) =>
+      [house.house_number, house.house_name, house.owner_name, house.owner_phone, house.owner_email]
+        .filter(Boolean)
+        .some((field) => field!.toLowerCase().includes(query)),
+    );
+  }, [initialHouses, search]);
 
   const handleDelete = (house: HouseWithResidents) => {
     if (typeof window !== 'undefined' && !window.confirm(t('confirmDelete', { house: house.house_number }))) {
@@ -32,45 +47,74 @@ export function HousesPageClient({ initialHouses }: { initialHouses: HouseWithRe
     });
   };
 
-  const headers: TableHeader[] = [
-    { key: 'house_number', content: t('table.house') },
-    { key: 'house_name', content: t('table.name') },
-    { key: 'owner_name', content: t('table.owner') },
-    { key: 'owner_phone', content: t('table.phone') },
-    { key: 'owner_email', content: t('table.email') },
-    { key: 'actions', content: '' },
-  ];
-
-  const rows = initialHouses.map((house) => [
-    house.house_number,
-    house.house_name ?? '—',
-    house.owner_name ?? '—',
-    house.owner_phone ?? '—',
-    house.owner_email ?? '—',
-    <Row key={`actions-${house.id}`} gap="8">
-      <Button size="s" variant="secondary" type="button" onClick={() => setDialogState(house)}>
-        {t('actions.edit')}
-      </Button>
-      <Button size="s" variant="danger" type="button" disabled={isPending} onClick={() => handleDelete(house)}>
-        {t('actions.delete')}
-      </Button>
-    </Row>,
-  ]);
-
   return (
-    <Column gap="16" fillWidth>
-      {error && <Feedback variant="danger" description={error} />}
-      <Row horizontal="end" fillWidth>
-        <Button variant="primary" type="button" onClick={() => setDialogState(null)}>
+    <div className="flex w-full flex-col gap-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <div className="flex w-full flex-wrap items-center justify-between gap-3">
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('searchPlaceholder')}
+          className="max-w-xs"
+        />
+        <Button type="button" onClick={() => setDialogState(null)}>
+          <Plus className="size-4" />
           {t('newHouse')}
         </Button>
-      </Row>
-      <Table
-        data={{ headers, rows }}
-        searchable
-        searchPlaceholder={t('searchPlaceholder')}
-        emptyState={t('empty')}
-      />
+      </div>
+      <div className="rounded-[var(--radius)] border bg-card shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('table.house')}</TableHead>
+              <TableHead>{t('table.name')}</TableHead>
+              <TableHead>{t('table.owner')}</TableHead>
+              <TableHead>{t('table.phone')}</TableHead>
+              <TableHead>{t('table.email')}</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredHouses.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-11 text-center text-sm text-muted-foreground">
+                  {t('empty')}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredHouses.map((house) => (
+                <TableRow key={house.id}>
+                  <TableCell className="h-11">{house.house_number}</TableCell>
+                  <TableCell className="h-11">{house.house_name ?? '—'}</TableCell>
+                  <TableCell className="h-11">{house.owner_name ?? '—'}</TableCell>
+                  <TableCell className="h-11">{house.owner_phone ?? '—'}</TableCell>
+                  <TableCell className="h-11">{house.owner_email ?? '—'}</TableCell>
+                  <TableCell className="h-11">
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="outline" type="button" onClick={() => setDialogState(house)}>
+                        {t('actions.edit')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => handleDelete(house)}
+                      >
+                        {t('actions.delete')}
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
       {dialogState !== undefined && (
         <HouseFormDialog
           house={dialogState}
@@ -81,6 +125,6 @@ export function HousesPageClient({ initialHouses }: { initialHouses: HouseWithRe
           }}
         />
       )}
-    </Column>
+    </div>
   );
 }

@@ -11,12 +11,12 @@ Full context: `.planning/PROJECT.md`. Original handoff spec preserved at `docs/h
 <!-- GSD:stack-start source:STACK.md -->
 ## Technology Stack
 
-- **Next.js 16.3.x** (App Router, TypeScript) — satisfies the "14+" constraint; Next 14 is not actually installable because Once UI requires `next >=15.5`
+- **Next.js 16.3.x** (App Router, TypeScript)
 - **Supabase** (Postgres + Auth) — `@supabase/ssr` (NOT the deprecated `@supabase/auth-helpers-nextjs`) for admin SSR auth
-- **Once UI** (`@once-ui-system/core`) — component library. Uses **Sass + CSS variables, NOT Tailwind** (the original handoff doc's Tailwind assumption was wrong — do not add `tailwind.config.ts`). Bundles its own icons (`react-icons`, via `Icon`/`IconProvider` — don't add `lucide-react`) and charts (`recharts` — don't add it separately)
+- **Tailwind CSS v4 + shadcn/ui** (2026-09-19 redesign, superseding Once UI) — CSS-first config via `@theme`/CSS variables in `app/globals.css` (no `tailwind.config.ts` needed under v4), no separate Sass. shadcn's CLI on this project generated components on **Base UI** (`@base-ui/react`), not Radix — use the `render` prop (see `components/ui/dialog.tsx`) wherever Radix code would use `asChild`. Icons via `lucide-react`; charts via `recharts` directly + `components/ui/chart.tsx`. The design system (palette, type, spacing, component conventions) lives in `design-system/asobarcelona/MASTER.md` — read it before touching UI. Once UI (`@once-ui-system/core`) is fully removed; don't reintroduce it.
 - **next-intl** for i18n (Spanish default via `localePrefix: 'as-needed'`, English secondary) — NOT `next-i18n-router`/`i18next` as the original handoff proposed
 - **zod + react-hook-form + @hookform/resolvers** for all form/Server Action input validation
-- **date-fns** (already an Once UI transitive dep — don't add a second date library) for cadence math and morosos "days overdue" calculations; always use calendar-day-safe functions (`differenceInCalendarDays`, `parseISO`), never raw UTC string splitting
+- **date-fns** for cadence math and morosos "days overdue" calculations; always use calendar-day-safe functions (`differenceInCalendarDays`, `parseISO`), never raw UTC string splitting
 - **bcryptjs or Postgres `pgcrypto`** for resident PIN hashing — never native `bcrypt` (breaks on Vercel serverless/Edge)
 - **jose** for signing the resident's app-level session cookie (see Dual-Auth pattern below)
 - Vercel for hosting

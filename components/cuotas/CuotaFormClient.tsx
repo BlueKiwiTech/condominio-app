@@ -4,21 +4,16 @@ import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { useTranslations, useLocale } from 'next-intl';
-import {
-  Row,
-  Column,
-  Input,
-  Textarea,
-  Select,
-  SegmentedControl,
-  DateInput,
-  Switch,
-  Chip,
-  Button,
-  Feedback,
-  Text,
-  Heading,
-} from '@once-ui-system/core';
+import { Loader2 } from 'lucide-react';
+import { cn } from 'cn';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateInput } from '@/components/ui/date-input';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { createTemplateSchema, type CreateTemplateInput, type Cadence } from '@/lib/validation/cuotas';
 import { createInstallmentTemplate } from '@/lib/actions/cuotas';
 import { buildPreview, splitAmount, toDateOnly, type DueDateMode } from '@/lib/cuotas/generate';
@@ -164,97 +159,125 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
   };
 
   return (
-    <Row gap="32" fillWidth wrap>
-      <Column as="form" onSubmit={handleSubmit(onSubmit)} gap="16" flex={2} minWidth={22}>
-        {serverError && <Feedback variant="danger" description={serverError} />}
+    <div className="flex w-full flex-col gap-8 lg:flex-row">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-2 flex-col gap-4">
+        {serverError && (
+          <Alert variant="destructive">
+            <AlertDescription>{serverError}</AlertDescription>
+          </Alert>
+        )}
 
         <Controller
           control={control}
           name="installment_type"
           render={({ field }) => (
-            <SegmentedControl
-              buttons={[
-                { value: 'recurring', label: t('form.typeRecurring') },
-                { value: 'special', label: t('form.typeSpecial') },
-              ]}
-              selected={field.value}
-              onToggle={(value) => field.onChange(value as FormValues['installment_type'])}
-            />
+            <div className="inline-flex w-fit gap-1 rounded-lg border bg-muted p-1">
+              <Button
+                type="button"
+                size="sm"
+                variant={field.value === 'recurring' ? 'default' : 'ghost'}
+                onClick={() => field.onChange('recurring')}
+              >
+                {t('form.typeRecurring')}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={field.value === 'special' ? 'default' : 'ghost'}
+                onClick={() => field.onChange('special')}
+              >
+                {t('form.typeSpecial')}
+              </Button>
+            </div>
           )}
         />
 
-        <Input
-          id="name"
-          label={t('fields.name')}
-          {...register('name', { required: true })}
-          error={!!errors.name}
-          errorMessage={errors.name?.message}
-        />
-        <Textarea id="description" label={t('fields.description')} {...register('description')} />
+        <div className="grid gap-1.5">
+          <Label htmlFor="name">{t('fields.name')}</Label>
+          <Input id="name" {...register('name', { required: true })} aria-invalid={!!errors.name} />
+          {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="description">{t('fields.description')}</Label>
+          <Textarea id="description" {...register('description')} />
+        </div>
 
-        <Row gap="16" wrap>
+        <div className="flex flex-wrap gap-4">
           <Controller
             control={control}
             name="amount"
             render={({ field }) => (
-              <Input
-                id="amount"
-                type="number"
-                label={installmentType === 'recurring' ? t('form.amountPerInstallment') : t('form.amountTotal')}
-                value={Number.isNaN(field.value) ? '' : field.value}
-                onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                error={!!errors.amount}
-                errorMessage={errors.amount?.message}
-              />
+              <div className="grid flex-1 gap-1.5">
+                <Label htmlFor="amount">
+                  {installmentType === 'recurring' ? t('form.amountPerInstallment') : t('form.amountTotal')}
+                </Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  value={Number.isNaN(field.value) ? '' : field.value}
+                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  aria-invalid={!!errors.amount}
+                />
+                {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
+              </div>
             )}
           />
           <Controller
             control={control}
             name="currency"
             render={({ field }) => (
-              <Select
-                id="currency"
-                label={t('fields.currency')}
-                options={CURRENCY_SELECT_OPTIONS}
-                value={field.value}
-                onSelect={(value) => field.onChange(Array.isArray(value) ? value[0] : value)}
-              />
+              <div className="grid flex-1 gap-1.5">
+                <Label htmlFor="currency">{t('fields.currency')}</Label>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="currency" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCY_SELECT_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
           />
-        </Row>
+        </div>
 
         {installmentType === 'recurring' && (
           <Controller
             control={control}
             name="cadence"
             render={({ field }) => (
-              <Select
-                id="cadence"
-                label={t('form.cadence')}
-                options={[
-                  { label: t('cadence.weekly'), value: 'weekly' },
-                  { label: t('cadence.monthly'), value: 'monthly' },
-                  { label: t('cadence.annual'), value: 'annual' },
-                ]}
-                value={field.value}
-                onSelect={(value) => field.onChange(Array.isArray(value) ? value[0] : value)}
-                fillWidth
-              />
+              <div className="grid gap-1.5">
+                <Label htmlFor="cadence">{t('form.cadence')}</Label>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="cadence" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="weekly">{t('cadence.weekly')}</SelectItem>
+                    <SelectItem value="monthly">{t('cadence.monthly')}</SelectItem>
+                    <SelectItem value="annual">{t('cadence.annual')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             )}
           />
         )}
 
         {installmentType === 'special' && (
-          <Row gap="12" vertical="center">
+          <div className="flex items-center gap-3">
             <Controller
               control={control}
               name="is_divided"
               render={({ field }) => (
-                <Switch isChecked={field.value} onToggle={() => field.onChange(!field.value)} ariaLabel={t('form.isDivided')} />
+                <Switch checked={field.value} onCheckedChange={field.onChange} aria-label={t('form.isDivided')} />
               )}
             />
-            <Text variant="body-default-s">{t('form.isDivided')}</Text>
-          </Row>
+            <span className="text-sm">{t('form.isDivided')}</span>
+          </div>
         )}
 
         <Controller
@@ -281,112 +304,120 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
             control={control}
             name="number_of_installments"
             render={({ field }) => (
-              <Input
-                id="number_of_installments"
-                type="number"
-                label={t('form.numberOfInstallments')}
-                value={Number.isNaN(field.value) ? '' : field.value}
-                onChange={(e) => field.onChange(e.target.valueAsNumber)}
-              />
+              <div className="grid gap-1.5">
+                <Label htmlFor="number_of_installments">{t('form.numberOfInstallments')}</Label>
+                <Input
+                  id="number_of_installments"
+                  type="number"
+                  value={Number.isNaN(field.value) ? '' : field.value}
+                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                />
+              </div>
             )}
           />
         )}
 
-        <Column gap="8">
-          <Text variant="label-default-s" onBackground="neutral-weak">
-            {t('form.applicableHouses')}
-          </Text>
-          <Row gap="8" wrap>
-            <Chip label={t('form.allHouses')} selected={houseSelection === 'all'} onClick={() => setHouseSelection('all')} />
-            {houses.map((house) => (
-              <Chip
-                key={house.id}
-                label={house.house_name ? `${house.house_number} · ${house.house_name}` : house.house_number}
-                selected={houseSelection !== 'all' && houseSelection.includes(house.id)}
-                onClick={() => toggleHouse(house.id)}
-              />
-            ))}
-          </Row>
-        </Column>
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-medium text-muted-foreground">{t('form.applicableHouses')}</span>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setHouseSelection('all')}
+              className={cn(
+                'cursor-pointer rounded-full border px-3 py-1 text-sm font-medium transition-colors',
+                houseSelection === 'all'
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border text-muted-foreground hover:bg-muted',
+              )}
+            >
+              {t('form.allHouses')}
+            </button>
+            {houses.map((house) => {
+              const selected = houseSelection !== 'all' && houseSelection.includes(house.id);
+              return (
+                <button
+                  key={house.id}
+                  type="button"
+                  onClick={() => toggleHouse(house.id)}
+                  className={cn(
+                    'cursor-pointer rounded-full border px-3 py-1 text-sm font-medium transition-colors',
+                    selected ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted',
+                  )}
+                >
+                  {house.house_name ? `${house.house_number} · ${house.house_name}` : house.house_number}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-        <Row gap="12">
-          <Button type="submit" variant="primary" loading={isPending} disabled={isDivided && amountsMismatch}>
+        <div className="flex gap-3">
+          <Button type="submit" disabled={isPending || (isDivided && amountsMismatch)}>
+            {isPending && <Loader2 className="size-4 animate-spin" />}
             {t('form.submit')}
           </Button>
-          <Button type="button" variant="secondary" onClick={() => router.push('/cuotas')}>
+          <Button type="button" variant="outline" onClick={() => router.push('/cuotas')}>
             {t('cancel')}
           </Button>
-        </Row>
-      </Column>
+        </div>
+      </form>
 
-      <Column gap="12" flex={1} minWidth={16} padding="24" radius="s" background="neutral-alpha-weak" fitHeight>
-        <Heading variant="heading-strong-s">{t('preview.heading')}</Heading>
-        {!preview && (
-          <Text variant="body-default-s" onBackground="neutral-weak">
-            {t('preview.empty')}
-          </Text>
-        )}
+      <div className="flex flex-1 flex-col gap-3 rounded-[var(--radius)] border bg-muted/50 p-6">
+        <h2 className="text-lg font-semibold">{t('preview.heading')}</h2>
+        {!preview && <span className="text-sm text-muted-foreground">{t('preview.empty')}</span>}
         {preview && (
-          <Column gap="12">
-            <Text variant="body-default-s" onBackground="neutral-weak">
-              {t('preview.info')}
-            </Text>
-            <Column gap={isDivided ? '8' : '4'}>
+          <div className="flex flex-col gap-3">
+            <span className="text-sm text-muted-foreground">{t('preview.info')}</span>
+            <div className={cn('flex flex-col', isDivided ? 'gap-2' : 'gap-1')}>
               {preview.dueDates.map((date, idx) =>
                 isDivided ? (
-                  <Input
-                    key={idx}
-                    id={`installment-amount-${idx}`}
-                    type="number"
-                    label={`${t('form.installmentAmount', { number: idx + 1 })} — ${toDateOnly(date)}`}
-                    value={Number.isNaN(amounts[idx]) ? '' : amounts[idx]}
-                    onChange={(e) => updateAmount(idx, e.target.valueAsNumber)}
-                  />
+                  <div key={idx} className="grid gap-1.5">
+                    <Label htmlFor={`installment-amount-${idx}`}>
+                      {`${t('form.installmentAmount', { number: idx + 1 })} — ${toDateOnly(date)}`}
+                    </Label>
+                    <Input
+                      id={`installment-amount-${idx}`}
+                      type="number"
+                      value={Number.isNaN(amounts[idx]) ? '' : amounts[idx]}
+                      onChange={(e) => updateAmount(idx, e.target.valueAsNumber)}
+                    />
+                  </div>
                 ) : (
-                  <Row key={idx} horizontal="between">
-                    <Text variant="body-default-s">{toDateOnly(date)}</Text>
-                    <Text variant="body-default-s">
-                      {formatAmount(preview.amounts[idx], values.currency)}
-                    </Text>
-                  </Row>
+                  <div key={idx} className="flex justify-between">
+                    <span className="text-sm">{toDateOnly(date)}</span>
+                    <span className="text-sm">{formatAmount(preview.amounts[idx], values.currency)}</span>
+                  </div>
                 ),
               )}
-            </Column>
-            <Row horizontal="between">
-              <Text variant="label-default-s" onBackground="neutral-weak">
-                {t('preview.totalPerHouse')}
-              </Text>
-              <Text variant="label-strong-s">
-                {formatAmount(preview.totalPerHouse, values.currency)}
-              </Text>
-            </Row>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-xs font-medium text-muted-foreground">{t('preview.totalPerHouse')}</span>
+              <span className="text-sm font-semibold">{formatAmount(preview.totalPerHouse, values.currency)}</span>
+            </div>
             {isDivided && amountsMismatch && (
-              <Feedback
-                variant="danger"
-                description={t('form.amountsSumMismatch', {
-                  sum: formatMoney(amountsSum),
-                  total: formatMoney(values.amount || 0),
-                })}
-              />
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {t('form.amountsSumMismatch', {
+                    sum: formatMoney(amountsSum),
+                    total: formatMoney(values.amount || 0),
+                  })}
+                </AlertDescription>
+              </Alert>
             )}
-            <Row horizontal="between">
-              <Text variant="label-default-s" onBackground="neutral-weak">
-                {t('preview.houses')}
-              </Text>
-              <Text variant="label-strong-s">{selectedHouseCount}</Text>
-            </Row>
-            <Row horizontal="between">
-              <Text variant="label-default-s" onBackground="neutral-weak">
-                {t('preview.expectedTotal')}
-              </Text>
-              <Text variant="label-strong-s">
-                {formatAmount(preview.totalPerHouse * selectedHouseCount, values.currency)}
-              </Text>
-            </Row>
-            <Feedback variant="info" description={t('preview.noConversionNote')} />
-          </Column>
+            <div className="flex justify-between">
+              <span className="text-xs font-medium text-muted-foreground">{t('preview.houses')}</span>
+              <span className="text-sm font-semibold">{selectedHouseCount}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-xs font-medium text-muted-foreground">{t('preview.expectedTotal')}</span>
+              <span className="text-sm font-semibold">{formatAmount(preview.totalPerHouse * selectedHouseCount, values.currency)}</span>
+            </div>
+            <Alert>
+              <AlertDescription>{t('preview.noConversionNote')}</AlertDescription>
+            </Alert>
+          </div>
         )}
-      </Column>
-    </Row>
+      </div>
+    </div>
   );
 }

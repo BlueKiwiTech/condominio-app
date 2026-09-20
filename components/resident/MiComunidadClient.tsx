@@ -4,7 +4,9 @@ import { useMemo, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { format, getMonth, getYear, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { Column, Row, Grid, Card, Heading, Text, Select, Chip } from '@once-ui-system/core';
+import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from 'cn';
 import { creditsByCurrency, outstandingByCurrency, type CurrencyAmountMap } from '@/lib/reporting/dashboard';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
@@ -14,6 +16,26 @@ import { CurrencyAmountList } from './CurrencyAmountList';
 
 function capitalize(s: string): string {
   return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
+}
+
+// Small pill toggle for the "todo el año" filter — not a payment-status
+// signal, so it intentionally stays neutral/primary rather than
+// success/warning/destructive (those are reserved for morosos state).
+function FilterChip({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex h-9 cursor-pointer items-center rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
+        selected
+          ? 'border-transparent bg-primary text-primary-foreground'
+          : 'border-border bg-background text-foreground hover:bg-muted',
+      )}
+    >
+      {label}
+    </button>
+  );
 }
 
 // V3 · Mi comunidad (replaces Mi hogar as the resident landing page, per
@@ -99,96 +121,90 @@ export function MiComunidadClient({
   }, [t, wholeYear, monthValue, yearValue, dateLocale]);
 
   return (
-    <Column fillWidth gap="24" paddingY="32" paddingX="32">
-      <Column gap="4">
-        <Heading variant="display-strong-s">{t('greeting', { house: displayName })}</Heading>
-        <Text variant="body-default-m" onBackground="neutral-weak">
-          {t('communityDashboard.subtitle')}
-        </Text>
-      </Column>
+    <div className="flex w-full flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-bold md:text-2xl">{t('greeting', { house: displayName })}</h1>
+        <p className="text-sm text-muted-foreground">{t('communityDashboard.subtitle')}</p>
+      </div>
 
-      <Column gap="12" fillWidth>
-        <Heading variant="heading-strong-s">{t('communityDashboard.heading')}</Heading>
-        <Grid columns="2" s={{ columns: 1 }} gap="16" fillWidth>
-          <Card padding="24" radius="s" background="success-alpha-weak" fillWidth>
-            <Column gap="8">
-              <Text variant="label-default-s" onBackground="neutral-weak">
+      <div className="flex w-full flex-col gap-3">
+        <h2 className="text-base font-semibold">{t('communityDashboard.heading')}</h2>
+        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
+          <Card className="border-success/20 bg-success/5 p-6">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {t('communityDashboard.available')}
-              </Text>
+              </span>
               <CurrencyAmountList amounts={available} emptyLabel={t('communityDashboard.empty')} />
-              <Text variant="body-default-xs" onBackground="neutral-weak">
-                {t('communityDashboard.availableCaption')}
-              </Text>
-            </Column>
+              <p className="text-xs text-muted-foreground">{t('communityDashboard.availableCaption')}</p>
+            </div>
           </Card>
-          <Card padding="24" radius="s" background="warning-alpha-weak" fillWidth>
-            <Column gap="8">
-              <Text variant="label-default-s" onBackground="neutral-weak">
+          <Card className="border-warning/20 bg-warning/5 p-6">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {t('communityDashboard.pending')}
-              </Text>
+              </span>
               <CurrencyAmountList amounts={pending} emptyLabel={t('communityDashboard.empty')} />
-              <Text variant="body-default-xs" onBackground="neutral-weak">
-                {t('communityDashboard.pendingCaption')}
-              </Text>
-            </Column>
+              <p className="text-xs text-muted-foreground">{t('communityDashboard.pendingCaption')}</p>
+            </div>
           </Card>
-        </Grid>
-      </Column>
+        </div>
+      </div>
 
-      <Column gap="12" fillWidth>
-        <Row horizontal="between" vertical="end" wrap gap="12" fillWidth>
-          <Heading variant="heading-strong-s">{t('communityDashboard.expensesHeading')}</Heading>
-          <Row gap="8" vertical="center" wrap>
+      <div className="flex w-full flex-col gap-3">
+        <div className="flex w-full flex-wrap items-end justify-between gap-3">
+          <h2 className="text-base font-semibold">{t('communityDashboard.expensesHeading')}</h2>
+          <div className="flex flex-wrap items-center gap-2">
             <Select
-              id="communityMonthFilter"
-              label={t('communityDashboard.monthFilterLabel')}
-              fillWidth={false}
-              minWidth={10}
-              disabled={wholeYear}
-              options={monthOptions}
               value={monthValue}
-              onSelect={(value) => {
-                setMonthValue(Array.isArray(value) ? value[0] : value);
+              onValueChange={(v) => {
+                if (!v) return;
+                setMonthValue(v);
                 setWholeYear(false);
               }}
-            />
-            <Select
-              id="communityYearFilter"
-              label={t('communityDashboard.yearFilterLabel')}
-              fillWidth={false}
-              minWidth={8}
-              options={yearOptions}
-              value={yearValue}
-              onSelect={(value) => setYearValue(Array.isArray(value) ? value[0] : value)}
-            />
-            <Chip
-              label={t('communityDashboard.allYear')}
-              selected={wholeYear}
-              onClick={() => setWholeYear((w) => !w)}
-            />
-          </Row>
-        </Row>
-        <Card padding="24" radius="s" background="danger-alpha-weak" fillWidth>
-          <Column gap="8">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {periodLabel}
-            </Text>
+              disabled={wholeYear}
+            >
+              <SelectTrigger aria-label={t('communityDashboard.monthFilterLabel')} className="h-9 min-w-[9rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={yearValue} onValueChange={(v) => v && setYearValue(v)}>
+              <SelectTrigger aria-label={t('communityDashboard.yearFilterLabel')} className="h-9 min-w-[6rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FilterChip label={t('communityDashboard.allYear')} selected={wholeYear} onClick={() => setWholeYear((w) => !w)} />
+          </div>
+        </div>
+        <Card className="border-destructive/20 bg-destructive/5 p-6">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{periodLabel}</span>
             <CurrencyAmountList amounts={expensesTotal} emptyLabel={t('communityDashboard.empty')} />
-            <Text variant="body-default-xs" onBackground="neutral-weak">
-              {t('communityDashboard.expensesCaption')}
-            </Text>
-          </Column>
+            <p className="text-xs text-muted-foreground">{t('communityDashboard.expensesCaption')}</p>
+          </div>
         </Card>
-      </Column>
+      </div>
 
-      <Column gap="12" fillWidth>
-        <Heading variant="heading-strong-s">{t('communityDashboard.breakdownHeading')}</Heading>
+      <div className="flex w-full flex-col gap-3">
+        <h2 className="text-base font-semibold">{t('communityDashboard.breakdownHeading')}</h2>
         {scopedExpenses.length === 0 ? (
-          <Text variant="body-default-s" onBackground="neutral-weak">
-            {t('communityDashboard.breakdownEmpty')}
-          </Text>
+          <p className="text-sm text-muted-foreground">{t('communityDashboard.breakdownEmpty')}</p>
         ) : (
-          <Column gap="8" fillWidth>
+          <div className="flex w-full flex-col gap-2">
             {scopedExpenses.map((e) => (
               <ListRow
                 key={e.id}
@@ -197,9 +213,9 @@ export function MiComunidadClient({
                 amount={formatAmount(e.amount, e.currency)}
               />
             ))}
-          </Column>
+          </div>
         )}
-      </Column>
-    </Column>
+      </div>
+    </div>
   );
 }

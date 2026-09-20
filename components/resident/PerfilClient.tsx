@@ -1,8 +1,31 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Column, Row, Card, Heading, Text } from '@once-ui-system/core';
+import { User, Phone, Mail, Home } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import type { ResidentPortalData } from '@/lib/resident/queries';
+
+function InfoField({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof User;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <Icon className="size-4" />
+      </div>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</span>
+        <span className="text-sm font-medium break-words">{value}</span>
+      </div>
+    </div>
+  );
+}
 
 export function PerfilClient({ data }: { data: ResidentPortalData }) {
   const t = useTranslations('residentPerfil');
@@ -11,65 +34,38 @@ export function PerfilClient({ data }: { data: ResidentPortalData }) {
   const houseLabel = house.house_name ? `${house.house_number} · ${house.house_name}` : house.house_number;
 
   return (
-    <Column fillWidth gap="24" paddingY="32" paddingX="32">
-      <Column gap="4">
-        <Heading variant="display-strong-s">{t('heading')}</Heading>
-        <Text variant="body-default-m" onBackground="neutral-weak">
-          {t('subtitle')}
-        </Text>
-      </Column>
+    <div className="flex w-full flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-bold md:text-2xl">{t('heading')}</h1>
+        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+      </div>
 
-      <Card padding="20" radius="s" fillWidth border="neutral-alpha-weak">
-        <Column gap="16">
-          <Row gap="24" wrap>
-            <Column gap="4">
-              <Text variant="label-default-s" onBackground="neutral-weak">
-                {t('houseNumber')}
-              </Text>
-              <Text variant="body-default-m">{houseLabel}</Text>
-            </Column>
-            {house.owner_name && (
-              <Column gap="4">
-                <Text variant="label-default-s" onBackground="neutral-weak">
-                  {t('owner')}
-                </Text>
-                <Text variant="body-default-m">{house.owner_name}</Text>
-              </Column>
-            )}
-            {house.owner_phone && (
-              <Column gap="4">
-                <Text variant="label-default-s" onBackground="neutral-weak">
-                  {t('phone')}
-                </Text>
-                <Text variant="body-default-m">{house.owner_phone}</Text>
-              </Column>
-            )}
-            {house.owner_email && (
-              <Column gap="4">
-                <Text variant="label-default-s" onBackground="neutral-weak">
-                  {t('email')}
-                </Text>
-                <Text variant="body-default-m">{house.owner_email}</Text>
-              </Column>
-            )}
-          </Row>
+      <Card>
+        <CardContent className="flex flex-col gap-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <InfoField icon={Home} label={t('houseNumber')} value={houseLabel} />
+            {house.owner_name && <InfoField icon={User} label={t('owner')} value={house.owner_name} />}
+            {house.owner_phone && <InfoField icon={Phone} label={t('phone')} value={house.owner_phone} />}
+            {house.owner_email && <InfoField icon={Mail} label={t('email')} value={house.owner_email} />}
+          </div>
+
           {data.residents.length > 0 && (
-            <Column gap="8">
-              <Text variant="label-default-s" onBackground="neutral-weak">
+            <div className="flex flex-col gap-2 border-t border-border pt-4">
+              <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {t('residents')}
-              </Text>
-              <Column gap="4">
+              </span>
+              <div className="flex flex-col gap-1">
                 {data.residents.map((r) => (
-                  <Text key={r.id} variant="body-default-s">
+                  <span key={r.id} className="text-sm">
                     {r.resident_name}
                     {r.resident_phone ? ` · ${r.resident_phone}` : ''}
-                  </Text>
+                  </span>
                 ))}
-              </Column>
-            </Column>
+              </div>
+            </div>
           )}
-        </Column>
+        </CardContent>
       </Card>
-    </Column>
+    </div>
   );
 }

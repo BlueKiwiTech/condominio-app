@@ -1,5 +1,4 @@
 import { getTranslations } from 'next-intl/server';
-import { Column, Heading } from '@once-ui-system/core';
 import { createClient } from '@/lib/supabase/server';
 import { GastosPlantillasPageClient } from '@/components/gastos/GastosPlantillasPageClient';
 import type { FixedTemplateRow } from '@/components/gastos/types';
@@ -16,9 +15,9 @@ export default async function GastosPlantillasPage() {
     .order('name');
 
   return (
-    <Column fillWidth gap="24" paddingY="32" paddingX="32">
-      <Heading variant="display-strong-s">{t('templates.heading')}</Heading>
+    <div className="flex w-full flex-col gap-6 p-4 md:p-8">
+      <h1 className="text-2xl font-bold">{t('templates.heading')}</h1>
       <GastosPlantillasPageClient fixedTemplates={(fixedTemplates as FixedTemplateRow[] | null) ?? []} />
-    </Column>
+    </div>
   );
 }

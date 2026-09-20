@@ -3,18 +3,21 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { parseISO } from 'date-fns';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import {
   Dialog,
-  Column,
-  Row,
-  Input,
-  Textarea,
-  DateInput,
-  Select,
-  Button,
-  Feedback,
-  Text,
-} from '@once-ui-system/core';
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateInput } from '@/components/ui/date-input';
 import { reportPayment } from '@/lib/actions/residentPayments';
 import { extractResidentPaymentFromScreenshot } from '@/lib/actions/residentPaymentOcr';
 import { toDateOnly } from '@/lib/cuotas/generate';
@@ -125,10 +128,6 @@ export function ReportPaymentDialog({
 
   const balanceDue = (i: ResidentInstallment) => i.amount - i.amount_paid;
 
-  const handleCurrencySelect = (value: string | string[]) => {
-    setCurrency((Array.isArray(value) ? value[0] : value) as Currency);
-  };
-
   // Reference only (PLAN.md's "cada quien saca la cuenta" decision) -- never
   // sent to the server. Null (renders nothing) for USD, or whenever the
   // matching rate is missing/stale.
@@ -165,148 +164,187 @@ export function ReportPaymentDialog({
 
   return (
     <Dialog
-      isOpen
-      onClose={onClose}
-      title={t('heading')}
-      footer={
-        success ? (
-          <Button variant="primary" onClick={onClose} type="button">
-            {t('close')}
-          </Button>
-        ) : (
-          <>
-            <Button variant="secondary" onClick={onClose} type="button">
-              {t('cancel')}
-            </Button>
-            <Button variant="primary" loading={isPending} disabled={!canSubmit} onClick={onSubmit} type="button">
-              {t('submit')}
-            </Button>
-          </>
-        )
-      }
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
     >
-      {success ? (
-        <Feedback variant="success" description={t('successMessage')} />
-      ) : (
-        <Column gap="16" fillWidth>
-          <Text variant="body-default-s" onBackground="neutral-weak">
-            {t('intro')}
-          </Text>
-          {serverError && <Feedback variant="danger" description={serverError} />}
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t('heading')}</DialogTitle>
+        </DialogHeader>
 
-          {pendingInstallments.length > 0 && (
-            <Column gap="8" fillWidth>
-              <Text variant="label-default-s" onBackground="neutral-weak">
-                {t('whichCuotas')}
-              </Text>
-              <Column gap="8" fillWidth>
-                {pendingInstallments.map((inst) => (
-                  <ListRow
-                    key={inst.id}
-                    title={inst.name}
-                    subtitle={formatShortDate(parseISO(inst.due_date), locale)}
-                    amount={formatAmount(balanceDue(inst), inst.currency)}
-                  />
-                ))}
-              </Column>
-            </Column>
-          )}
+        {success ? (
+          <div className="flex items-center gap-2 rounded-lg border border-success/20 bg-success/5 px-3 py-2.5 text-sm text-success">
+            <CheckCircle2 className="size-4 shrink-0" />
+            {t('successMessage')}
+          </div>
+        ) : (
+          <div className="flex w-full flex-col gap-4">
+            <p className="text-sm text-muted-foreground">{t('intro')}</p>
+            {serverError && (
+              <Alert variant="destructive">
+                <AlertDescription>{serverError}</AlertDescription>
+              </Alert>
+            )}
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            style={{ display: 'none' }}
-            onChange={handleFileChange}
-          />
+            {pendingInstallments.length > 0 && (
+              <div className="flex w-full flex-col gap-2">
+                <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  {t('whichCuotas')}
+                </span>
+                <div className="flex w-full flex-col gap-2">
+                  {pendingInstallments.map((inst) => (
+                    <ListRow
+                      key={inst.id}
+                      title={inst.name}
+                      subtitle={formatShortDate(parseISO(inst.due_date), locale)}
+                      amount={formatAmount(balanceDue(inst), inst.currency)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
-          {!formRevealed && (
-            <Column gap="12" padding="24" radius="s" background="neutral-alpha-weak">
-              <Text variant="body-default-s">{t('ocrStepHint')}</Text>
-              {fileError && <Feedback variant="danger" description={fileError} />}
-              <Row gap="12" vertical="center" wrap>
-                <Button type="button" variant="primary" loading={isScanning} onClick={() => fileInputRef.current?.click()}>
-                  {t('addScreenshot')}
-                </Button>
-                <Button type="button" variant="tertiary" disabled={isScanning} onClick={() => setFormRevealed(true)}>
-                  {t('manualEntry')}
-                </Button>
-              </Row>
-            </Column>
-          )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleFileChange}
+            />
 
-          {formRevealed && (
-            <>
-              {ocrError && <Feedback variant="danger" description={ocrError} />}
-              {ocrPrefilled && !ocrError && <Feedback variant="success" description={t('prefilled')} />}
-
-              {screenshotPreviewUrl ? (
-                <Row gap="12" vertical="center">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview, not a Next-optimizable remote asset */}
-                  <img
-                    src={screenshotPreviewUrl}
-                    alt=""
-                    style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--neutral-border-weak)' }}
-                  />
-                  <Button type="button" variant="tertiary" size="s" onClick={handleRemoveScreenshot}>
-                    {t('removeScreenshot')}
-                  </Button>
-                  <Button type="button" variant="tertiary" size="s" loading={isScanning} onClick={() => fileInputRef.current?.click()}>
-                    {t('changeScreenshot')}
-                  </Button>
-                </Row>
-              ) : (
-                <Row>
-                  <Button type="button" variant="tertiary" size="s" loading={isScanning} onClick={() => fileInputRef.current?.click()}>
+            {!formRevealed && (
+              <div className="flex flex-col gap-3 rounded-lg bg-muted p-6">
+                <p className="text-sm">{t('ocrStepHint')}</p>
+                {fileError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{fileError}</AlertDescription>
+                  </Alert>
+                )}
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button type="button" size="lg" disabled={isScanning} onClick={() => fileInputRef.current?.click()}>
+                    {isScanning && <Loader2 className="size-4 animate-spin" />}
                     {t('addScreenshot')}
                   </Button>
-                </Row>
-              )}
+                  <Button type="button" variant="ghost" disabled={isScanning} onClick={() => setFormRevealed(true)}>
+                    {t('manualEntry')}
+                  </Button>
+                </div>
+              </div>
+            )}
 
-              <Row gap="16" wrap>
-                <Input
-                  id="amount"
-                  type="number"
-                  label={t('fields.amount')}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.valueAsNumber || 0)}
-                />
-                <Select
-                  id="currency"
-                  label={t('fields.currency')}
-                  options={CURRENCY_SELECT_OPTIONS}
-                  value={currency}
-                  onSelect={handleCurrencySelect}
-                />
-              </Row>
-              {usdReference !== null && (
-                <Text variant="body-default-xs" onBackground="neutral-weak">
-                  {t('usdReference', { amount: formatMoney(usdReference), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
-                </Text>
-              )}
-              <Text variant="body-default-xs" onBackground="neutral-weak">
-                {t('currencyFreeHint')}
-              </Text>
+            {formRevealed && (
+              <>
+                {ocrError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{ocrError}</AlertDescription>
+                  </Alert>
+                )}
+                {ocrPrefilled && !ocrError && (
+                  <div className="flex items-center gap-2 rounded-lg border border-success/20 bg-success/5 px-3 py-2.5 text-sm text-success">
+                    <CheckCircle2 className="size-4 shrink-0" />
+                    {t('prefilled')}
+                  </div>
+                )}
 
-              <DateInput
-                id="payment_date"
-                label={t('fields.paymentDate')}
-                value={paymentDate}
-                onChange={(date) => setPaymentDate(date)}
-                maxDate={new Date()}
-              />
-              <Input
-                id="reference"
-                label={t('fields.reference')}
-                value={reference}
-                onChange={(e) => setReference(e.target.value)}
-              />
-              <Textarea id="notes" label={t('fields.notes')} value={notes} onChange={(e) => setNotes(e.target.value)} />
+                {screenshotPreviewUrl ? (
+                  <div className="flex items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview, not a Next-optimizable remote asset */}
+                    <img
+                      src={screenshotPreviewUrl}
+                      alt=""
+                      className="size-16 rounded-lg border border-border object-cover"
+                    />
+                    <Button type="button" variant="ghost" size="sm" onClick={handleRemoveScreenshot}>
+                      {t('removeScreenshot')}
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" disabled={isScanning} onClick={() => fileInputRef.current?.click()}>
+                      {isScanning && <Loader2 className="size-4 animate-spin" />}
+                      {t('changeScreenshot')}
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <Button type="button" variant="ghost" size="sm" disabled={isScanning} onClick={() => fileInputRef.current?.click()}>
+                      {isScanning && <Loader2 className="size-4 animate-spin" />}
+                      {t('addScreenshot')}
+                    </Button>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex min-w-[8rem] flex-1 flex-col gap-2">
+                    <Label htmlFor="amount">{t('fields.amount')}</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.valueAsNumber || 0)}
+                    />
+                  </div>
+                  <div className="flex min-w-[8rem] flex-1 flex-col gap-2">
+                    <Label htmlFor="currency">{t('fields.currency')}</Label>
+                    <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+                      <SelectTrigger id="currency" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCY_SELECT_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {usdReference !== null && (
+                  <p className="text-xs text-muted-foreground">
+                    {t('usdReference', { amount: formatMoney(usdReference), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">{t('currencyFreeHint')}</p>
+
+                <DateInput
+                  id="payment_date"
+                  label={t('fields.paymentDate')}
+                  value={paymentDate}
+                  onChange={(date) => setPaymentDate(date)}
+                  maxDate={new Date()}
+                />
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="reference">{t('fields.reference')}</Label>
+                  <Input id="reference" value={reference} onChange={(e) => setReference(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="notes">{t('fields.notes')}</Label>
+                  <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        <DialogFooter>
+          {success ? (
+            <Button size="lg" onClick={onClose} type="button">
+              {t('close')}
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" size="lg" onClick={onClose} type="button">
+                {t('cancel')}
+              </Button>
+              <Button size="lg" disabled={!canSubmit || isPending} onClick={onSubmit} type="button">
+                {isPending && <Loader2 className="size-4 animate-spin" />}
+                {t('submit')}
+              </Button>
             </>
           )}
-        </Column>
-      )}
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

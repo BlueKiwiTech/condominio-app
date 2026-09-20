@@ -1,5 +1,4 @@
 import { getTranslations } from 'next-intl/server';
-import { Column, Heading } from '@once-ui-system/core';
 import { createClient } from '@/lib/supabase/server';
 import { PaymentReportsPageClient } from '@/components/paymentReports/PaymentReportsPageClient';
 import type { PaymentReportRow, InstallmentLookup } from '@/components/paymentReports/types';
@@ -36,9 +35,9 @@ export default async function PaymentReportsPage() {
   );
 
   return (
-    <Column fillWidth gap="24" paddingY="32" paddingX="32">
-      <Heading variant="display-strong-s">{t('heading')}</Heading>
+    <div className="flex w-full flex-col gap-6 p-4 md:p-8">
+      <h1 className="text-2xl font-bold">{t('heading')}</h1>
       <PaymentReportsPageClient reports={rows} installmentLookup={installmentLookup} />
-    </Column>
+    </div>
   );
 }

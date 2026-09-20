@@ -1,12 +1,9 @@
-import '@once-ui-system/core/css/styles.css';
-import '@once-ui-system/core/css/tokens.css';
-import '@/resources/custom.css';
-import classNames from 'classnames';
+import '@/app/globals.css';
 import { notFound } from 'next/navigation';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
 import { routing } from '@/i18n/routing';
-import { fonts } from '@/resources/once-ui.config';
+import { fontSans } from '@/app/fonts';
 import { Providers } from '@/components/Providers';
 
 export function generateStaticParams() {
@@ -27,15 +24,7 @@ export default async function RootLayout({
   setRequestLocale(locale);
 
   return (
-    <html
-      lang={locale}
-      className={classNames(
-        fonts.heading.variable,
-        fonts.body.variable,
-        fonts.label.variable,
-        fonts.code.variable,
-      )}
-    >
+    <html lang={locale} className={fontSans.variable}>
       <body>
         <NextIntlClientProvider>
           <Providers>{children}</Providers>

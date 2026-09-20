@@ -4,7 +4,13 @@ import { useState, useTransition } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
-import { Dialog, Column, Input, PasswordInput, Button, Feedback } from '@once-ui-system/core';
+import { Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   createHouseSchema,
   updateHouseSchema,
@@ -73,110 +79,136 @@ export function HouseFormDialog({
   };
 
   return (
-    <Dialog
-      isOpen
-      onClose={onClose}
-      title={isEdit ? t('editHouse') : t('newHouse')}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose} type="button">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? t('editHouse') : t('newHouse')}</DialogTitle>
+        </DialogHeader>
+        {/*
+          ResidentsManager below has its own independent <form> (a separate
+          add-resident Server Action, not part of this house-edit submit) —
+          nesting it inside this form would be invalid HTML (a <form> can't
+          contain another <form>) and throws a hydration error. So this outer
+          form only wraps the house fields; the Save button in DialogFooter
+          is linked to it via `form="house-form"` instead of living inside it.
+        */}
+        <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
+          <form id="house-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          {serverError && (
+            <Alert variant="destructive">
+              <AlertDescription>{serverError}</AlertDescription>
+            </Alert>
+          )}
+          <Controller
+            control={control}
+            name="house_number"
+            render={({ field }) => (
+              <div className="grid gap-1.5">
+                <Label htmlFor="house_number">{t('fields.houseNumber')}</Label>
+                <Input
+                  id="house_number"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  aria-invalid={!!errors.house_number}
+                />
+                {errors.house_number && <p className="text-sm text-destructive">{errors.house_number.message}</p>}
+              </div>
+            )}
+          />
+          <Controller
+            control={control}
+            name="house_name"
+            render={({ field }) => (
+              <div className="grid gap-1.5">
+                <Label htmlFor="house_name">{t('fields.houseName')}</Label>
+                <Input
+                  id="house_name"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  aria-invalid={!!errors.house_name}
+                />
+                {errors.house_name && <p className="text-sm text-destructive">{errors.house_name.message}</p>}
+              </div>
+            )}
+          />
+          <Controller
+            control={control}
+            name="owner_name"
+            render={({ field }) => (
+              <div className="grid gap-1.5">
+                <Label htmlFor="owner_name">{t('fields.ownerName')}</Label>
+                <Input
+                  id="owner_name"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  aria-invalid={!!errors.owner_name}
+                />
+                {errors.owner_name && <p className="text-sm text-destructive">{errors.owner_name.message}</p>}
+              </div>
+            )}
+          />
+          <Controller
+            control={control}
+            name="owner_phone"
+            render={({ field }) => (
+              <div className="grid gap-1.5">
+                <Label htmlFor="owner_phone">{t('fields.ownerPhone')}</Label>
+                <Input
+                  id="owner_phone"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  aria-invalid={!!errors.owner_phone}
+                />
+                {errors.owner_phone && <p className="text-sm text-destructive">{errors.owner_phone.message}</p>}
+              </div>
+            )}
+          />
+          <Controller
+            control={control}
+            name="owner_email"
+            render={({ field }) => (
+              <div className="grid gap-1.5">
+                <Label htmlFor="owner_email">{t('fields.ownerEmail')}</Label>
+                <Input
+                  id="owner_email"
+                  type="email"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  aria-invalid={!!errors.owner_email}
+                />
+                {errors.owner_email && <p className="text-sm text-destructive">{errors.owner_email.message}</p>}
+              </div>
+            )}
+          />
+          <div className="grid gap-1.5">
+            <Label htmlFor="pin">{isEdit ? t('fields.pinResetLabel') : t('fields.pinLabel')}</Label>
+            <PasswordInput
+              id="pin"
+              inputMode="numeric"
+              maxLength={4}
+              {...register('pin')}
+              aria-invalid={!!errors.pin}
+            />
+            {errors.pin && <p className="text-sm text-destructive">{errors.pin.message}</p>}
+          </div>
+          </form>
+          {isEdit && <ResidentsManager houseId={house.id} initialResidents={house.condo_house_residents} />}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} type="button">
             {t('cancel')}
           </Button>
-          <Button variant="primary" loading={isPending} onClick={handleSubmit(onSubmit)} type="button">
+          <Button disabled={isPending} type="submit" form="house-form">
+            {isPending && <Loader2 className="size-4 animate-spin" />}
             {t('save')}
           </Button>
-        </>
-      }
-    >
-      <Column as="form" onSubmit={handleSubmit(onSubmit)} gap="16" fillWidth>
-        {serverError && <Feedback variant="danger" description={serverError} />}
-        <Controller
-          control={control}
-          name="house_number"
-          render={({ field }) => (
-            <Input
-              id="house_number"
-              label={t('fields.houseNumber')}
-              value={field.value ?? ''}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              error={!!errors.house_number}
-              errorMessage={errors.house_number?.message}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="house_name"
-          render={({ field }) => (
-            <Input
-              id="house_name"
-              label={t('fields.houseName')}
-              value={field.value ?? ''}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              error={!!errors.house_name}
-              errorMessage={errors.house_name?.message}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="owner_name"
-          render={({ field }) => (
-            <Input
-              id="owner_name"
-              label={t('fields.ownerName')}
-              value={field.value ?? ''}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              error={!!errors.owner_name}
-              errorMessage={errors.owner_name?.message}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="owner_phone"
-          render={({ field }) => (
-            <Input
-              id="owner_phone"
-              label={t('fields.ownerPhone')}
-              value={field.value ?? ''}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              error={!!errors.owner_phone}
-              errorMessage={errors.owner_phone?.message}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="owner_email"
-          render={({ field }) => (
-            <Input
-              id="owner_email"
-              type="email"
-              label={t('fields.ownerEmail')}
-              value={field.value ?? ''}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              error={!!errors.owner_email}
-              errorMessage={errors.owner_email?.message}
-            />
-          )}
-        />
-        <PasswordInput
-          id="pin"
-          label={isEdit ? t('fields.pinResetLabel') : t('fields.pinLabel')}
-          inputMode="numeric"
-          maxLength={4}
-          {...register('pin')}
-          error={!!errors.pin}
-          errorMessage={errors.pin?.message}
-        />
-        {isEdit && <ResidentsManager houseId={house.id} initialResidents={house.condo_house_residents} />}
-      </Column>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }
