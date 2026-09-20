@@ -5,7 +5,15 @@ import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
-import { Dialog, Column, Row, Input, Textarea, Select, DateInput, Button, Feedback, Text } from '@once-ui-system/core';
+import { Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateInput } from '@/components/ui/date-input';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { updateTemplateSchema, type UpdateTemplateInput } from '@/lib/validation/cuotas';
 import { updateInstallmentTemplate, getPriceHistory, type PriceHistoryEntry } from '@/lib/actions/cuotas';
 import { toDateOnly } from '@/lib/cuotas/generate';
@@ -75,130 +83,137 @@ export function CuotaEditDialog({
   };
 
   return (
-    <Dialog
-      isOpen
-      onClose={onClose}
-      title={t('editCuota')}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose} type="button">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{t('editCuota')}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
+          {serverError && (
+            <Alert variant="destructive">
+              <AlertDescription>{serverError}</AlertDescription>
+            </Alert>
+          )}
+          {template.is_divided && (
+            <Alert>
+              <AlertDescription>{t('editDividedAmountLocked')}</AlertDescription>
+            </Alert>
+          )}
+          <Controller
+            control={control}
+            name="name"
+            render={({ field }) => (
+              <div className="grid gap-1.5">
+                <Label htmlFor="name">{t('fields.name')}</Label>
+                <Input
+                  id="name"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  aria-invalid={!!errors.name}
+                />
+                {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+              </div>
+            )}
+          />
+          <Controller
+            control={control}
+            name="description"
+            render={({ field }) => (
+              <div className="grid gap-1.5">
+                <Label htmlFor="description">{t('fields.description')}</Label>
+                <Textarea id="description" value={field.value ?? ''} onChange={field.onChange} onBlur={field.onBlur} />
+              </div>
+            )}
+          />
+          <Controller
+            control={control}
+            name="currency"
+            render={({ field }) => (
+              <div className="grid gap-1.5">
+                <Label htmlFor="currency">{t('fields.currency')}</Label>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="currency" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCY_SELECT_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.currency && <p className="text-sm text-destructive">{errors.currency.message}</p>}
+              </div>
+            )}
+          />
+          <Controller
+            control={control}
+            name="amount"
+            render={({ field }) => (
+              <div className="grid gap-1.5">
+                <Label htmlFor="amount">{t('fields.amount')}</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  disabled={template.is_divided}
+                  value={field.value as number}
+                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  aria-invalid={!!errors.amount}
+                />
+                {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
+              </div>
+            )}
+          />
+          {!template.is_divided && (
+            <>
+              <DateInput
+                id="effective_from"
+                label={t('fields.effectiveFrom')}
+                placeholder={t('fields.effectiveFromPlaceholder')}
+                value={effectiveFrom}
+                onChange={(date) => setEffectiveFrom(date)}
+              />
+              <p className="text-xs text-muted-foreground">{t('effectiveFromHelp')}</p>
+            </>
+          )}
+          <p className="text-xs text-muted-foreground">{t('editCascadeNote')}</p>
+          {!template.is_divided && priceHistory && priceHistory.length > 0 && (
+            <div className="flex flex-col gap-2 border-t pt-2">
+              <span className="text-sm font-semibold">{t('priceHistory.heading')}</span>
+              <div className="flex max-h-36 flex-col gap-2 overflow-y-auto">
+                {priceHistory.map((entry) => (
+                  <div key={entry.id} className="flex items-center justify-between gap-2">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm">
+                        {formatAmount(entry.old_amount, template.currency)} → {formatAmount(entry.new_amount, template.currency)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {entry.effective_from
+                          ? t('priceHistory.effectiveFrom', {
+                              date: formatShortDate(new Date(entry.effective_from), locale),
+                            })
+                          : t('priceHistory.effectiveFromAll')}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{formatShortDate(new Date(entry.changed_at), locale)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </form>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} type="button">
             {t('cancel')}
           </Button>
-          <Button variant="primary" loading={isPending} onClick={handleSubmit(onSubmit)} type="button">
+          <Button disabled={isPending} onClick={handleSubmit(onSubmit)} type="button">
+            {isPending && <Loader2 className="size-4 animate-spin" />}
             {t('save')}
           </Button>
-        </>
-      }
-    >
-      <Column as="form" onSubmit={handleSubmit(onSubmit)} gap="16" fillWidth>
-        {serverError && <Feedback variant="danger" description={serverError} />}
-        {template.is_divided && (
-          <Feedback variant="info" description={t('editDividedAmountLocked')} />
-        )}
-        <Controller
-          control={control}
-          name="name"
-          render={({ field }) => (
-            <Input
-              id="name"
-              label={t('fields.name')}
-              value={field.value ?? ''}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              error={!!errors.name}
-              errorMessage={errors.name?.message}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="description"
-          render={({ field }) => (
-            <Textarea
-              id="description"
-              label={t('fields.description')}
-              value={field.value ?? ''}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="currency"
-          render={({ field }) => (
-            <Select
-              id="currency"
-              label={t('fields.currency')}
-              options={CURRENCY_SELECT_OPTIONS}
-              value={field.value}
-              onSelect={(value) => field.onChange(Array.isArray(value) ? value[0] : value)}
-              error={!!errors.currency}
-              errorMessage={errors.currency?.message}
-              fillWidth
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="amount"
-          render={({ field }) => (
-            <Input
-              id="amount"
-              type="number"
-              label={t('fields.amount')}
-              disabled={template.is_divided}
-              value={field.value as number}
-              onChange={(e) => field.onChange(e.target.valueAsNumber)}
-              error={!!errors.amount}
-              errorMessage={errors.amount?.message}
-            />
-          )}
-        />
-        {!template.is_divided && (
-          <>
-            <DateInput
-              id="effective_from"
-              label={t('fields.effectiveFrom')}
-              placeholder={t('fields.effectiveFromPlaceholder')}
-              value={effectiveFrom}
-              onChange={(date) => setEffectiveFrom(date)}
-            />
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('effectiveFromHelp')}
-            </Text>
-          </>
-        )}
-        <Text variant="label-default-s" onBackground="neutral-weak">
-          {t('editCascadeNote')}
-        </Text>
-        {!template.is_divided && priceHistory && priceHistory.length > 0 && (
-          <Column gap="8" fillWidth paddingTop="8" style={{ borderTop: '1px solid var(--neutral-border-weak)' }}>
-            <Text variant="label-strong-s">{t('priceHistory.heading')}</Text>
-            <Column gap="8" fillWidth style={{ maxHeight: '9rem', overflowY: 'auto' }}>
-              {priceHistory.map((entry) => (
-                <Row key={entry.id} horizontal="between" vertical="center" gap="8" fillWidth>
-                  <Column gap="2">
-                    <Text variant="body-default-s">
-                      {formatAmount(entry.old_amount, template.currency)} → {formatAmount(entry.new_amount, template.currency)}
-                    </Text>
-                    <Text variant="label-default-s" onBackground="neutral-weak">
-                      {entry.effective_from
-                        ? t('priceHistory.effectiveFrom', {
-                            date: formatShortDate(new Date(entry.effective_from), locale),
-                          })
-                        : t('priceHistory.effectiveFromAll')}
-                    </Text>
-                  </Column>
-                  <Text variant="label-default-s" onBackground="neutral-weak">
-                    {formatShortDate(new Date(entry.changed_at), locale)}
-                  </Text>
-                </Row>
-              ))}
-            </Column>
-          </Column>
-        )}
-      </Column>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

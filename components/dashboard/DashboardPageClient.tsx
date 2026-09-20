@@ -2,23 +2,14 @@
 
 import { useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { format } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import {
-  Column,
-  Row,
-  Grid,
-  Card,
-  Heading,
-  Text,
-  Button,
-  Tag,
-  Table,
-  LineChart,
-  SmartLink,
-  DataThemeProvider,
-  type TableHeader,
-} from '@once-ui-system/core';
+import { CartesianGrid, Line, LineChart as RechartsLineChart, XAxis } from 'recharts';
+import { Link } from '@/i18n/navigation';
+import { buttonVariants } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { computeMorosos, countDelinquentHouses } from '@/lib/reporting/morosos';
 import {
   collectedInMonth,
@@ -30,22 +21,19 @@ import {
 import { daysToCloseOfMonth } from '@/lib/reporting/dateMath';
 import { groupPaymentsByBatch } from '@/components/payments/types';
 import { CURRENCIES, type DashboardExpense, type DashboardHouse, type DashboardInstallment, type PaymentRow } from './types';
-import { subMonths } from 'date-fns';
 import { currencyLabel, formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import { ExchangeRateCard } from './ExchangeRateCard';
 import { StatCard } from './StatCard';
 import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
 
-// Fixed per-currency identity across the three income charts below (Once
-// UI's --data-* chart-color tokens, not raw hex, so they stay theme/dark-
-// mode consistent) -- user request: Bs blue, USD green, USDT (Binance)
-// mustard/dark yellow. Kept as three SEPARATE charts rather than one
+// Fixed per-currency identity across the three income charts below, mapped
+// onto the app's --chart-1..3 CSS vars (app/globals.css) so each stays
+// theme/dark-mode consistent. Kept as three SEPARATE charts rather than one
 // combined multi-series chart: a typical cuota is single/double-digit in
 // USD but 100x+ that in Bs at current exchange rates, so sharing one axis
-// would flatten the USD/USDT lines (or need a dual axis, which Once UI's
-// LineChart doesn't support and is the wrong move regardless).
-const CHART_COLOR_BY_CURRENCY: Record<string, string> = { Bs: 'blue', USD: 'green', USDT: 'yellow' };
+// would flatten the USD/USDT lines (dual axes are the wrong move regardless).
+const CHART_VAR_BY_CURRENCY: Record<string, string> = { Bs: 'var(--chart-2)', USD: 'var(--chart-1)', USDT: 'var(--chart-3)' };
 
 function CurrencyAmountList({
   amounts,
@@ -56,20 +44,16 @@ function CurrencyAmountList({
 }) {
   const entries = Object.entries(amounts).filter(([, v]) => v !== undefined);
   if (entries.length === 0) {
-    return (
-      <Text variant="body-default-s" onBackground="neutral-weak">
-        {emptyLabel}
-      </Text>
-    );
+    return <span className="text-sm text-muted-foreground">{emptyLabel}</span>;
   }
   return (
-    <Column gap="4">
+    <div className="flex flex-col gap-1">
       {entries.map(([currency, amount]) => (
-        <Text key={currency} variant="heading-strong-m">
+        <span key={currency} className="text-2xl font-bold">
           {formatAmount(amount ?? 0, currency)}
-        </Text>
+        </span>
       ))}
-    </Column>
+    </div>
   );
 }
 
@@ -111,174 +95,171 @@ export function DashboardPageClient({
 
   const recentBatches = useMemo(() => groupPaymentsByBatch(payments).slice(0, 8), [payments]);
 
-  const debtHeaders: TableHeader[] = [
-    { key: 'house', content: t('debtTable.house') },
-    { key: 'owner', content: t('debtTable.owner') },
-    { key: 'owed', content: t('debtTable.owed') },
-    { key: 'since', content: t('debtTable.since') },
-    { key: 'daysOverdue', content: t('debtTable.daysOverdue') },
-  ];
-
-  const debtRows = morosos.map((m) => [
-    m.house_name ? `${m.house_number} · ${m.house_name}` : m.house_number,
-    m.owner_name ?? '—',
-    formatAmount(m.owed, m.currency),
-    formatShortDate(new Date(m.owedSince), locale),
-    <Tag key={`${m.house_id}-${m.currency}`} variant="danger" label={String(m.daysOverdue)} />,
-  ]);
-
   return (
-    <Column fillWidth gap="24" paddingY="32" paddingX="32">
-      <Row fillWidth horizontal="between" vertical="center" wrap gap="16">
-        <Column gap="4">
-          <Heading variant="display-strong-s">{t('heading')}</Heading>
-          <Text variant="body-default-m" onBackground="neutral-weak">
-            {t('subtitle', { days: daysLeft, month: monthLabel })}
-          </Text>
-        </Column>
-        <Row gap="8" wrap>
-          <SmartLink href="/pagos/nuevo">
-            <Button variant="primary" type="button">
-              {t('actions.registerPayment')}
-            </Button>
-          </SmartLink>
-          <SmartLink href="/cuotas/new">
-            <Button variant="secondary" type="button">
-              {t('actions.newCuota')}
-            </Button>
-          </SmartLink>
-        </Row>
-      </Row>
+    <div className="flex w-full flex-col gap-6 p-4 md:p-8">
+      <div className="flex w-full flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold">{t('heading')}</h1>
+          <p className="text-sm text-muted-foreground">{t('subtitle', { days: daysLeft, month: monthLabel })}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/pagos/nuevo" className={buttonVariants({ variant: 'default' })}>
+            {t('actions.registerPayment')}
+          </Link>
+          <Link href="/cuotas/new" className={buttonVariants({ variant: 'outline' })}>
+            {t('actions.newCuota')}
+          </Link>
+        </div>
+      </div>
 
-      <Grid columns="5" m={{ columns: 3 }} s={{ columns: 1 }} gap="16" fillWidth>
-        <StatCard stripeColor="success-strong">
-          <Column gap="8">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('kpis.collected.title', { month: monthLabel })}
-            </Text>
+      <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-5">
+        <StatCard stripeColor="success">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium text-muted-foreground">{t('kpis.collected.title', { month: monthLabel })}</span>
             <CurrencyAmountList amounts={collectedThisMonth} emptyLabel={t('kpis.collected.empty')} />
             {CURRENCIES.filter((c) => collectedThisMonth[c] !== undefined).map((c) => {
               const change = percentChange(collectedThisMonth[c] ?? 0, collectedLastMonth[c] ?? 0);
               return (
-                <Text key={c} variant="body-default-xs" onBackground={change !== null && change >= 0 ? 'success-weak' : 'danger-weak'}>
+                <span
+                  key={c}
+                  className={`text-xs ${change !== null && change >= 0 ? 'text-success' : 'text-destructive'}`}
+                >
                   {change === null
                     ? t('kpis.collected.noPrior', { currency: currencyLabel(c) })
                     : t('kpis.collected.change', { percent: `${change >= 0 ? '+' : ''}${change.toFixed(1)}`, currency: currencyLabel(c) })}
-                </Text>
+                </span>
               );
             })}
-          </Column>
+          </div>
         </StatCard>
 
-        <StatCard stripeColor="danger-strong">
-          <Column gap="8">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('kpis.morosos.title')}
-            </Text>
-            <Text variant="heading-strong-m">{t('kpis.morosos.count', { count: morososHouseCount })}</Text>
-            <Text variant="body-default-xs" onBackground="neutral-weak">
-              {t('kpis.morosos.of', { total: houses.length })}
-            </Text>
-          </Column>
+        <StatCard stripeColor="destructive">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium text-muted-foreground">{t('kpis.morosos.title')}</span>
+            <span className="text-2xl font-bold">{t('kpis.morosos.count', { count: morososHouseCount })}</span>
+            <span className="text-xs text-muted-foreground">{t('kpis.morosos.of', { total: houses.length })}</span>
+          </div>
         </StatCard>
 
-        <StatCard stripeColor="brand-strong">
-          <Column gap="8">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('kpis.outstanding.title')}
-            </Text>
+        <StatCard stripeColor="primary">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium text-muted-foreground">{t('kpis.outstanding.title')}</span>
             <CurrencyAmountList amounts={outstanding} emptyLabel={t('kpis.outstanding.empty')} />
-          </Column>
+          </div>
         </StatCard>
 
-        <StatCard stripeColor="warning-strong">
-          <Column gap="8">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('kpis.pendingExpenses.title', { month: monthLabel })}
-            </Text>
+        <StatCard stripeColor="warning">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium text-muted-foreground">{t('kpis.pendingExpenses.title', { month: monthLabel })}</span>
             <CurrencyAmountList amounts={pendingExpenses} emptyLabel={t('kpis.pendingExpenses.empty')} />
-          </Column>
+          </div>
         </StatCard>
 
         <ExchangeRateCard rates={exchangeRates} />
-      </Grid>
+      </div>
 
-      <Column gap="16" fillWidth>
-        <Heading variant="heading-strong-s">{t('chart.heading')}</Heading>
-        {/* Half the app-wide default chart height (24rem) -- LineChart itself
-            has no height prop; its drawing area is driven entirely by the
-            DataThemeProvider context (components/Providers.tsx sets the
-            24rem default for the whole app), so a local nested provider is
-            the only way to shrink just these three charts. */}
-        <DataThemeProvider height={12}>
-          <Row gap="16" wrap fillWidth>
-            {CURRENCIES.map((currency) => {
-              const hasData = series.some((point) => (point[currency] ?? 0) > 0);
-              return (
-                <Card key={currency} padding="24" radius="s" background="neutral-alpha-weak" flex={1} minWidth={16}>
-                  <Column gap="12">
-                    <Text variant="label-strong-s">{currencyLabel(currency)}</Text>
-                    {hasData ? (
-                      <LineChart
-                        series={{ key: currency, color: CHART_COLOR_BY_CURRENCY[currency] }}
-                        data={series.map((p) => ({ label: p.label, [currency]: p[currency] ?? 0 }))}
-                        axis="x"
-                        legend={{ display: false }}
-                      />
-                    ) : (
-                      <Text variant="body-default-s" onBackground="neutral-weak">
-                        {t('chart.empty', { currency: currencyLabel(currency) })}
-                      </Text>
-                    )}
-                  </Column>
-                </Card>
-              );
-            })}
-          </Row>
-        </DataThemeProvider>
-      </Column>
+      <div className="flex w-full flex-col gap-4">
+        <h2 className="text-lg font-semibold">{t('chart.heading')}</h2>
+        <div className="flex w-full flex-wrap gap-4">
+          {CURRENCIES.map((currency) => {
+            const hasData = series.some((point) => (point[currency] ?? 0) > 0);
+            const chartConfig: ChartConfig = {
+              [currency]: { label: currencyLabel(currency), color: CHART_VAR_BY_CURRENCY[currency] },
+            };
+            return (
+              <div key={currency} className="min-w-[16rem] flex-1 rounded-[var(--radius)] border bg-card p-6 shadow-sm">
+                <div className="flex flex-col gap-3">
+                  <span className="text-sm font-semibold">{currencyLabel(currency)}</span>
+                  {hasData ? (
+                    <ChartContainer config={chartConfig} className="aspect-auto h-48 w-full">
+                      <RechartsLineChart data={series.map((p) => ({ label: p.label, [currency]: p[currency] ?? 0 }))}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Line
+                          dataKey={currency}
+                          type="monotone"
+                          stroke={`var(--color-${currency})`}
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </RechartsLineChart>
+                    </ChartContainer>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">{t('chart.empty', { currency: currencyLabel(currency) })}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-      <Column gap="16" fillWidth>
-        <Heading variant="heading-strong-s">{t('debtTable.heading')}</Heading>
-        <Table data={{ headers: debtHeaders, rows: debtRows }} emptyState={t('debtTable.empty')} />
-      </Column>
+      <div className="flex w-full flex-col gap-4">
+        <h2 className="text-lg font-semibold">{t('debtTable.heading')}</h2>
+        <div className="rounded-[var(--radius)] border bg-card shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('debtTable.house')}</TableHead>
+                <TableHead>{t('debtTable.owner')}</TableHead>
+                <TableHead className="text-right">{t('debtTable.owed')}</TableHead>
+                <TableHead>{t('debtTable.since')}</TableHead>
+                <TableHead className="text-right">{t('debtTable.daysOverdue')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {morosos.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-11 text-center text-sm text-muted-foreground">
+                    {t('debtTable.empty')}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                morosos.map((m) => (
+                  <TableRow key={`${m.house_id}-${m.currency}`}>
+                    <TableCell className="h-11">{m.house_name ? `${m.house_number} · ${m.house_name}` : m.house_number}</TableCell>
+                    <TableCell className="h-11">{m.owner_name ?? '—'}</TableCell>
+                    <TableCell className="h-11 text-right">{formatAmount(m.owed, m.currency)}</TableCell>
+                    <TableCell className="h-11">{formatShortDate(new Date(m.owedSince), locale)}</TableCell>
+                    <TableCell className="h-11 text-right">
+                      <Badge variant="destructive">{m.daysOverdue}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
 
-      <Column gap="16" fillWidth>
-        <Row horizontal="between" vertical="center">
-          <Heading variant="heading-strong-s">{t('recentPayments.heading')}</Heading>
-          <SmartLink href="/pagos">
-            <Text variant="label-default-s">{t('recentPayments.viewAll')}</Text>
-          </SmartLink>
-        </Row>
+      <div className="flex w-full flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{t('recentPayments.heading')}</h2>
+          <Link href="/pagos" className="text-sm font-medium text-primary hover:underline">
+            {t('recentPayments.viewAll')}
+          </Link>
+        </div>
         {recentBatches.length === 0 ? (
-          <Text variant="body-default-s" onBackground="neutral-weak">
-            {t('recentPayments.empty')}
-          </Text>
+          <span className="text-sm text-muted-foreground">{t('recentPayments.empty')}</span>
         ) : (
-          <Column gap="8" fillWidth maxHeight={24} overflowY="auto">
+          <div className="flex max-h-96 w-full flex-col gap-2 overflow-y-auto">
             {recentBatches.map((batch) => (
-              <SmartLink key={batch.batchId} href={`/pagos/${batch.batchId}`}>
-                <Row
-                  fillWidth
-                  horizontal="between"
-                  vertical="center"
-                  padding="12"
-                  radius="s"
-                  border="neutral-alpha-weak"
-                >
-                  <Column gap="2">
-                    <Text variant="label-strong-s">{batch.houseLabel}</Text>
-                    <Text variant="body-default-xs" onBackground="neutral-weak">
-                      {formatShortDate(new Date(batch.paymentDate), locale)}
-                    </Text>
-                  </Column>
-                  <Text variant="label-strong-s">{formatAmount(batch.totalAmount, batch.currency)}</Text>
-                </Row>
-              </SmartLink>
+              <Link
+                key={batch.batchId}
+                href={`/pagos/${batch.batchId}`}
+                className="flex w-full items-center justify-between gap-4 rounded-[var(--radius)] border p-3"
+              >
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-semibold">{batch.houseLabel}</span>
+                  <span className="text-xs text-muted-foreground">{formatShortDate(new Date(batch.paymentDate), locale)}</span>
+                </div>
+                <span className="text-sm font-semibold">{formatAmount(batch.totalAmount, batch.currency)}</span>
+              </Link>
             ))}
-          </Column>
+          </div>
         )}
-      </Column>
-    </Column>
+      </div>
+    </div>
   );
 }

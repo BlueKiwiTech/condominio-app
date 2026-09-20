@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Column, Row, Button, Table, Select, SmartLink, type TableHeader } from '@once-ui-system/core';
+import { Link } from '@/i18n/navigation';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { groupPaymentsByBatch, type PaymentRow, type HouseOption } from './types';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
@@ -17,6 +22,7 @@ export function PaymentsPageClient({
   const t = useTranslations('payments');
   const locale = useLocale();
   const [houseFilter, setHouseFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
 
   const houseOptions = [
     { label: t('filterAllHouses'), value: 'all' },
@@ -33,47 +39,88 @@ export function PaymentsPageClient({
 
   const batches = useMemo(() => groupPaymentsByBatch(filtered), [filtered]);
 
-  const headers: TableHeader[] = [
-    { key: 'date', content: t('table.date') },
-    { key: 'receipt', content: t('table.receipt') },
-    { key: 'house', content: t('table.house') },
-    { key: 'cuotas', content: t('table.cuotas') },
-    { key: 'amount', content: t('table.amount') },
-    { key: 'reference', content: t('table.reference') },
-    { key: 'actions', content: '' },
-  ];
-
-  const rows = batches.map((batch) => [
-    formatShortDate(batch.paymentDate, locale),
-    batch.receiptNumber ? `#${String(batch.receiptNumber).padStart(4, '0')}` : '—',
-    batch.houseLabel,
-    `${batch.installmentNames.length} ${batch.installmentNames.length === 1 ? t('cuotaSingular') : t('cuotaPlural')}`,
-    formatAmount(batch.totalAmount, batch.currency),
-    batch.reference ?? '—',
-    <SmartLink key={`detail-${batch.batchId}`} href={`/pagos/${batch.batchId}`}>
-      {t('viewDetail')}
-    </SmartLink>,
-  ]);
+  const visibleBatches = useMemo(() => {
+    if (!search) return batches;
+    const q = search.toLowerCase();
+    return batches.filter((batch) =>
+      [batch.houseLabel, batch.reference ?? '', ...batch.installmentNames].some((v) => v.toLowerCase().includes(q)),
+    );
+  }, [batches, search]);
 
   return (
-    <Column gap="16" fillWidth>
-      <Row gap="16" fillWidth vertical="end" wrap>
-        <Select
-          id="house-filter"
-          label={t('filterHouse')}
-          options={houseOptions}
-          value={houseFilter}
-          onSelect={(value) => setHouseFilter(Array.isArray(value) ? value[0] : value)}
-        />
-        <Row flex={1} horizontal="end">
-          <SmartLink href="/pagos/nuevo">
-            <Button variant="primary" type="button">
-              {t('registerPayment')}
-            </Button>
-          </SmartLink>
-        </Row>
-      </Row>
-      <Table data={{ headers, rows }} searchable searchPlaceholder={t('searchPlaceholder')} emptyState={t('empty')} />
-    </Column>
+    <div className="flex w-full flex-col gap-4">
+      <div className="flex w-full flex-wrap items-end gap-4">
+        <div className="flex min-w-[220px] flex-col gap-2">
+          <Label htmlFor="house-filter">{t('filterHouse')}</Label>
+          <Select value={houseFilter} onValueChange={(v) => v && setHouseFilter(v)}>
+            <SelectTrigger id="house-filter" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {houseOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex min-w-[220px] flex-1 flex-col gap-2">
+          <Label htmlFor="payments-search">{t('searchPlaceholder')}</Label>
+          <Input
+            id="payments-search"
+            placeholder={t('searchPlaceholder')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex justify-end">
+          <Button render={<Link href="/pagos/nuevo" />} nativeButton={false}>{t('registerPayment')}</Button>
+        </div>
+      </div>
+
+      <div className="w-full overflow-hidden rounded-[var(--radius)] border shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('table.date')}</TableHead>
+              <TableHead>{t('table.receipt')}</TableHead>
+              <TableHead>{t('table.house')}</TableHead>
+              <TableHead>{t('table.cuotas')}</TableHead>
+              <TableHead className="text-right">{t('table.amount')}</TableHead>
+              <TableHead>{t('table.reference')}</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visibleBatches.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  {t('empty')}
+                </TableCell>
+              </TableRow>
+            ) : (
+              visibleBatches.map((batch) => (
+                <TableRow key={batch.batchId} className="h-11">
+                  <TableCell>{formatShortDate(batch.paymentDate, locale)}</TableCell>
+                  <TableCell>{batch.receiptNumber ? `#${String(batch.receiptNumber).padStart(4, '0')}` : '—'}</TableCell>
+                  <TableCell className="whitespace-normal">{batch.houseLabel}</TableCell>
+                  <TableCell>
+                    {batch.installmentNames.length} {batch.installmentNames.length === 1 ? t('cuotaSingular') : t('cuotaPlural')}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{formatAmount(batch.totalAmount, batch.currency)}</TableCell>
+                  <TableCell>{batch.reference ?? '—'}</TableCell>
+                  <TableCell>
+                    <Link href={`/pagos/${batch.batchId}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+                      {t('viewDetail')}
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 }

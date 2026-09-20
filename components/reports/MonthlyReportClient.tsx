@@ -4,7 +4,11 @@ import { useMemo, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { format, subMonths } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { Column, Row, Grid, Heading, Text, Chip, Select, Table, Tag, type TableHeader } from '@once-ui-system/core';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { StatCard } from '@/components/dashboard/StatCard';
 import {
   buildMonthlyReport,
@@ -20,12 +24,12 @@ import { currencyLabel, formatAmount, formatMoney } from '@/lib/currency';
 const CURRENCIES: Currency[] = ['USD', 'Bs', 'USDT'];
 const STATUSES: MonthlyReportStatus[] = ['pending', 'partial', 'paid', 'overdue'];
 
-function statusVariant(status: MonthlyReportStatus): 'info' | 'warning' | 'success' | 'danger' {
-  if (status === 'paid') return 'success';
-  if (status === 'overdue') return 'danger';
-  if (status === 'partial') return 'warning';
-  return 'info';
-}
+const STATUS_CLASSES: Record<MonthlyReportStatus, string> = {
+  paid: 'bg-success/10 text-success',
+  overdue: 'bg-destructive/10 text-destructive',
+  partial: 'bg-warning/10 text-warning',
+  pending: 'bg-muted text-muted-foreground',
+};
 
 export function MonthlyReportClient({
   installments,
@@ -74,107 +78,136 @@ export function MonthlyReportClient({
 
   const totals = useMemo(() => reportTotalsByCurrency(filteredRows), [filteredRows]);
 
-  const headers: TableHeader[] = [
-    { key: 'house', content: t('table.house') },
-    { key: 'currency', content: t('table.currency') },
-    { key: 'expected', content: t('table.expected') },
-    { key: 'paid', content: t('table.paid') },
-    { key: 'pending', content: t('table.pending') },
-    { key: 'favor', content: t('table.favor') },
-    { key: 'status', content: t('table.status') },
-  ];
-
-  const rows = filteredRows.map((row) => [
-    row.house_name ? `${row.house_number} · ${row.house_name}` : row.house_number,
-    currencyLabel(row.currency),
-    formatMoney(row.expected),
-    formatMoney(row.paid),
-    formatMoney(row.pending),
-    row.favor > 0 ? formatMoney(row.favor) : '—',
-    <Tag key={`${row.house_id}-${row.currency}`} variant={statusVariant(row.status)} label={t(`status.${row.status}`)} />,
-  ]);
-
   return (
-    <Column fillWidth gap="24" paddingY="32" paddingX="32">
-      <Heading variant="display-strong-s">{t('heading')}</Heading>
+    <div className="flex w-full flex-col gap-6 p-4 md:p-8">
+      <h1 className="text-2xl font-bold">{t('heading')}</h1>
 
-      <Row gap="16" wrap vertical="end">
-        <Select
-          id="month"
-          label={t('monthLabel')}
-          options={monthOptions.map((m) => ({ label: m.label, value: m.value }))}
-          value={monthValue}
-          onSelect={(v) => setMonthValue(v as string)}
-        />
-        <Column gap="8">
-          <Text variant="label-default-s" onBackground="neutral-weak">
-            {t('currencyLabel')}
-          </Text>
-          <Row gap="8" wrap>
-            <Chip label={t('all')} selected={currencyFilter === 'all'} onClick={() => setCurrencyFilter('all')} />
+      <div className="flex flex-wrap items-end gap-6">
+        <div className="flex min-w-[200px] flex-col gap-2">
+          <Label htmlFor="month">{t('monthLabel')}</Label>
+          <Select value={monthValue} onValueChange={(v) => v && setMonthValue(v)}>
+            <SelectTrigger id="month" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map((m) => (
+                <SelectItem key={m.value} value={m.value}>
+                  {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('currencyLabel')}</span>
+          <ToggleGroup
+            variant="outline"
+            value={[currencyFilter]}
+            onValueChange={(vals) => vals[0] && setCurrencyFilter(vals[0] as Currency | 'all')}
+            className="flex-wrap"
+          >
+            <ToggleGroupItem value="all">{t('all')}</ToggleGroupItem>
             {CURRENCIES.map((c) => (
-              <Chip key={c} label={currencyLabel(c)} selected={currencyFilter === c} onClick={() => setCurrencyFilter(c)} />
+              <ToggleGroupItem key={c} value={c}>
+                {currencyLabel(c)}
+              </ToggleGroupItem>
             ))}
-          </Row>
-        </Column>
-        <Column gap="8">
-          <Text variant="label-default-s" onBackground="neutral-weak">
-            {t('statusLabel')}
-          </Text>
-          <Row gap="8" wrap>
-            <Chip label={t('all')} selected={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
+          </ToggleGroup>
+        </div>
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('statusLabel')}</span>
+          <ToggleGroup
+            variant="outline"
+            value={[statusFilter]}
+            onValueChange={(vals) => vals[0] && setStatusFilter(vals[0] as MonthlyReportStatus | 'all')}
+            className="flex-wrap"
+          >
+            <ToggleGroupItem value="all">{t('all')}</ToggleGroupItem>
             {STATUSES.map((s) => (
-              <Chip key={s} label={t(`status.${s}`)} selected={statusFilter === s} onClick={() => setStatusFilter(s)} />
+              <ToggleGroupItem key={s} value={s}>
+                {t(`status.${s}`)}
+              </ToggleGroupItem>
             ))}
-          </Row>
-        </Column>
-      </Row>
+          </ToggleGroup>
+        </div>
+      </div>
 
       {totals.length > 0 && (
-        <Column gap="20" fillWidth>
+        <div className="flex w-full flex-col gap-5">
           {totals.map((total) => (
-            <Column key={total.currency} gap="12" fillWidth>
-              <Text variant="label-strong-s">{t('totalsFor', { currency: currencyLabel(total.currency) })}</Text>
-              <Grid columns="4" m={{ columns: 2 }} s={{ columns: 1 }} gap="16" fillWidth>
-                <StatCard stripeColor="brand-strong">
-                  <Column gap="8">
-                    <Text variant="label-default-s" onBackground="neutral-weak">
-                      {t('table.expected')}
-                    </Text>
-                    <Text variant="heading-strong-m">{formatAmount(total.expected, total.currency)}</Text>
-                  </Column>
+            <div key={total.currency} className="flex w-full flex-col gap-3">
+              <span className="text-sm font-semibold">{t('totalsFor', { currency: currencyLabel(total.currency) })}</span>
+              <div className="grid grid-cols-4 gap-4 max-md:grid-cols-2 max-sm:grid-cols-1">
+                <StatCard stripeColor="primary">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('table.expected')}</span>
+                    <span className="text-xl font-semibold">{formatAmount(total.expected, total.currency)}</span>
+                  </div>
                 </StatCard>
-                <StatCard stripeColor="success-strong">
-                  <Column gap="8">
-                    <Text variant="label-default-s" onBackground="neutral-weak">
-                      {t('table.paid')}
-                    </Text>
-                    <Text variant="heading-strong-m">{formatAmount(total.paid, total.currency)}</Text>
-                  </Column>
+                <StatCard stripeColor="success">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('table.paid')}</span>
+                    <span className="text-xl font-semibold">{formatAmount(total.paid, total.currency)}</span>
+                  </div>
                 </StatCard>
-                <StatCard stripeColor="warning-strong">
-                  <Column gap="8">
-                    <Text variant="label-default-s" onBackground="neutral-weak">
-                      {t('table.pending')}
-                    </Text>
-                    <Text variant="heading-strong-m">{formatAmount(total.pending, total.currency)}</Text>
-                  </Column>
+                <StatCard stripeColor="warning">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('table.pending')}</span>
+                    <span className="text-xl font-semibold">{formatAmount(total.pending, total.currency)}</span>
+                  </div>
                 </StatCard>
-                <StatCard stripeColor="success-strong">
-                  <Column gap="8">
-                    <Text variant="label-default-s" onBackground="neutral-weak">
-                      {t('table.favor')}
-                    </Text>
-                    <Text variant="heading-strong-m">{formatAmount(total.favor, total.currency)}</Text>
-                  </Column>
+                <StatCard stripeColor="success">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('table.favor')}</span>
+                    <span className="text-xl font-semibold">{formatAmount(total.favor, total.currency)}</span>
+                  </div>
                 </StatCard>
-              </Grid>
-            </Column>
+              </div>
+            </div>
           ))}
-        </Column>
+        </div>
       )}
 
-      <Table data={{ headers, rows }} emptyState={t('empty')} />
-    </Column>
+      <div className="w-full overflow-hidden rounded-[var(--radius)] border shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('table.house')}</TableHead>
+              <TableHead>{t('table.currency')}</TableHead>
+              <TableHead className="text-right">{t('table.expected')}</TableHead>
+              <TableHead className="text-right">{t('table.paid')}</TableHead>
+              <TableHead className="text-right">{t('table.pending')}</TableHead>
+              <TableHead className="text-right">{t('table.favor')}</TableHead>
+              <TableHead>{t('table.status')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredRows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  {t('empty')}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredRows.map((row) => (
+                <TableRow key={`${row.house_id}-${row.currency}`} className="h-11">
+                  <TableCell className="whitespace-normal">{row.house_name ? `${row.house_number} · ${row.house_name}` : row.house_number}</TableCell>
+                  <TableCell>{currencyLabel(row.currency)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatMoney(row.expected)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatMoney(row.paid)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatMoney(row.pending)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{row.favor > 0 ? formatMoney(row.favor) : '—'}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={STATUS_CLASSES[row.status]}>
+                      {t(`status.${row.status}`)}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 }

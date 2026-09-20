@@ -4,7 +4,13 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
-import { Column, Input, PasswordInput, Button, Feedback, SmartLink, Text } from '@once-ui-system/core';
+import { Loader2 } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { loginSchema, type LoginInput } from '@/lib/validation/auth';
 import { login } from '@/lib/actions/auth';
 
@@ -36,34 +42,45 @@ export function LoginForm({
   };
 
   return (
-    <Column as="form" onSubmit={handleSubmit(onSubmit)} gap="16" fillWidth>
-      {successMessage && <Feedback variant="success" description={successMessage} />}
-      {serverError && <Feedback variant="danger" description={serverError} />}
-      <Input
-        id="email"
-        type="email"
-        label={t('labels.email')}
-        {...register('email')}
-        error={!!errors.email}
-        errorMessage={errors.email?.message}
-      />
-      <PasswordInput
-        id="password"
-        label={t('labels.password')}
-        {...register('password')}
-        error={!!errors.password}
-        errorMessage={errors.password?.message}
-      />
-      <Button type="submit" variant="primary" fillWidth loading={isPending}>
+    <form onSubmit={handleSubmit(onSubmit)} className="flex w-full flex-col gap-4">
+      {successMessage && (
+        <Alert>
+          <AlertDescription>{successMessage}</AlertDescription>
+        </Alert>
+      )}
+      {serverError && (
+        <Alert variant="destructive">
+          <AlertDescription>{serverError}</AlertDescription>
+        </Alert>
+      )}
+      <div className="grid gap-2">
+        <Label htmlFor="email">{t('labels.email')}</Label>
+        <Input id="email" type="email" aria-invalid={!!errors.email} {...register('email')} />
+        {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="password">{t('labels.password')}</Label>
+        <PasswordInput id="password" aria-invalid={!!errors.password} {...register('password')} />
+        {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+      </div>
+      <Button type="submit" size="lg" className="w-full" disabled={isPending}>
+        {isPending && <Loader2 className="size-4 animate-spin" />}
         {t('login.cta')}
       </Button>
-      <SmartLink href="/forgot-password">{t('login.forgotPassword')}</SmartLink>
-      <Text variant="label-default-s" onBackground="neutral-weak" align="center">
-        {t('login.noAccount')} <SmartLink href="/signup">{t('login.signupLink')}</SmartLink>
-      </Text>
-      <Text variant="label-default-s" onBackground="neutral-weak" align="center">
-        <SmartLink href="/resident-login">{t('login.residentLink')}</SmartLink>
-      </Text>
-    </Column>
+      <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+        {t('login.forgotPassword')}
+      </Link>
+      <p className="text-center text-sm text-muted-foreground">
+        {t('login.noAccount')}{' '}
+        <Link href="/signup" className="text-primary hover:underline">
+          {t('login.signupLink')}
+        </Link>
+      </p>
+      <p className="text-center text-sm text-muted-foreground">
+        <Link href="/resident-login" className="text-primary hover:underline">
+          {t('login.residentLink')}
+        </Link>
+      </p>
+    </form>
   );
 }

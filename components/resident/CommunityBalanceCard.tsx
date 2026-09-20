@@ -2,30 +2,10 @@
 
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
-import { Card, Column, Grid, Heading, Text } from '@once-ui-system/core';
+import { Card } from '@/components/ui/card';
 import { buildMonthlyReport, reportTotalsByCurrency, type ReportInstallment, type CreditForReport } from '@/lib/reporting/monthlyReport';
 import { paidExpensesInMonth, totalExpensesInMonth, type ExpenseForReport, type CurrencyAmountMap } from '@/lib/reporting/dashboard';
-import { formatAmount } from '@/lib/currency';
-
-function CurrencyAmountList({ amounts, emptyLabel }: { amounts: CurrencyAmountMap; emptyLabel: string }) {
-  const entries = Object.entries(amounts).filter(([, v]) => v !== undefined);
-  if (entries.length === 0) {
-    return (
-      <Text variant="body-default-s" onBackground="neutral-weak">
-        {emptyLabel}
-      </Text>
-    );
-  }
-  return (
-    <Column gap="4">
-      {entries.map(([currency, amount]) => (
-        <Text key={currency} variant="heading-strong-m">
-          {formatAmount(amount ?? 0, currency)}
-        </Text>
-      ))}
-    </Column>
-  );
-}
+import { CurrencyAmountList } from './CurrencyAmountList';
 
 // V2 addition: a community-wide (not per-house) balance overview for
 // residents, reusing the same per-currency reporting the admin's monthly
@@ -69,59 +49,28 @@ export function CommunityBalanceCard({
   const paidExpenses = useMemo(() => paidExpensesInMonth(expenses, today), [expenses, today]);
   const totalExpenses = useMemo(() => totalExpensesInMonth(expenses, today), [expenses, today]);
 
+  const cards: { label: string; amounts: CurrencyAmountMap }[] = [
+    { label: t('expected'), amounts: expected },
+    { label: t('collected'), amounts: collected },
+    { label: t('pending'), amounts: pending },
+    { label: t('favor'), amounts: favor },
+    { label: t('paidExpenses'), amounts: paidExpenses },
+    { label: t('totalExpenses'), amounts: totalExpenses },
+  ];
+
   return (
-    <Column gap="12" fillWidth>
-      <Heading variant="heading-strong-s">{t('heading')}</Heading>
-      <Grid columns="3" m={{ columns: 2 }} s={{ columns: 1 }} gap="16" fillWidth>
-        <Card padding="24" radius="s" background="neutral-alpha-weak" fillWidth>
-          <Column gap="8">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('expected')}
-            </Text>
-            <CurrencyAmountList amounts={expected} emptyLabel={t('empty')} />
-          </Column>
-        </Card>
-        <Card padding="24" radius="s" background="success-alpha-weak" fillWidth>
-          <Column gap="8">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('collected')}
-            </Text>
-            <CurrencyAmountList amounts={collected} emptyLabel={t('empty')} />
-          </Column>
-        </Card>
-        <Card padding="24" radius="s" background="warning-alpha-weak" fillWidth>
-          <Column gap="8">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('pending')}
-            </Text>
-            <CurrencyAmountList amounts={pending} emptyLabel={t('empty')} />
-          </Column>
-        </Card>
-        <Card padding="24" radius="s" background="success-alpha-weak" fillWidth>
-          <Column gap="8">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('favor')}
-            </Text>
-            <CurrencyAmountList amounts={favor} emptyLabel={t('empty')} />
-          </Column>
-        </Card>
-        <Card padding="24" radius="s" background="neutral-alpha-weak" fillWidth>
-          <Column gap="8">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('paidExpenses')}
-            </Text>
-            <CurrencyAmountList amounts={paidExpenses} emptyLabel={t('empty')} />
-          </Column>
-        </Card>
-        <Card padding="24" radius="s" background="warning-alpha-weak" fillWidth>
-          <Column gap="8">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('totalExpenses')}
-            </Text>
-            <CurrencyAmountList amounts={totalExpenses} emptyLabel={t('empty')} />
-          </Column>
-        </Card>
-      </Grid>
-    </Column>
+    <div className="flex w-full flex-col gap-3">
+      <h2 className="text-base font-semibold">{t('heading')}</h2>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {cards.map((c) => (
+          <Card key={c.label} className="p-6">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{c.label}</span>
+              <CurrencyAmountList amounts={c.amounts} emptyLabel={t('empty')} />
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }

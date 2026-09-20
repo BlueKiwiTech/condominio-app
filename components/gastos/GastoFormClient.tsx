@@ -2,20 +2,16 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { useTranslations, useLocale } from 'next-intl';
-import {
-  Row,
-  Column,
-  Input,
-  Select,
-  SegmentedControl,
-  DateInput,
-  Button,
-  Feedback,
-  Text,
-  Heading,
-} from '@once-ui-system/core';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { DateInput } from '@/components/ui/date-input';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { createExpenseTemplateSchema, type CreateExpenseTemplateInput, type Cadence } from '@/lib/validation/gastos';
 import { createExpenseTemplate } from '@/lib/actions/gastos';
 import { computeVariablePeriodDates, splitAmount, toDateOnly } from '@/lib/gastos/generate';
@@ -42,13 +38,7 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    watch,
-    formState: { errors },
-  } = useForm<FormValues>({
+  const form = useForm<FormValues>({
     defaultValues: {
       kind: 'fixed',
       name: '',
@@ -61,6 +51,12 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
       installment_count: 1,
     },
   });
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = form;
 
   const values = watch();
   const isVariable = values.kind === 'variable';
@@ -129,178 +125,239 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
   };
 
   return (
-    <Row gap="32" fillWidth wrap>
-      <Column as="form" onSubmit={handleSubmit(onSubmit)} gap="16" flex={2} minWidth={22}>
-        {serverError && <Feedback variant="danger" description={serverError} />}
+    <div className="flex w-full flex-wrap gap-8">
+      <Form {...form}>
+        <form onSubmit={handleSubmit(onSubmit)} className="flex min-w-[350px] flex-2 flex-col gap-4">
+          {serverError && (
+            <Alert variant="destructive">
+              <AlertDescription>{serverError}</AlertDescription>
+            </Alert>
+          )}
 
-        <Controller
-          control={control}
-          name="kind"
-          render={({ field }) => (
-            <SegmentedControl
-              buttons={[
-                { value: 'fixed', label: t('form.kindFixed') },
-                { value: 'variable', label: t('form.kindVariable') },
-              ]}
-              selected={field.value}
-              onToggle={(value) => field.onChange(value as FormValues['kind'])}
+          <FormField
+            control={control}
+            name="kind"
+            render={({ field }) => (
+              <FormItem>
+                <ToggleGroup
+                  variant="outline"
+                  value={[field.value]}
+                  onValueChange={(vals) => vals[0] && field.onChange(vals[0] as FormValues['kind'])}
+                >
+                  <ToggleGroupItem value="fixed">{t('form.kindFixed')}</ToggleGroupItem>
+                  <ToggleGroupItem value="variable">{t('form.kindVariable')}</ToggleGroupItem>
+                </ToggleGroup>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={control}
+            name="name"
+            rules={{ required: true }}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('fields.name')}</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage>{errors.name?.message}</FormMessage>
+              </FormItem>
+            )}
+          />
+
+          <div className="flex flex-wrap gap-4">
+            <FormField
+              control={control}
+              name="category_id"
+              render={({ field }) => (
+                <FormItem className="min-w-[200px] flex-1">
+                  <FormLabel>{t('fields.category')}</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={control}
+              name="provider"
+              render={({ field }) => (
+                <FormItem className="min-w-[200px] flex-1">
+                  <FormLabel>{t('fields.provider')}</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-4">
+            <FormField
+              control={control}
+              name="default_amount"
+              render={({ field }) => (
+                <FormItem className="min-w-[200px] flex-1">
+                  <FormLabel>{isVariable ? t('form.amountTotal') : t('form.amountPerPeriod')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      value={Number.isNaN(field.value) ? '' : field.value}
+                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    />
+                  </FormControl>
+                  <FormMessage>{errors.default_amount?.message}</FormMessage>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={control}
+              name="currency"
+              render={({ field }) => (
+                <FormItem className="min-w-[160px] flex-1">
+                  <FormLabel>{t('fields.currency')}</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {CURRENCY_SELECT_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={control}
+            name="cadence"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('form.cadence')}</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="weekly">{t('cadence.weekly')}</SelectItem>
+                    <SelectItem value="biweekly">{t('cadence.biweekly')}</SelectItem>
+                    <SelectItem value="monthly">{t('cadence.monthly')}</SelectItem>
+                    <SelectItem value="quarterly">{t('cadence.quarterly')}</SelectItem>
+                    <SelectItem value="annual">{t('cadence.annual')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={control}
+            name="start_date"
+            render={({ field }) => (
+              <FormItem>
+                <DateInput
+                  id="start_date"
+                  label={t('fields.startDate')}
+                  value={field.value}
+                  onChange={(date) => date && field.onChange(date)}
+                />
+              </FormItem>
+            )}
+          />
+
+          {isVariable && (
+            <FormField
+              control={control}
+              name="installment_count"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('form.installmentCount')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      value={Number.isNaN(field.value) ? '' : field.value}
+                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
             />
           )}
-        />
 
-        <Input
-          id="name"
-          label={t('fields.name')}
-          {...register('name', { required: true })}
-          error={!!errors.name}
-          errorMessage={errors.name?.message}
-        />
-
-        <Row gap="16" wrap>
-          <Controller
-            control={control}
-            name="category_id"
-            render={({ field }) => (
-              <Select
-                id="category_id"
-                label={t('fields.category')}
-                options={categories.map((c) => ({ label: c.name, value: c.id }))}
-                value={field.value}
-                onSelect={(value) => field.onChange(Array.isArray(value) ? value[0] : value)}
-              />
-            )}
-          />
-          <Input id="provider" label={t('fields.provider')} {...register('provider')} />
-        </Row>
-
-        <Row gap="16" wrap>
-          <Controller
-            control={control}
-            name="default_amount"
-            render={({ field }) => (
-              <Input
-                id="default_amount"
-                type="number"
-                label={isVariable ? t('form.amountTotal') : t('form.amountPerPeriod')}
-                value={Number.isNaN(field.value) ? '' : field.value}
-                onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                error={!!errors.default_amount}
-                errorMessage={errors.default_amount?.message}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="currency"
-            render={({ field }) => (
-              <Select
-                id="currency"
-                label={t('fields.currency')}
-                options={CURRENCY_SELECT_OPTIONS}
-                value={field.value}
-                onSelect={(value) => field.onChange(Array.isArray(value) ? value[0] : value)}
-              />
-            )}
-          />
-        </Row>
-
-        <Controller
-          control={control}
-          name="cadence"
-          render={({ field }) => (
-            <Select
-              id="cadence"
-              label={t('form.cadence')}
-              options={[
-                { label: t('cadence.weekly'), value: 'weekly' },
-                { label: t('cadence.biweekly'), value: 'biweekly' },
-                { label: t('cadence.monthly'), value: 'monthly' },
-                { label: t('cadence.quarterly'), value: 'quarterly' },
-                { label: t('cadence.annual'), value: 'annual' },
-              ]}
-              value={field.value}
-              onSelect={(value) => field.onChange(Array.isArray(value) ? value[0] : value)}
-              fillWidth
-            />
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="start_date"
-          render={({ field }) => (
-            <DateInput id="start_date" label={t('fields.startDate')} value={field.value} onChange={(date) => date && field.onChange(date)} />
-          )}
-        />
-
-        {isVariable && (
-          <Controller
-            control={control}
-            name="installment_count"
-            render={({ field }) => (
-              <Input
-                id="installment_count"
-                type="number"
-                label={t('form.installmentCount')}
-                value={Number.isNaN(field.value) ? '' : field.value}
-                onChange={(e) => field.onChange(e.target.valueAsNumber)}
-              />
-            )}
-          />
-        )}
-
-        <Row gap="12">
-          <Button type="submit" variant="primary" loading={isPending} disabled={isVariable && amountsMismatch}>
-            {t('form.submit')}
-          </Button>
-          <Button type="button" variant="secondary" onClick={() => router.push('/gastos')}>
-            {t('cancel')}
-          </Button>
-        </Row>
-      </Column>
+          <div className="flex gap-3">
+            <Button type="submit" disabled={isPending || (isVariable && amountsMismatch)}>
+              {t('form.submit')}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => router.push('/gastos')}>
+              {t('cancel')}
+            </Button>
+          </div>
+        </form>
+      </Form>
 
       {isVariable && (
-        <Column gap="12" flex={1} minWidth={16} padding="24" radius="s" background="neutral-alpha-weak" fitHeight>
-          <Heading variant="heading-strong-s">{t('new.previewHeading')}</Heading>
+        <div className="flex h-fit min-w-[280px] flex-1 flex-col gap-3 rounded-[var(--radius)] bg-muted p-6">
+          <h3 className="text-base font-semibold">{t('new.previewHeading')}</h3>
           {!periodDates || amounts.length === 0 ? (
-            <Text variant="body-default-s" onBackground="neutral-weak">
-              {t('new.previewEmpty')}
-            </Text>
+            <p className="text-sm text-muted-foreground">{t('new.previewEmpty')}</p>
           ) : (
             <>
-              <Column gap="8">
+              <div className="flex flex-col gap-2">
                 {periodDates.map((date, idx) => (
-                  <Input
-                    key={idx}
-                    id={`installment-amount-${idx}`}
-                    type="number"
-                    label={`${t('form.installmentAmount', { number: idx + 1 })} — ${toDateOnly(date)}`}
-                    value={Number.isNaN(amounts[idx]) ? '' : amounts[idx]}
-                    onChange={(e) => updateAmount(idx, e.target.valueAsNumber)}
-                  />
+                  <div key={idx} className="grid gap-2">
+                    <Label htmlFor={`installment-amount-${idx}`}>
+                      {`${t('form.installmentAmount', { number: idx + 1 })} — ${toDateOnly(date)}`}
+                    </Label>
+                    <Input
+                      id={`installment-amount-${idx}`}
+                      type="number"
+                      value={Number.isNaN(amounts[idx]) ? '' : amounts[idx]}
+                      onChange={(e) => updateAmount(idx, e.target.valueAsNumber)}
+                    />
+                  </div>
                 ))}
-              </Column>
-              <Row horizontal="between">
-                <Text variant="label-default-s" onBackground="neutral-weak">
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {t('form.amountTotal')}
-                </Text>
-                <Text variant="label-strong-s">
-                  {formatAmount(amountsSum, values.currency)}
-                </Text>
-              </Row>
+                </span>
+                <span className="text-sm font-semibold">{formatAmount(amountsSum, values.currency)}</span>
+              </div>
               {amountsMismatch && (
-                <Feedback
-                  variant="danger"
-                  description={t('form.amountsSumMismatch', {
-                    sum: formatMoney(amountsSum),
-                    total: formatMoney(values.default_amount || 0),
-                  })}
-                />
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    {t('form.amountsSumMismatch', {
+                      sum: formatMoney(amountsSum),
+                      total: formatMoney(values.default_amount || 0),
+                    })}
+                  </AlertDescription>
+                </Alert>
               )}
             </>
           )}
-        </Column>
+        </div>
       )}
-    </Row>
+    </div>
   );
 }

@@ -1,5 +1,4 @@
 import { getTranslations } from 'next-intl/server';
-import { Column, Heading } from '@once-ui-system/core';
 import { createClient } from '@/lib/supabase/server';
 import { PaymentsPageClient } from '@/components/payments/PaymentsPageClient';
 import type { PaymentRow, HouseOption } from '@/components/payments/types';
@@ -19,12 +18,12 @@ export default async function PagosPage() {
   ]);
 
   return (
-    <Column fillWidth gap="24" paddingY="32" paddingX="32">
-      <Heading variant="display-strong-s">{t('heading')}</Heading>
+    <div className="flex w-full flex-col gap-6 p-4 md:p-8">
+      <h1 className="text-2xl font-bold">{t('heading')}</h1>
       <PaymentsPageClient
         initialPayments={(payments as unknown as PaymentRow[] | null) ?? []}
         houses={(houses as HouseOption[] | null) ?? []}
       />
-    </Column>
+    </div>
   );
 }

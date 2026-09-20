@@ -3,7 +3,9 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { Column, Row, Text, Button, Feedback, SmartLink } from '@once-ui-system/core';
+import { Link } from '@/i18n/navigation';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { setExpenseTemplateActive, deleteExpenseTemplate } from '@/lib/actions/gastos';
 import type { FixedTemplateRow } from './types';
 
@@ -39,49 +41,37 @@ export function GastosPlantillasPageClient({ fixedTemplates }: { fixedTemplates:
   };
 
   return (
-    <Column fillWidth gap="24">
-      {serverError && <Feedback variant="danger" description={serverError} />}
-      <Row horizontal="end" fillWidth>
-        <SmartLink href="/gastos/new">
-          <Button variant="primary" type="button">
-            {t('newExpense')}
-          </Button>
-        </SmartLink>
-      </Row>
+    <div className="flex w-full flex-col gap-6">
+      {serverError && (
+        <Alert variant="destructive">
+          <AlertDescription>{serverError}</AlertDescription>
+        </Alert>
+      )}
+      <div className="flex w-full justify-end">
+        <Button render={<Link href="/gastos/new" />} nativeButton={false}>{t('newExpense')}</Button>
+      </div>
       {fixedTemplates.length === 0 ? (
-        <Text variant="body-default-s" onBackground="neutral-weak">
-          {t('templates.empty')}
-        </Text>
+        <p className="text-sm text-muted-foreground">{t('templates.empty')}</p>
       ) : (
-        <Column gap="8" fillWidth>
+        <div className="flex w-full flex-col gap-2">
           {fixedTemplates.map((tpl) => (
-            <Row
+            <div
               key={tpl.id}
-              fillWidth
-              horizontal="between"
-              vertical="center"
-              padding="12"
-              radius="s"
-              border="neutral-alpha-weak"
+              className="flex w-full items-center justify-between rounded-[var(--radius)] border bg-card p-3 shadow-sm"
             >
-              <Text variant="label-default-s">{tpl.name}</Text>
-              <Row gap="8">
-                <Button
-                  size="s"
-                  variant="secondary"
-                  loading={isTogglingActive}
-                  onClick={() => toggleActive(tpl.id, !tpl.active)}
-                >
+              <span className="text-sm font-medium">{tpl.name}</span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" disabled={isTogglingActive} onClick={() => toggleActive(tpl.id, !tpl.active)}>
                   {tpl.active ? t('actions.deactivate') : t('actions.activate')}
                 </Button>
-                <Button size="s" variant="danger" disabled={isDeleting} onClick={() => handleDeleteTemplate(tpl.id)}>
+                <Button size="sm" variant="destructive" disabled={isDeleting} onClick={() => handleDeleteTemplate(tpl.id)}>
                   {t('actions.delete')}
                 </Button>
-              </Row>
-            </Row>
+              </div>
+            </div>
           ))}
-        </Column>
+        </div>
       )}
-    </Column>
+    </div>
   );
 }

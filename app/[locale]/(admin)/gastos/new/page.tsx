@@ -1,5 +1,4 @@
 import { getTranslations } from 'next-intl/server';
-import { Column, Heading } from '@once-ui-system/core';
 import { createClient } from '@/lib/supabase/server';
 import { GastoFormClient } from '@/components/gastos/GastoFormClient';
 import type { CategoryOption } from '@/components/gastos/types';
@@ -10,9 +9,9 @@ export default async function NewGastoPage() {
   const { data: categories } = await supabase.from('condo_expense_categories').select('id, name').order('name');
 
   return (
-    <Column fillWidth gap="24" paddingY="32" paddingX="32">
-      <Heading variant="display-strong-s">{t('new.heading')}</Heading>
+    <div className="flex w-full flex-col gap-6 p-4 md:p-8">
+      <h1 className="text-2xl font-bold">{t('new.heading')}</h1>
       <GastoFormClient categories={(categories as CategoryOption[] | null) ?? []} />
-    </Column>
+    </div>
   );
 }

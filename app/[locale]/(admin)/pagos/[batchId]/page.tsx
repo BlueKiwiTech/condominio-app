@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { Column, Row, Heading, Text, Card, SmartLink, Icon } from '@once-ui-system/core';
+import { ChevronLeft } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { Card, CardContent } from '@/components/ui/card';
 import type { PaymentRow } from '@/components/payments/types';
 import { groupPaymentsByBatch } from '@/components/payments/types';
 import { currencyLabel, formatMoney } from '@/lib/currency';
@@ -27,90 +29,77 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
   const [batch] = groupPaymentsByBatch(rows);
 
   return (
-    <Column fillWidth gap="24" paddingY="32" paddingX="32" maxWidth={40}>
-      <SmartLink href="/pagos">
-        <Row gap="8" vertical="center">
-          <Icon name="chevronLeft" size="s" />
-          <Text variant="body-default-s">{t('back')}</Text>
-        </Row>
-      </SmartLink>
+    <div className="flex w-full max-w-2xl flex-col gap-6 p-4 md:p-8">
+      <Link
+        href="/pagos"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ChevronLeft className="size-4" />
+        {t('back')}
+      </Link>
 
-      <Card padding="24" radius="s" fillWidth>
-        <Column gap="20" fillWidth>
-          <Row horizontal="between" vertical="start" fillWidth wrap>
-            <Column gap="4">
-              <Heading variant="heading-strong-l">
+      <Card>
+        <CardContent className="flex flex-col gap-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-lg font-semibold">
                 {batch.receiptNumber ? `#${String(batch.receiptNumber).padStart(4, '0')}` : t('noReceipt')}
-              </Heading>
-              <Text variant="body-default-s" onBackground="neutral-weak">
-                {batch.paymentDate}
-              </Text>
-            </Column>
-            <Text variant="heading-strong-l">
+              </h2>
+              <p className="text-sm text-muted-foreground">{batch.paymentDate}</p>
+            </div>
+            <p className="text-lg font-semibold">
               {formatMoney(batch.totalAmount)} {currencyLabel(batch.currency)}
-            </Text>
-          </Row>
+            </p>
+          </div>
 
-          <Column gap="4">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('house')}
-            </Text>
-            <Text variant="body-default-m">{batch.houseLabel}</Text>
-          </Column>
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('house')}</p>
+            <p className="text-sm">{batch.houseLabel}</p>
+          </div>
 
-          <Column gap="4">
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              {t('cuotasCovered')}
-            </Text>
-            <Column gap="8">
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('cuotasCovered')}</p>
+            <div className="flex flex-col gap-2">
               {batch.rows.map((row) => (
-                <Row key={row.id} horizontal="between" fillWidth>
-                  <Text variant="body-default-s">{row.condo_installments?.name ?? '—'}</Text>
-                  <Text variant="body-default-s">
+                <div key={row.id} className="flex w-full items-center justify-between">
+                  <span className="text-sm">{row.condo_installments?.name ?? '—'}</span>
+                  <span className="text-sm tabular-nums">
                     {formatMoney(row.amount_paid)} {currencyLabel(row.currency)}
-                  </Text>
-                </Row>
+                  </span>
+                </div>
               ))}
-            </Column>
-          </Column>
+            </div>
+          </div>
 
-          <Row gap="32" wrap>
-            <Column gap="4">
-              <Text variant="label-default-s" onBackground="neutral-weak">
-                {t('currency')}
-              </Text>
-              <Text variant="body-default-m">{currencyLabel(batch.currency)}</Text>
-            </Column>
-            <Column gap="4">
-              <Text variant="label-default-s" onBackground="neutral-weak">
-                {t('reference')}
-              </Text>
-              <Text variant="body-default-m">{batch.reference ?? '—'}</Text>
-            </Column>
-            <Column gap="4">
-              <Text variant="label-default-s" onBackground="neutral-weak">
-                {t('registeredBy')}
-              </Text>
-              <Text variant="body-default-m">{userData?.user?.email ?? '—'}</Text>
-            </Column>
-          </Row>
+          <div className="flex flex-wrap gap-8">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('currency')}</p>
+              <p className="text-sm">{currencyLabel(batch.currency)}</p>
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('reference')}</p>
+              <p className="text-sm">{batch.reference ?? '—'}</p>
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('registeredBy')}</p>
+              <p className="text-sm">{userData?.user?.email ?? '—'}</p>
+            </div>
+          </div>
 
           {batch.rows.some((r) => r.notes) && (
-            <Column gap="4">
-              <Text variant="label-default-s" onBackground="neutral-weak">
-                {t('notes')}
-              </Text>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('notes')}</p>
               {batch.rows
                 .filter((r) => r.notes)
                 .map((r) => (
-                  <Text key={r.id} variant="body-default-s" onBackground="neutral-weak">
-                    “{r.notes}”
-                  </Text>
+                  <p key={r.id} className="text-sm text-muted-foreground">
+                    &ldquo;{r.notes}&rdquo;
+                  </p>
                 ))}
-            </Column>
+            </div>
           )}
-        </Column>
+        </CardContent>
       </Card>
-    </Column>
+    </div>
   );
 }

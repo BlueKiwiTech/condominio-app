@@ -4,7 +4,18 @@ import { useState, useTransition } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
-import { Column, Select, PasswordInput, Button, Feedback, Text } from '@once-ui-system/core';
+import { Loader2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { PasswordInput } from '@/components/ui/password-input';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { residentLoginSchema, type ResidentLoginInput } from '@/lib/validation/residentAuth';
 import { residentLogin } from '@/lib/actions/residentAuth';
 
@@ -41,39 +52,52 @@ export function ResidentLoginForm({ houses }: { houses: HouseOption[] }) {
   };
 
   return (
-    <Column as="form" onSubmit={handleSubmit(onSubmit)} gap="16" fillWidth>
-      {serverError && <Feedback variant="danger" description={serverError} />}
-      <Controller
-        control={control}
-        name="house_number"
-        render={({ field }) => (
-          <Select
-            id="house_number"
-            label={t('labels.house')}
-            options={options}
-            value={field.value}
-            onSelect={(value) => field.onChange(Array.isArray(value) ? value[0] : value)}
-            error={!!errors.house_number}
-            errorMessage={errors.house_number?.message}
-            fillWidth
-          />
+    <form onSubmit={handleSubmit(onSubmit)} className="flex w-full flex-col gap-4">
+      {serverError && (
+        <Alert variant="destructive">
+          <AlertDescription>{serverError}</AlertDescription>
+        </Alert>
+      )}
+      <div className="grid gap-2">
+        <Label htmlFor="house_number">{t('labels.house')}</Label>
+        <Controller
+          control={control}
+          name="house_number"
+          render={({ field }) => (
+            <Select value={field.value} onValueChange={field.onChange}>
+              <SelectTrigger id="house_number" className="w-full" aria-invalid={!!errors.house_number}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.house_number && (
+          <p className="text-sm text-destructive">{errors.house_number.message}</p>
         )}
-      />
-      <PasswordInput
-        id="pin"
-        label={t('labels.pin')}
-        inputMode="numeric"
-        maxLength={4}
-        {...register('pin')}
-        error={!!errors.pin}
-        errorMessage={errors.pin?.message}
-      />
-      <Button type="submit" variant="primary" fillWidth loading={isPending}>
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="pin">{t('labels.pin')}</Label>
+        <PasswordInput
+          id="pin"
+          inputMode="numeric"
+          maxLength={4}
+          aria-invalid={!!errors.pin}
+          {...register('pin')}
+        />
+        {errors.pin && <p className="text-sm text-destructive">{errors.pin.message}</p>}
+      </div>
+      <Button type="submit" size="lg" className="w-full" disabled={isPending}>
+        {isPending && <Loader2 className="size-4 animate-spin" />}
         {t('cta')}
       </Button>
-      <Text variant="label-default-s" onBackground="neutral-weak" align="center">
-        {t('forgotPin')}
-      </Text>
-    </Column>
+      <p className="text-center text-sm text-muted-foreground">{t('forgotPin')}</p>
+    </form>
   );
 }

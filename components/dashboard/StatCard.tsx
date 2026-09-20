@@ -1,25 +1,36 @@
 import type { ReactNode } from 'react';
-import { Card, Flex, type Colors } from '@once-ui-system/core';
+import { cn } from 'cn';
+
+const STRIPE_CLASSES = {
+  primary: 'bg-primary',
+  success: 'bg-success',
+  warning: 'bg-warning',
+  destructive: 'bg-destructive',
+} as const;
 
 // Quiet-outline KPI card: thin border, flat surface, optional 3px stripe on
-// top for semantic color (danger/warning/success/brand) instead of the
-// old full-color fill. Approved direction, see components/dashboard/
-// DashboardPageClient.tsx callers for the color-per-metric mapping.
-export function StatCard({ stripeColor, children }: { stripeColor?: Colors; children: ReactNode }) {
+// top for semantic color (destructive/warning/success/primary) instead of
+// a full-color fill.
+export function StatCard({
+  stripeColor,
+  children,
+  className,
+}: {
+  stripeColor?: keyof typeof STRIPE_CLASSES;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <Card
-      radius="s"
-      border="neutral-alpha-medium"
-      background="surface"
-      position="relative"
-      overflow="hidden"
-      padding="20"
-      fillWidth
+    <div
+      className={cn(
+        'relative w-full overflow-hidden rounded-[var(--radius)] border bg-card p-5 shadow-sm',
+        className
+      )}
     >
       {stripeColor && (
-        <Flex position="absolute" top="0" left="0" right="0" background={stripeColor} style={{ height: 3 }} />
+        <div className={cn('absolute inset-x-0 top-0 h-[3px]', STRIPE_CLASSES[stripeColor])} />
       )}
       {children}
-    </Card>
+    </div>
   );
 }

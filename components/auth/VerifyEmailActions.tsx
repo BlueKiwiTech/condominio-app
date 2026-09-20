@@ -2,7 +2,10 @@
 
 import { useState, useTransition } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Column, Button, Feedback, SmartLink } from '@once-ui-system/core';
+import { Loader2 } from 'lucide-react';
+import { Link } from '@/i18n/navigation';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { resendVerificationEmail } from '@/lib/actions/auth';
 
 export function VerifyEmailActions({ email }: { email: string }) {
@@ -25,13 +28,24 @@ export function VerifyEmailActions({ email }: { email: string }) {
   };
 
   return (
-    <Column gap="16" fillWidth>
-      {sent && <Feedback variant="success" description={t('verifyEmail.resendSent')} />}
-      {serverError && <Feedback variant="danger" description={serverError} />}
-      <Button variant="secondary" fillWidth loading={isPending} onClick={handleResend}>
+    <div className="flex w-full flex-col gap-4">
+      {sent && (
+        <Alert>
+          <AlertDescription>{t('verifyEmail.resendSent')}</AlertDescription>
+        </Alert>
+      )}
+      {serverError && (
+        <Alert variant="destructive">
+          <AlertDescription>{serverError}</AlertDescription>
+        </Alert>
+      )}
+      <Button variant="outline" size="lg" className="w-full" disabled={isPending} onClick={handleResend}>
+        {isPending && <Loader2 className="size-4 animate-spin" />}
         {t('verifyEmail.resend')}
       </Button>
-      <SmartLink href="/login">{t('verifyEmail.backToLogin')}</SmartLink>
-    </Column>
+      <Link href="/login" className="text-center text-sm text-primary hover:underline">
+        {t('verifyEmail.backToLogin')}
+      </Link>
+    </div>
   );
 }
