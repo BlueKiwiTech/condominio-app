@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Plus, Building2, Calendar, FileText, LogOut, User, type LucideIcon } from 'lucide-react';
+import { Plus, Building2, Calendar, FileText, LogOut, User, AlertTriangle, type LucideIcon } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { residentLogout } from '@/lib/actions/residentAuth';
 import { Button } from '@/components/ui/button';
@@ -24,18 +24,18 @@ type NavItem = {
   href: string;
   icon: LucideIcon;
   labelKey: 'reportPayment' | 'community' | 'home' | 'cuotas' | 'payments' | 'profile';
+  warning?: boolean;
 };
 
-// "Reportar pago" deep-links into /mi-cartera with a query flag that
-// MisPagosClient reads on mount to auto-open ReportPaymentDialog.
-const ITEMS: NavItem[] = [
-  { href: '/mi-cartera?report=1', icon: Plus, labelKey: 'reportPayment' },
-  { href: '/mi-comunidad', icon: Building2, labelKey: 'community' },
-  { href: '/mis-pagos', icon: Calendar, labelKey: 'cuotas' },
-  { href: '/mi-cartera', icon: FileText, labelKey: 'payments' },
-];
-
-export function ResidentSidebar({ houseLabel }: { houseLabel: string | null }) {
+export function ResidentSidebar({
+  houseLabel,
+  lastReportRejected = false,
+  hasDuePayment = false,
+}: {
+  houseLabel: string | null;
+  lastReportRejected?: boolean;
+  hasDuePayment?: boolean;
+}) {
   const pathname = usePathname();
   const t = useTranslations('residentNav');
   const { isMobile, setOpenMobile } = useSidebar();
@@ -46,6 +46,19 @@ export function ResidentSidebar({ houseLabel }: { houseLabel: string | null }) {
   const closeOnMobileNavigate = () => {
     if (isMobile) setOpenMobile(false);
   };
+
+  // "Reportar pago" deep-links into /mi-cartera with a query flag that
+  // MisPagosClient reads on mount to auto-open ReportPaymentDialog.
+  // Warning icons (board request 2026-09-21): Mis Pagos flags an actual due
+  // cuota, Mi Cartera flags the last reported payment having been rejected
+  // -- so a resident sees something needs attention without opening either
+  // screen first.
+  const items: NavItem[] = [
+    { href: '/mi-cartera?report=1', icon: Plus, labelKey: 'reportPayment' },
+    { href: '/mi-comunidad', icon: Building2, labelKey: 'community' },
+    { href: '/mis-pagos', icon: Calendar, labelKey: 'cuotas', warning: hasDuePayment },
+    { href: '/mi-cartera', icon: FileText, labelKey: 'payments', warning: lastReportRejected },
+  ];
 
   return (
     <Sidebar collapsible="offcanvas">
@@ -62,7 +75,7 @@ export function ResidentSidebar({ houseLabel }: { houseLabel: string | null }) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {ITEMS.map((item) => {
+              {items.map((item) => {
                 const active = isActive(item.href);
                 return (
                   <SidebarMenuItem key={item.href}>
@@ -73,6 +86,12 @@ export function ResidentSidebar({ houseLabel }: { houseLabel: string | null }) {
                     >
                       <item.icon />
                       <span>{t(item.labelKey)}</span>
+                      {item.warning && (
+                        <AlertTriangle
+                          aria-label={t('needsAttention')}
+                          className="ml-auto size-4 shrink-0 text-destructive"
+                        />
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );

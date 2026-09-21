@@ -582,6 +582,7 @@
     "profile": "Perfil",
     "roleLabel": "Vecino",
     "unknownHouse": "Mi casa",
+    "needsAttention": "Requiere tu atención",
     "logout": "Cerrar sesión",
     "openMenu": "Abrir menú",
     "menuTitle": "Menú"
@@ -671,7 +672,7 @@
       "since": "Desde {date}",
       "contact": "Escribir a la junta"
     },
-    "cuotasHeading": "Tus cuotas",
+    "cuotasHeading": "Tus pagos",
     "monthFilterLabel": "Mes",
     "yearFilterLabel": "Año",
     "allYear": "Todo el año",

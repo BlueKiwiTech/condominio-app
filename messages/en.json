@@ -582,6 +582,7 @@
     "profile": "Profile",
     "roleLabel": "Resident",
     "unknownHouse": "My house",
+    "needsAttention": "Needs your attention",
     "logout": "Log out",
     "openMenu": "Open menu",
     "menuTitle": "Menu"
