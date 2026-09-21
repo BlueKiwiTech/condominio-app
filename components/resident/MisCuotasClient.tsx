@@ -22,9 +22,19 @@ function statusVariant(status: DisplayStatus): 'success' | 'neutral' | 'warning'
   return 'neutral';
 }
 
-function InstallmentCard({ inst, today, statusLabels }: { inst: ResidentInstallment; today: Date; statusLabels: Record<DisplayStatus, string> }) {
+function InstallmentCard({
+  inst,
+  graceDays,
+  today,
+  statusLabels,
+}: {
+  inst: ResidentInstallment;
+  graceDays: number;
+  today: Date;
+  statusLabels: Record<DisplayStatus, string>;
+}) {
   const locale = useLocale();
-  const status = displayStatus(inst, today);
+  const status = displayStatus(inst, graceDays, today);
   return (
     <ListRow
       title={inst.name}
@@ -40,6 +50,7 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
   const locale = useLocale();
   const dateLocale = locale === 'en' ? enUS : es;
   const today = useMemo(() => new Date(), []);
+  const graceDays = data.community?.grace_period_days ?? 0;
 
   const statusLabels: Record<DisplayStatus, string> = {
     paid: t('status.paid'),
@@ -59,8 +70,11 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
   // nearest upcoming due-month's recurring cuotas show here, not all of
   // them; special cuotas have no such cadence, so all non-overdue ones show.
   const overdueItems = useMemo(
-    () => pending.filter((i) => displayStatus(i, today) === 'overdue').sort((a, b) => a.due_date.localeCompare(b.due_date)),
-    [pending, today],
+    () =>
+      pending
+        .filter((i) => displayStatus(i, graceDays, today) === 'overdue')
+        .sort((a, b) => a.due_date.localeCompare(b.due_date)),
+    [pending, graceDays, today],
   );
 
   // "Lo que viene" also surfaces cuotas already paid in advance (e.g. a
@@ -72,9 +86,9 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
   const upcomingPool = useMemo(
     () =>
       data.installments.filter((i) =>
-        i.status === 'paid' ? parseISO(i.due_date) > today : displayStatus(i, today) !== 'overdue',
+        i.status === 'paid' ? parseISO(i.due_date) > today : displayStatus(i, graceDays, today) !== 'overdue',
       ),
-    [data.installments, today],
+    [data.installments, graceDays, today],
   );
 
   const nextRecurringMonth = useMemo(() => {
@@ -173,7 +187,7 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
           <h2 className="text-base font-semibold">{t('overdueHeading')}</h2>
           <div className="flex w-full flex-col gap-2">
             {overdueItems.map((inst) => (
-              <InstallmentCard key={inst.id} inst={inst} today={today} statusLabels={statusLabels} />
+              <InstallmentCard key={inst.id} inst={inst} graceDays={graceDays} today={today} statusLabels={statusLabels} />
             ))}
           </div>
         </div>
@@ -192,7 +206,7 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
                 </span>
                 <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
                   {nextRecurringMonth.items.map((inst) => (
-                    <InstallmentCard key={inst.id} inst={inst} today={today} statusLabels={statusLabels} />
+                    <InstallmentCard key={inst.id} inst={inst} graceDays={graceDays} today={today} statusLabels={statusLabels} />
                   ))}
                 </div>
               </div>
@@ -201,7 +215,7 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
             {specialUpcoming.length > 0 && (
               <div className="flex w-full flex-col gap-2">
                 {specialUpcoming.map((inst) => (
-                  <InstallmentCard key={inst.id} inst={inst} today={today} statusLabels={statusLabels} />
+                  <InstallmentCard key={inst.id} inst={inst} graceDays={graceDays} today={today} statusLabels={statusLabels} />
                 ))}
               </div>
             )}

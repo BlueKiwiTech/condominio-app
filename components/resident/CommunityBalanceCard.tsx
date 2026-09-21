@@ -16,11 +16,13 @@ export function CommunityBalanceCard({
   installments,
   credits,
   expenses,
+  graceDays = 0,
   today = new Date(),
 }: {
   installments: ReportInstallment[];
   credits: CreditForReport[];
   expenses: ExpenseForReport[];
+  graceDays?: number;
   today?: Date;
 }) {
   const t = useTranslations('residentHome.communityBalance');
@@ -29,11 +31,10 @@ export function CommunityBalanceCard({
   // per-currency footer totals (reportTotalsByCurrency) -- no house list is
   // needed, so an empty houses array is fine (rows just get a "—" house
   // label internally that's never displayed here).
-  const totals = useMemo(() => reportTotalsByCurrency(buildMonthlyReport(installments, [], credits, today, today)), [
-    installments,
-    credits,
-    today,
-  ]);
+  const totals = useMemo(
+    () => reportTotalsByCurrency(buildMonthlyReport(installments, [], credits, today, graceDays, today)),
+    [installments, credits, today, graceDays],
+  );
 
   const expected: CurrencyAmountMap = {};
   const collected: CurrencyAmountMap = {};

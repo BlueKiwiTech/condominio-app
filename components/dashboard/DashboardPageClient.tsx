@@ -21,7 +21,7 @@ import {
 import { daysToCloseOfMonth } from '@/lib/reporting/dateMath';
 import { groupPaymentsByBatch } from '@/components/payments/types';
 import { CURRENCIES, type DashboardExpense, type DashboardHouse, type DashboardInstallment, type PaymentRow } from './types';
-import { currencyLabel, formatAmount } from '@/lib/currency';
+import { currencyLabel, formatAmount, formatMoney } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import { ExchangeRateCard } from './ExchangeRateCard';
 import { StatCard } from './StatCard';
@@ -175,7 +175,7 @@ export function DashboardPageClient({
                       <RechartsLineChart data={series.map((p) => ({ label: p.label, [currency]: p[currency] ?? 0 }))}>
                         <CartesianGrid vertical={false} />
                         <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
-                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatMoney(Number(value))} />} />
                         <Line
                           dataKey={currency}
                           type="monotone"

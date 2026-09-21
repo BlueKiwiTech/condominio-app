@@ -3,18 +3,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { Plus } from 'lucide-react';
+import { AlertTriangle, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from 'cn';
-import { groupPaymentsByBatch, type PaymentBatch, type PaymentRow } from '@/components/payments/types';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
-import type { CurrencyAmountMap } from '@/lib/reporting/dashboard';
+import { creditsByCurrency, type CurrencyAmountMap } from '@/lib/reporting/dashboard';
 import { ReportPaymentDialog } from './ReportPaymentDialog';
 import { ListRow } from './ListRow';
 import { CurrencyAmountList } from './CurrencyAmountList';
-import type { ResidentInstallment, ResidentPaymentReport, ResidentReportStatus } from '@/lib/resident/queries';
+import type { ResidentInstallment, ResidentPaymentReport, ResidentReportStatus, ResidentCredit } from '@/lib/resident/queries';
 import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
 
 function reportTagVariant(status: ResidentReportStatus): 'warning' | 'success' | 'destructive' {
@@ -42,78 +42,80 @@ function FilterChip({ label, selected, onClick }: { label: string; selected: boo
   );
 }
 
-type ListItem =
-  | { kind: 'payment'; date: string; batch: PaymentBatch }
-  | { kind: 'report'; date: string; report: ResidentPaymentReport };
-
 export function MisPagosClient({
-  payments,
   installments,
   pendingInstallments,
   reports,
+  credits,
   exchangeRates,
+  graceDays = 0,
 }: {
-  payments: PaymentRow[];
   installments: ResidentInstallment[];
   pendingInstallments: ResidentInstallment[];
   reports: ResidentPaymentReport[];
+  credits: ResidentCredit[];
   exchangeRates: Record<ExchangeRateType, ExchangeRateRow | null>;
+  graceDays?: number;
 }) {
   const t = useTranslations('residentPayments');
   const tHome = useTranslations('residentHome');
   const locale = useLocale();
   // Sidebar's "Reportar pago" item (PO request 2026-09-18) deep-links here
-  // with ?report=1 to auto-open the dialog -- read once via a lazy
-  // initializer (not an effect-driven setState, which cascading-render
-  // lint rules flag) and stripped from the URL right after so a refresh or
-  // back-nav doesn't reopen it.
+  // with ?report=1 to auto-open the dialog. A lazy useState initializer only
+  // ran once on mount, so clicking the sidebar link while already on this
+  // page (a Next.js searchParams update with no remount) silently failed to
+  // open it -- fixed 2026-09-19 with React's documented "adjusting state
+  // when a prop changes" pattern (setState during render, guarded against
+  // re-firing via lastHandledReportParam) instead of an effect-driven
+  // setState, which react-hooks/set-state-in-effect flags. The effect below
+  // only touches the URL (a real external system), never local state.
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [reportOpen, setReportOpen] = useState(() => searchParams.get('report') === '1');
+  const reportParam = searchParams.get('report');
+  const [lastHandledReportParam, setLastHandledReportParam] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  if (reportParam === '1' && lastHandledReportParam !== reportParam) {
+    setLastHandledReportParam(reportParam);
+    setReportOpen(true);
+  }
   useEffect(() => {
-    if (searchParams.get('report') === '1') router.replace(pathname);
-  }, [searchParams, pathname, router]);
-
-  const batches = useMemo(() => groupPaymentsByBatch(payments), [payments]);
+    if (reportParam === '1') router.replace(pathname);
+  }, [reportParam, pathname, router]);
 
   const installmentNameById = useMemo(() => new Map(installments.map((i) => [i.id, i.name])), [installments]);
 
-  const items = useMemo<ListItem[]>(() => {
-    const paymentItems: ListItem[] = batches.map((batch) => ({ kind: 'payment', date: batch.paymentDate, batch }));
-    // A confirmed report with a resulting_payment_batch_id has already been
-    // auto-registered as a real payment (lib/actions/paymentReports.ts's
-    // confirmPaymentReport) -- that batch is already in `batches` above, so
-    // showing the report card too would look like a duplicate payment.
-    const reportItems: ListItem[] = reports
-      .filter((report) => !(report.status === 'confirmed' && report.resulting_payment_batch_id))
-      .map((report) => ({ kind: 'report', date: report.payment_date, report }));
-    return [...paymentItems, ...reportItems].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [batches, reports]);
+  // "Mi Cartera" (2026-09-19/21 redesign): the wallet balance
+  // (condo_house_credits, confirmed) and reports still awaiting admin
+  // review are shown as two separate at-a-glance totals, rather than
+  // folded into one combined "pagos" figure.
+  const available = useMemo(() => creditsByCurrency(credits), [credits]);
+  const pendingBalance = useMemo(() => {
+    const totals: CurrencyAmountMap = {};
+    for (const report of reports) {
+      if (report.status !== 'pending') continue;
+      totals[report.currency] = (totals[report.currency] ?? 0) + report.amount;
+    }
+    return totals;
+  }, [reports]);
+
+  // reports arrives ordered by created_at DESC (lib/resident/queries.ts) --
+  // the first entry is the most recently SUBMITTED report, which is what
+  // "last report" means for the rejected-banner check (not necessarily the
+  // most recent payment_date, which the resident controls when reporting).
+  const lastReport = reports[0] ?? null;
 
   const years = useMemo(
-    () => Array.from(new Set(items.map((item) => item.date.slice(0, 4)))).sort((a, b) => b.localeCompare(a)),
-    [items],
+    () => Array.from(new Set(reports.map((r) => r.payment_date.slice(0, 4)))).sort((a, b) => b.localeCompare(a)),
+    [reports],
   );
 
   const [yearFilter, setYearFilter] = useState<string>('all');
 
-  const filtered = useMemo(
-    () => (yearFilter === 'all' ? items : items.filter((item) => item.date.slice(0, 4) === yearFilter)),
-    [items, yearFilter],
+  const filteredReports = useMemo(
+    () => (yearFilter === 'all' ? reports : reports.filter((r) => r.payment_date.slice(0, 4) === yearFilter)),
+    [reports, yearFilter],
   );
-
-  // Self-reported payments are never actual condo_payments rows (see
-  // lib/actions/residentPayments.ts) -- excluded from the totals so the
-  // per-currency sum only ever reflects real, registered payments.
-  const totalsByCurrency = useMemo(() => {
-    const totals: CurrencyAmountMap = {};
-    for (const item of filtered) {
-      if (item.kind !== 'payment') continue;
-      totals[item.batch.currency] = (totals[item.batch.currency] ?? 0) + item.batch.totalAmount;
-    }
-    return totals;
-  }, [filtered]);
 
   // An untagged report confirmed with no cuotas picked doesn't pay anything
   // off directly -- it becomes wallet credit (board request 2026-09-18:
@@ -152,6 +154,28 @@ export function MisPagosClient({
         </Button>
       </div>
 
+      {lastReport?.status === 'rejected' && (
+        <Alert variant="destructive">
+          <AlertTriangle className="size-4" />
+          <AlertDescription>{t('lastReportRejected')}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex w-full flex-wrap gap-4">
+        <Card className="min-w-[10rem] flex-1 border-success/20 bg-success/5 p-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium tracking-wide text-success uppercase">{t('available')}</span>
+            <CurrencyAmountList amounts={available} emptyLabel={t('noBalance')} />
+          </div>
+        </Card>
+        <Card className="min-w-[10rem] flex-1 border-warning/20 bg-warning/5 p-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium tracking-wide text-warning uppercase">{t('pendingBalance')}</span>
+            <CurrencyAmountList amounts={pendingBalance} emptyLabel={t('noBalance')} />
+          </div>
+        </Card>
+      </div>
+
       <div className="flex flex-wrap gap-2">
         <FilterChip label={t('filterAll')} selected={yearFilter === 'all'} onClick={() => setYearFilter('all')} />
         {years.map((y) => (
@@ -159,46 +183,20 @@ export function MisPagosClient({
         ))}
       </div>
 
-      {Object.keys(totalsByCurrency).length > 0 && (
-        <Card className="bg-muted/50 p-4">
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              {t('totalFor', { period: yearFilter === 'all' ? t('filterAll') : yearFilter })}
-            </span>
-            <CurrencyAmountList amounts={totalsByCurrency} emptyLabel={t('empty')} />
-          </div>
-        </Card>
-      )}
-
-      {filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t('empty')}</p>
-      ) : (
-        <div className="flex w-full flex-col gap-2">
-          {filtered.map((item) =>
-            item.kind === 'payment' ? (
-              <ListRow
-                key={item.batch.batchId}
-                title={[
-                  item.batch.receiptNumber ? `#${String(item.batch.receiptNumber).padStart(4, '0')}` : t('receipt'),
-                  item.batch.installmentNames.join(', '),
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-                subtitle={formatShortDate(new Date(item.batch.paymentDate), locale)}
-                amount={formatAmount(item.batch.totalAmount, item.batch.currency)}
-                tag={{ label: t('reportStatus.confirmed'), variant: 'success' }}
-              />
-            ) : (
-              reportRow(item.report)
-            ),
-          )}
-        </div>
-      )}
+      <div className="flex w-full flex-col gap-3">
+        <h2 className="text-base font-semibold">{t('abonosHeading')}</h2>
+        {filteredReports.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t('abonosEmpty')}</p>
+        ) : (
+          <div className="flex w-full flex-col gap-2">{filteredReports.map((report) => reportRow(report))}</div>
+        )}
+      </div>
 
       {reportOpen && (
         <ReportPaymentDialog
           pendingInstallments={pendingInstallments}
           exchangeRates={exchangeRates}
+          graceDays={graceDays}
           onClose={() => setReportOpen(false)}
         />
       )}

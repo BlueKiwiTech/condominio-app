@@ -86,7 +86,11 @@ function RateColumn({ rateType, label, row }: { rateType: ExchangeRateType; labe
         </div>
       ) : fresh && row ? (
         <div className="flex flex-col gap-1">
-          <span className="text-xl font-bold">{t('rateValue', { rate: row.rate.toFixed(4) })}</span>
+          <span className="text-xl font-bold">
+            {t('rateValue', {
+              rate: row.rate.toLocaleString('es-VE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }),
+            })}
+          </span>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-muted-foreground">
               {t('updatedAt', { date: formatShortDateTime(new Date(row.updated_at), locale) })}

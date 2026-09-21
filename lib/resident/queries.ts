@@ -41,7 +41,7 @@ export type ResidentInstallment = {
   due_date: string;
   status: InstallmentStatus;
   // Nested via template_id — used to split the "cuota especial" list section
-  // from the recurring-cuota month grid on /mis-cuotas (V3). Null only if a
+  // from the recurring-cuota month grid on /mis-pagos (V3). Null only if a
   // template was ever hard-deleted out from under an installment, which
   // CUOT-06's payment-guard prevents in practice.
   condo_installment_templates: { installment_type: InstallmentType } | null;
@@ -53,7 +53,7 @@ export type ResidentCommunity = { name: string; phone: string | null; grace_peri
 
 export type ResidentReportStatus = 'pending' | 'confirmed' | 'rejected';
 
-// condo_payment_reports for this house, every status -- shown on /mis-pagos
+// condo_payment_reports for this house, every status -- shown on /mi-cartera
 // so a resident always sees their self-reported payment (pending, confirmed,
 // or rejected) rather than it silently vanishing once an admin reviews it.
 export type ResidentPaymentReport = {
@@ -72,6 +72,7 @@ export type ResidentPaymentReport = {
   // receipt number of its own even though it has no resulting batch/cuota
   // allocation, so residents still see a numbered confirmation.
   resulting_receipt_number: number | null;
+  created_at: string;
 };
 
 export type ResidentPortalData = {
@@ -91,7 +92,7 @@ export type ResidentPortalData = {
 
 /**
  * Single fetch used by all three resident portal pages (V2/V3/V4) — a small
- * single-house dataset, so a modest overfetch (e.g. /mis-pagos also pulling
+ * single-house dataset, so a modest overfetch (e.g. /mi-cartera also pulling
  * house/residents) is a fine tradeoff for one shared, consistent helper over
  * three narrower ones.
  */
@@ -136,10 +137,10 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
       supabase
         .from('condo_payment_reports')
         .select(
-          'id, amount, currency, payment_date, reference, installment_ids, status, resulting_payment_batch_id, resulting_receipt_number',
+          'id, amount, currency, payment_date, reference, installment_ids, status, resulting_payment_batch_id, resulting_receipt_number, created_at',
         )
         .eq('house_id', houseId)
-        .order('payment_date', { ascending: false }),
+        .order('created_at', { ascending: false }),
       supabase.from('condo_house_credits').select('currency, balance').eq('house_id', houseId),
       supabase.from('condo_communities').select('name, phone, grace_period_days').limit(1).maybeSingle(),
       supabase

@@ -10,9 +10,14 @@ import { differenceInCalendarDays, parseISO } from 'date-fns';
 // replaces, Phase 1's original ('pending', 'paid', 'advance') set.
 export type InstallmentStatus = 'pending' | 'partial' | 'paid' | 'advance';
 
-export function isOverdue(dueDate: string, status: InstallmentStatus, today: Date = new Date()): boolean {
+export function isOverdue(
+  dueDate: string,
+  status: InstallmentStatus,
+  graceDays: number = 0,
+  today: Date = new Date(),
+): boolean {
   if (status === 'paid') return false;
-  return differenceInCalendarDays(today, parseISO(dueDate)) > 0;
+  return differenceInCalendarDays(today, parseISO(dueDate)) > graceDays;
 }
 
 export type InstallmentSummaryRow = {
@@ -34,7 +39,11 @@ export type TemplateStatusSummary = {
   totalAmount: number;
 };
 
-export function summarizeTemplate(installments: InstallmentSummaryRow[], today: Date = new Date()): TemplateStatusSummary {
+export function summarizeTemplate(
+  installments: InstallmentSummaryRow[],
+  graceDays: number = 0,
+  today: Date = new Date(),
+): TemplateStatusSummary {
   const houseIds = new Set(installments.map((i) => i.house_id));
   let paidCount = 0;
   let partialCount = 0;
@@ -42,7 +51,7 @@ export function summarizeTemplate(installments: InstallmentSummaryRow[], today: 
   for (const inst of installments) {
     if (inst.status === 'paid') {
       paidCount += 1;
-    } else if (isOverdue(inst.due_date, inst.status, today)) {
+    } else if (isOverdue(inst.due_date, inst.status, graceDays, today)) {
       overdueCount += 1;
     } else if (inst.status === 'partial') {
       partialCount += 1;

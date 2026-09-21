@@ -15,10 +15,11 @@ export type DisplayStatus = 'paid' | 'advance' | 'partial' | 'pending' | 'overdu
 
 export function displayStatus(
   installment: { status: InstallmentStatus; due_date: string },
+  graceDays: number = 0,
   today: Date = new Date(),
 ): DisplayStatus {
   if (installment.status === 'paid') return 'paid';
-  if (isOverdue(installment.due_date, installment.status, today)) return 'overdue';
+  if (isOverdue(installment.due_date, installment.status, graceDays, today)) return 'overdue';
   if (installment.status === 'advance') return 'advance';
   if (installment.status === 'partial') return 'partial';
   return 'pending';
@@ -29,11 +30,12 @@ export type UpcomingCandidate = { due_date: string; status: InstallmentStatus };
 /** "Lo que viene" (V2) — next non-paid, non-overdue installments, soonest first. */
 export function upcomingInstallments<T extends UpcomingCandidate>(
   installments: T[],
+  graceDays: number = 0,
   today: Date = new Date(),
   limit = 5,
 ): T[] {
   return installments
-    .filter((i) => i.status !== 'paid' && !isOverdue(i.due_date, i.status, today))
+    .filter((i) => i.status !== 'paid' && !isOverdue(i.due_date, i.status, graceDays, today))
     .sort((a, b) => a.due_date.localeCompare(b.due_date))
     .slice(0, limit);
 }

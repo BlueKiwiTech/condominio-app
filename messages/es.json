@@ -455,7 +455,8 @@
       "installmentsGone": "Una o más cuotas seleccionadas ya no existen.",
       "mixedHouses": "Todas las cuotas deben pertenecer a la misma casa.",
       "alreadyPaid": "Una de las cuotas seleccionadas ya está pagada.",
-      "insufficientAmount": "El monto recibido no cubre ninguna cuota seleccionada."
+      "insufficientAmount": "El monto recibido no cubre ninguna cuota seleccionada.",
+      "staleExchangeRate": "La tasa de cambio necesaria para convertir el saldo de la cartera no está actualizada (o no existe). Actualiza la tasa antes de confirmar este reporte."
     },
     "table": {
       "date": "Fecha",
@@ -576,8 +577,8 @@
     "reportPayment": "Reportar pago",
     "community": "Mi comunidad",
     "home": "Mi hogar",
-    "cuotas": "Mis cuotas",
-    "payments": "Mis pagos",
+    "cuotas": "Mis Pagos",
+    "payments": "Mi Cartera",
     "profile": "Perfil",
     "roleLabel": "Vecino",
     "unknownHouse": "Mi casa",
@@ -629,6 +630,7 @@
       "heading": "Reportar un pago",
       "intro": "Cuéntale a la junta que ya hiciste un pago. Esto no marca tu cuota como pagada al instante — la junta lo revisa y lo confirma.",
       "whichCuotas": "Tus cuotas pendientes",
+  "totalOverdue": "Total pagos vencidos",
       "fields": {
         "currency": "Moneda",
         "amount": "Monto",
@@ -663,7 +665,7 @@
     "residents": "Vecinos"
   },
   "residentCuotas": {
-    "heading": "Mis cuotas",
+    "heading": "Mis Pagos",
     "tabs": {
       "pending": "Pendientes",
       "history": "Histórico"
@@ -692,14 +694,16 @@
     }
   },
   "residentPayments": {
-    "heading": "Mis pagos",
+    "heading": "Mi Cartera",
     "filterAll": "Todos",
-    "empty": "Aún no tienes pagos registrados.",
-    "totalFor": "Total {period}",
-    "receipt": "Sin recibo",
-    "cuotas": "Cuotas",
     "reportFallback": "Pago reportado",
     "creditAdded": "Saldo agregado a tu cuenta",
+    "available": "Disponible",
+    "pendingBalance": "Pendiente por confirmar",
+    "noBalance": "Sin saldo",
+    "lastReportRejected": "Tu último reporte de pago fue rechazado. Revisa los detalles o comunícate con la junta.",
+    "abonosHeading": "Abonos a tu cartera",
+    "abonosEmpty": "Aún no has reportado ningún abono.",
     "reportStatus": {
       "pending": "Por revisar",
       "confirmed": "Confirmado",

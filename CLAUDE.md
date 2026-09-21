@@ -41,7 +41,7 @@ Two corrections to the original handoff spec's schema, confirmed during research
 
 Prefer Server Actions over a full `app/api/*` REST tree for same-origin admin/resident CRUD — Next.js App Router doesn't need that boilerplate.
 
-**Build order** (dependency-driven, matches `.planning/ROADMAP.md` phase order): scaffold + corrected schema + RLS → admin auth → houses & resident access (resident auth is the highest-risk piece — treat as a spike if the dual-auth pattern above needs revisiting) → cuota engine (recurring + divisible, transactional + idempotent) → payments → reporting/morosos (must be per-currency, never summed across USD/Bs/USDT) → resident portal (needs both resident auth and reporting done) → i18n/polish.
+**Build order** (dependency-driven, matches `.planning/ROADMAP.md` phase order): scaffold + corrected schema + RLS → admin auth → houses & resident access (resident auth is the highest-risk piece — treat as a spike if the dual-auth pattern above needs revisiting) → cuota engine (recurring + divisible, transactional + idempotent) → payments → reporting/morosos (must be per-currency, never summed across USD/Bs/USDT — the one deliberate exception is "Mi Cartera"'s wallet allocation, which converts between currencies at the live daily rate when applying wallet funds to a due; see PLAN.md) → resident portal (needs both resident auth and reporting done) → i18n/polish.
 
 Full detail: `.planning/research/ARCHITECTURE.md` and `.planning/research/PITFALLS.md` (financial-calc bugs, RLS-for-non-Auth-residents, cuota-generation idempotency, PIN brute-force, date/timezone traps — read before touching auth or the cuota/payment/reporting logic).
 <!-- GSD:architecture-end -->

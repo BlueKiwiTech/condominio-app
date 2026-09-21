@@ -42,7 +42,12 @@ export function MiHogarClient({
     [data.installments, house, data.community, today],
   );
 
-  const upcoming = useMemo(() => upcomingInstallments(data.installments, today, 5), [data.installments, today]);
+  const graceDays = data.community?.grace_period_days ?? 0;
+
+  const upcoming = useMemo(
+    () => upcomingInstallments(data.installments, graceDays, today, 5),
+    [data.installments, graceDays, today],
+  );
 
   const isUpToDate = credits.length === 0 && morosos.length === 0;
 
@@ -57,6 +62,7 @@ export function MiHogarClient({
         installments={communityBalance.installments}
         credits={communityBalance.credits}
         expenses={communityBalance.expenses}
+        graceDays={graceDays}
         today={today}
       />
 
@@ -115,6 +121,7 @@ export function MiHogarClient({
         <ReportPaymentDialog
           pendingInstallments={pendingInstallments}
           exchangeRates={data.exchangeRates}
+          graceDays={graceDays}
           onClose={() => setReportOpen(false)}
         />
       )}

@@ -17,6 +17,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 
 type NavItem = {
@@ -25,19 +26,26 @@ type NavItem = {
   labelKey: 'reportPayment' | 'community' | 'home' | 'cuotas' | 'payments' | 'profile';
 };
 
-// "Reportar pago" deep-links into /mis-pagos with a query flag that
+// "Reportar pago" deep-links into /mi-cartera with a query flag that
 // MisPagosClient reads on mount to auto-open ReportPaymentDialog.
 const ITEMS: NavItem[] = [
-  { href: '/mis-pagos?report=1', icon: Plus, labelKey: 'reportPayment' },
+  { href: '/mi-cartera?report=1', icon: Plus, labelKey: 'reportPayment' },
   { href: '/mi-comunidad', icon: Building2, labelKey: 'community' },
-  { href: '/mis-cuotas', icon: Calendar, labelKey: 'cuotas' },
-  { href: '/mis-pagos', icon: FileText, labelKey: 'payments' },
+  { href: '/mis-pagos', icon: Calendar, labelKey: 'cuotas' },
+  { href: '/mi-cartera', icon: FileText, labelKey: 'payments' },
 ];
 
 export function ResidentSidebar({ houseLabel }: { houseLabel: string | null }) {
   const pathname = usePathname();
   const t = useTranslations('residentNav');
+  const { isMobile, setOpenMobile } = useSidebar();
   const isActive = (href: string) => pathname.endsWith(href.split('?')[0]);
+  // Tapping a nav link on mobile navigates but the offcanvas sheet stayed
+  // open over the new page until manually dismissed -- close it on tap
+  // (user request, 2026-09-20).
+  const closeOnMobileNavigate = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <Sidebar collapsible="offcanvas">
@@ -58,7 +66,11 @@ export function ResidentSidebar({ houseLabel }: { houseLabel: string | null }) {
                 const active = isActive(item.href);
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton render={<Link href={item.href} />} isActive={active} size="lg">
+                    <SidebarMenuButton
+                      render={<Link href={item.href} onClick={closeOnMobileNavigate} />}
+                      isActive={active}
+                      size="lg"
+                    >
                       <item.icon />
                       <span>{t(item.labelKey)}</span>
                     </SidebarMenuButton>

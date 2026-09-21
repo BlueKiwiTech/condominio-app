@@ -47,6 +47,7 @@ export function buildMonthlyReport(
   houses: HouseInfo[],
   credits: CreditForReport[],
   monthDate: Date,
+  graceDays: number = 0,
   today: Date = new Date(),
 ): MonthlyReportRow[] {
   const start = startOfMonth(monthDate);
@@ -66,7 +67,7 @@ export function buildMonthlyReport(
     g.paid += inst.amount_paid;
     if (inst.status !== 'paid') g.allPaid = false;
     if (inst.status === 'partial') g.hasPartial = true;
-    if (isOverdue(inst.due_date, inst.status, today)) g.hasOverdue = true;
+    if (isOverdue(inst.due_date, inst.status, graceDays, today)) g.hasOverdue = true;
     groups.set(key, g);
   }
 

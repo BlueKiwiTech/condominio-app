@@ -11,10 +11,11 @@ import type { ReportInstallment, HouseInfo, CreditForReport } from '@/lib/report
 export default async function ReportePage() {
   const supabase = await createClient();
 
-  const [{ data: installments }, { data: houses }, { data: credits }] = await Promise.all([
+  const [{ data: installments }, { data: houses }, { data: credits }, { data: community }] = await Promise.all([
     supabase.from('condo_installments').select('house_id, amount, amount_paid, currency, due_date, status'),
     supabase.from('condo_houses').select('id, house_number, house_name').order('house_number'),
     supabase.from('condo_house_credits').select('house_id, currency, balance'),
+    supabase.from('condo_communities').select('grace_period_days').limit(1).maybeSingle(),
   ]);
 
   return (
@@ -22,6 +23,7 @@ export default async function ReportePage() {
       installments={(installments as ReportInstallment[] | null) ?? []}
       houses={(houses as HouseInfo[] | null) ?? []}
       credits={(credits as CreditForReport[] | null) ?? []}
+      gracePeriodDays={community?.grace_period_days ?? 0}
     />
   );
 }

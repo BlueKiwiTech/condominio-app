@@ -17,7 +17,13 @@ import { CuotaEditDialog } from './CuotaEditDialog';
 import { formatAmount } from '@/lib/currency';
 import type { TemplateWithInstallments } from './types';
 
-export function CuotasPageClient({ initialTemplates }: { initialTemplates: TemplateWithInstallments[] }) {
+export function CuotasPageClient({
+  initialTemplates,
+  gracePeriodDays = 0,
+}: {
+  initialTemplates: TemplateWithInstallments[];
+  gracePeriodDays?: number;
+}) {
   const t = useTranslations('cuotas');
   const locale = useLocale();
   const router = useRouter();
@@ -94,7 +100,7 @@ export function CuotasPageClient({ initialTemplates }: { initialTemplates: Templ
               </TableRow>
             ) : (
               filteredTemplates.map((template) => {
-                const summary = summarizeTemplate(template.condo_installments, today);
+                const summary = summarizeTemplate(template.condo_installments, gracePeriodDays, today);
                 const typeLabel =
                   template.installment_type === 'recurring'
                     ? t(`cadence.${template.cadence ?? 'monthly'}`)

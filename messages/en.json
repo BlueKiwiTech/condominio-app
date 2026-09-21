@@ -455,7 +455,8 @@
       "installmentsGone": "One or more selected cuotas no longer exist.",
       "mixedHouses": "All cuotas must belong to the same house.",
       "alreadyPaid": "One of the selected cuotas is already paid.",
-      "insufficientAmount": "The amount received doesn't cover any selected cuota."
+      "insufficientAmount": "The amount received doesn't cover any selected cuota.",
+      "staleExchangeRate": "The exchange rate needed to convert the wallet balance isn't up to date (or doesn't exist). Refresh the rate before confirming this report."
     },
     "table": {
       "date": "Date",
@@ -576,8 +577,8 @@
     "reportPayment": "Report a payment",
     "community": "My community",
     "home": "My home",
-    "cuotas": "My cuotas",
-    "payments": "My payments",
+    "cuotas": "My Payments",
+    "payments": "My Wallet",
     "profile": "Profile",
     "roleLabel": "Resident",
     "unknownHouse": "My house",
@@ -629,6 +630,7 @@
       "heading": "Report a payment",
       "intro": "Let the board know you already made a payment. This doesn't mark your cuota as paid instantly — the board reviews and confirms it.",
       "whichCuotas": "Your pending cuotas",
+  "totalOverdue": "Total overdue payments",
       "fields": {
         "currency": "Currency",
         "amount": "Amount",
@@ -663,7 +665,7 @@
     "residents": "Residents"
   },
   "residentCuotas": {
-    "heading": "My cuotas",
+    "heading": "My Payments",
     "tabs": {
       "pending": "Pending",
       "history": "History"
@@ -692,14 +694,16 @@
     }
   },
   "residentPayments": {
-    "heading": "My payments",
+    "heading": "My Wallet",
     "filterAll": "All",
-    "empty": "You don't have any payments registered yet.",
-    "totalFor": "Total {period}",
-    "receipt": "No receipt",
-    "cuotas": "Cuotas",
     "reportFallback": "Reported payment",
     "creditAdded": "Added to your balance",
+    "available": "Available",
+    "pendingBalance": "Pending confirmation",
+    "noBalance": "No balance",
+    "lastReportRejected": "Your last payment report was rejected. Check the details or contact the board.",
+    "abonosHeading": "Wallet contributions",
+    "abonosEmpty": "You haven't reported any contributions yet.",
     "reportStatus": {
       "pending": "Under review",
       "confirmed": "Confirmed",

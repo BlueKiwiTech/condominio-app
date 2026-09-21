@@ -33,6 +33,7 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 
 type NavItem = { href: string; icon: LucideIcon; labelKey: string };
@@ -80,8 +81,16 @@ export function AdminSidebar({
 }) {
   const pathname = usePathname();
   const t = useTranslations('adminNav');
+  const { isMobile, setOpenMobile } = useSidebar();
   const isActive = (href: string) => pathname.endsWith(href);
   const initials = adminEmail ? adminEmail.slice(0, 2).toUpperCase() : '—';
+  // Tapping a nav link on mobile navigates but the offcanvas sheet stayed
+  // open over the new page until manually dismissed -- close it on tap,
+  // same as the desktop sidebar's rail collapsing on navigate never needed
+  // (user request, 2026-09-20).
+  const closeOnMobileNavigate = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <Sidebar collapsible="offcanvas">
@@ -105,7 +114,10 @@ export function AdminSidebar({
                   const showBadge = item.href === '/pagos-reportados' && pendingReportsCount > 0;
                   return (
                     <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton render={<Link href={item.href} />} isActive={active}>
+                      <SidebarMenuButton
+                        render={<Link href={item.href} onClick={closeOnMobileNavigate} />}
+                        isActive={active}
+                      >
                         <item.icon />
                         <span>{t(item.labelKey)}</span>
                       </SidebarMenuButton>

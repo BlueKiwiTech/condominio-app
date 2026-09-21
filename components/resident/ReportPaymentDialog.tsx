@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { parseISO } from 'date-fns';
+import { addMonths, endOfMonth, parseISO } from 'date-fns';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import {
   Dialog,
@@ -23,6 +23,7 @@ import { extractResidentPaymentFromScreenshot } from '@/lib/actions/residentPaym
 import { toDateOnly } from '@/lib/cuotas/generate';
 import { CURRENCY_SELECT_OPTIONS, formatAmount, formatMoney } from '@/lib/currency';
 import { referenceUsdAmount, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
+import { isOverdue } from '@/lib/cuotas/status';
 import type { ResidentInstallment, Currency } from '@/lib/resident/queries';
 import { formatShortDate } from '@/lib/dateFormat';
 import { ListRow } from './ListRow';
@@ -40,10 +41,12 @@ import { ListRow } from './ListRow';
 export function ReportPaymentDialog({
   pendingInstallments,
   exchangeRates,
+  graceDays = 0,
   onClose,
 }: {
   pendingInstallments: ResidentInstallment[];
   exchangeRates: Record<ExchangeRateType, ExchangeRateRow | null>;
+  graceDays?: number;
   onClose: () => void;
 }) {
   const t = useTranslations('residentHome.reportPaymentDialog');
@@ -128,6 +131,41 @@ export function ReportPaymentDialog({
 
   const balanceDue = (i: ResidentInstallment) => i.amount - i.amount_paid;
 
+  // Board request (2026-09-19): show a total of what's actually overdue
+  // (grace-period-aware, same isOverdue used everywhere else) above the
+  // pending-cuotas list, per currency (never summed across USD/Bs/USDT).
+  const overdueTotals = useMemo(() => {
+    const byCurrency = new Map<Currency, number>();
+    const today = new Date();
+    for (const inst of pendingInstallments) {
+      if (!isOverdue(inst.due_date, inst.status, graceDays, today)) continue;
+      byCurrency.set(inst.currency, (byCurrency.get(inst.currency) ?? 0) + balanceDue(inst));
+    }
+    return Array.from(byCurrency.entries());
+  }, [pendingInstallments, graceDays]);
+
+  // Board request (2026-09-21, refined again): if there's ANY overdue cuota,
+  // show ONLY the overdue ones -- the resident is behind, so the list stays
+  // focused on catching up rather than mixing in future dues. Only once
+  // there's nothing overdue does it fall back to previewing what's pending
+  // in the current or following calendar month (not an unbounded "nearest
+  // month that has any data" search -- a divided special cuota can have
+  // months' worth of installments already generated far in advance, which
+  // would otherwise clutter this list with things the resident can't be
+  // reporting a payment for yet).
+  const visibleInstallments = useMemo(() => {
+    const today = new Date();
+    const overdue: ResidentInstallment[] = [];
+    const upcoming: ResidentInstallment[] = [];
+    for (const inst of pendingInstallments) {
+      (isOverdue(inst.due_date, inst.status, graceDays, today) ? overdue : upcoming).push(inst);
+    }
+    const sortByDueDate = (list: ResidentInstallment[]) => [...list].sort((a, b) => a.due_date.localeCompare(b.due_date));
+    if (overdue.length > 0) return sortByDueDate(overdue);
+    const windowEnd = endOfMonth(addMonths(today, 1));
+    return sortByDueDate(upcoming.filter((inst) => parseISO(inst.due_date) <= windowEnd));
+  }, [pendingInstallments, graceDays]);
+
   // Reference only (PLAN.md's "cada quien saca la cuenta" decision) -- never
   // sent to the server. Null (renders nothing) for USD, or whenever the
   // matching rate is missing/stale.
@@ -188,13 +226,23 @@ export function ReportPaymentDialog({
               </Alert>
             )}
 
-            {pendingInstallments.length > 0 && (
+            {visibleInstallments.length > 0 && (
               <div className="flex w-full flex-col gap-2">
                 <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                   {t('whichCuotas')}
                 </span>
+                {overdueTotals.length > 0 && (
+                  <div className="flex w-full flex-col gap-0.5 rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2">
+                    <span className="text-xs font-medium text-destructive">{t('totalOverdue')}</span>
+                    {overdueTotals.map(([cur, total]) => (
+                      <span key={cur} className="text-sm font-semibold text-destructive">
+                        {formatAmount(total, cur)}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex w-full flex-col gap-2">
-                  {pendingInstallments.map((inst) => (
+                  {visibleInstallments.map((inst) => (
                     <ListRow
                       key={inst.id}
                       title={inst.name}

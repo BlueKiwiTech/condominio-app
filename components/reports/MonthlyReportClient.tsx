@@ -35,10 +35,12 @@ export function MonthlyReportClient({
   installments,
   houses,
   credits,
+  gracePeriodDays = 0,
 }: {
   installments: ReportInstallment[];
   houses: HouseInfo[];
   credits: CreditForReport[];
+  gracePeriodDays?: number;
 }) {
   const t = useTranslations('reports');
   const locale = useLocale();
@@ -64,8 +66,8 @@ export function MonthlyReportClient({
   );
 
   const monthRows = useMemo(
-    () => buildMonthlyReport(installments, houses, credits, monthDate, today),
-    [installments, houses, credits, monthDate, today],
+    () => buildMonthlyReport(installments, houses, credits, monthDate, gracePeriodDays, today),
+    [installments, houses, credits, monthDate, gracePeriodDays, today],
   );
 
   const filteredRows = useMemo(

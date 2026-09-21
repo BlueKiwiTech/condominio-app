@@ -6,7 +6,7 @@ import { ResidentSidebar } from '@/components/resident/ResidentSidebar';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 
-// Shared shell for every /mi-hogar, /mis-cuotas, /mis-pagos screen.
+// Shared shell for every /mi-hogar, /mis-pagos, /mi-cartera screen.
 // proxy.ts already gates all of these via RESIDENT_PROTECTED_PATHS + the
 // signed jose cookie (Pattern A) — this redirect is defense in depth.
 export default async function ResidentLayout({ children }: { children: React.ReactNode }) {

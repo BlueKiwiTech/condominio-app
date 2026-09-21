@@ -1,0 +1,18 @@
+-- "Mi Cartera" wallet allocation (user decision, 2026-09-19/20): confirming
+-- a resident-reported payment now runs a FIFO, full-or-nothing allocation
+-- across EVERY outstanding due for the house (any currency), drawing wallet
+-- balance in a fixed priority order -- Bs -> USDT -> USD -- regardless of
+-- what currency the due itself is billed in, converting only at the moment
+-- funds are actually used (never at deposit time). See
+-- lib/payments/walletAllocation.ts for the allocation math itself.
+--
+-- A single due's condo_payments row can now be funded by a BLEND of wallet
+-- currencies (e.g. part Bs, part USD), each possibly converted at a
+-- different exchange rate at the moment it was drawn. funding_breakdown
+-- records that breakdown as a JSON array of
+-- {currency, amountDrawn, exchangeRate, exchangeRateType} objects, so the
+-- UI can show exactly what funded a payment instead of one opaque total.
+-- NULL for every other payment flow (admin manual "Registrar pago",
+-- lib/payments/creditSweep.ts's new-cuota credit sweep) -- those never
+-- cross currencies, so there's nothing to record.
+alter table condo_payments add column funding_breakdown jsonb;
