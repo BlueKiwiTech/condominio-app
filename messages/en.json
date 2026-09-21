@@ -666,20 +666,17 @@
   },
   "residentCuotas": {
     "heading": "My Payments",
-    "tabs": {
-      "pending": "Pending",
-      "history": "History"
-    },
     "overdueCard": {
       "heading": "Accumulated debt",
       "since": "Since {date}",
       "contact": "Write to the board"
     },
-    "overdueHeading": "Overdue debt",
-    "upcomingHeading": "Coming up",
+    "cuotasHeading": "Your cuotas",
+    "monthFilterLabel": "Month",
+    "yearFilterLabel": "Year",
+    "allYear": "Whole year",
     "empty": {
-      "pending": "You have no pending cuotas.",
-      "history": "You don't have any payment history yet."
+      "pending": "No cuotas in this period."
     },
     "status": {
       "paid": "Paid",
@@ -695,7 +692,9 @@
   },
   "residentPayments": {
     "heading": "My Wallet",
-    "filterAll": "All",
+    "monthFilterLabel": "Month",
+    "yearFilterLabel": "Year",
+    "allYear": "Whole year",
     "reportFallback": "Reported payment",
     "creditAdded": "Added to your balance",
     "available": "Available",

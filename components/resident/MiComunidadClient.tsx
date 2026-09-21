@@ -163,6 +163,7 @@ export function MiComunidadClient({
                 setWholeYear(false);
               }}
               disabled={wholeYear}
+              items={monthOptions}
             >
               <SelectTrigger aria-label={t('communityDashboard.monthFilterLabel')} className="h-9 min-w-[9rem]">
                 <SelectValue />

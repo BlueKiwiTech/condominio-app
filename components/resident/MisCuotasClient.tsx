@@ -1,18 +1,44 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useTranslations, useLocale } from 'next-intl';
-import { endOfMonth, format, parseISO } from 'date-fns';
+import { endOfMonth, format, getMonth, getYear, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import { Phone } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { displayStatus, groupByDueMonth, type DisplayStatus } from '@/lib/resident/portal';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from 'cn';
+import { displayStatus, type DisplayStatus } from '@/lib/resident/portal';
 import type { ResidentPortalData, ResidentInstallment } from '@/lib/resident/queries';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import { ListRow } from './ListRow';
+
+function capitalize(s: string): string {
+  return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
+}
+
+// "Todo el año" toggle pill — matches MiComunidadClient's / MisPagosClient's
+// (Mi Cartera's) identical filter control, for consistency across the three
+// resident screens that browse by period.
+function FilterChip({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex h-9 cursor-pointer items-center rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
+        selected
+          ? 'border-transparent bg-primary text-primary-foreground'
+          : 'border-border bg-background text-foreground hover:bg-muted',
+      )}
+    >
+      {label}
+    </button>
+  );
+}
 
 function statusVariant(status: DisplayStatus): 'success' | 'neutral' | 'warning' | 'destructive' {
   if (status === 'paid') return 'success';
@@ -39,7 +65,7 @@ function InstallmentCard({
     <ListRow
       title={inst.name}
       subtitle={formatShortDate(parseISO(inst.due_date), locale)}
-      amount={formatAmount(inst.amount - inst.amount_paid, inst.currency)}
+      amount={formatAmount(inst.amount, inst.currency)}
       tag={{ label: statusLabels[status], variant: statusVariant(status) }}
     />
   );
@@ -62,13 +88,13 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
 
   const pending = useMemo(() => data.installments.filter((i) => i.status !== 'paid'), [data.installments]);
 
-  // Board request (2026-09-18): split "Mis cuotas" by urgency instead of by
-  // installment type. "Deuda vencida" is every already-overdue cuota
-  // (recurring or special, flat list). "Lo que viene" is everything else --
-  // but a recurring template can have several months already generated
-  // ahead (the cuota engine generates in advance), so only the single
-  // nearest upcoming due-month's recurring cuotas show here, not all of
-  // them; special cuotas have no such cadence, so all non-overdue ones show.
+  // Board request (2026-09-21): one single list, browsable by month/year
+  // (same filter control as Mi Comunidad's Gastos and Mi Cartera's Abonos,
+  // for consistency across all three resident screens) instead of the
+  // previous urgency split with an unbrowsable "just the nearest month"
+  // restriction. Overdue cuotas are the one exception -- they're pinned at
+  // the top of the list REGARDLESS of which month/year is selected, so
+  // browsing to a different period can never make real debt disappear.
   const overdueItems = useMemo(
     () =>
       pending
@@ -76,34 +102,45 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
         .sort((a, b) => a.due_date.localeCompare(b.due_date)),
     [pending, graceDays, today],
   );
+  const overdueIds = useMemo(() => new Set(overdueItems.map((i) => i.id)), [overdueItems]);
 
-  // "Lo que viene" also surfaces cuotas already paid in advance (e.g. a
-  // special cuota's later installments settled in one go) as long as their
-  // due date hasn't happened yet, so a resident who's fully paid up still
-  // sees what's ahead instead of an empty section -- a paid installment
-  // whose due date already passed just isn't "upcoming" anymore, so that
-  // case is excluded.
-  const upcomingPool = useMemo(
+  const availableYears = useMemo(() => {
+    const yrs = new Set<number>([getYear(today)]);
+    for (const i of data.installments) yrs.add(getYear(parseISO(i.due_date)));
+    return Array.from(yrs).sort((a, b) => a - b);
+  }, [data.installments, today]);
+
+  const [yearValue, setYearValue] = useState(String(getYear(today)));
+  const [monthValue, setMonthValue] = useState(String(getMonth(today) + 1));
+  const [wholeYear, setWholeYear] = useState(false);
+
+  const monthOptions = useMemo(
     () =>
-      data.installments.filter((i) =>
-        i.status === 'paid' ? parseISO(i.due_date) > today : displayStatus(i, graceDays, today) !== 'overdue',
-      ),
-    [data.installments, graceDays, today],
+      Array.from({ length: 12 }, (_, i) => ({
+        label: capitalize(format(new Date(2000, i, 1), 'LLLL', { locale: dateLocale })),
+        value: String(i + 1),
+      })),
+    [dateLocale],
   );
 
-  const nextRecurringMonth = useMemo(() => {
-    const recurring = upcomingPool.filter(
-      (i) => (i.condo_installment_templates?.installment_type ?? 'recurring') === 'recurring',
-    );
-    const groups = groupByDueMonth(recurring);
-    const nextKey = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b))[0];
-    return nextKey ? { monthKey: nextKey, items: groups.get(nextKey)! } : null;
-  }, [upcomingPool]);
+  const yearOptions = useMemo(() => availableYears.map((y) => ({ label: String(y), value: String(y) })), [availableYears]);
 
-  const specialUpcoming = useMemo(
-    () => upcomingPool.filter((i) => i.condo_installment_templates?.installment_type === 'special'),
-    [upcomingPool],
-  );
+  // Excludes anything already pinned in overdueItems above, so a cuota
+  // that's both overdue AND due within the selected period isn't shown twice.
+  const periodItems = useMemo(() => {
+    const year = Number(yearValue);
+    return data.installments
+      .filter((i) => {
+        if (overdueIds.has(i.id)) return false;
+        const d = parseISO(i.due_date);
+        if (getYear(d) !== year) return false;
+        if (!wholeYear && getMonth(d) + 1 !== Number(monthValue)) return false;
+        return true;
+      })
+      .sort((a, b) => a.due_date.localeCompare(b.due_date));
+  }, [data.installments, overdueIds, yearValue, monthValue, wholeYear]);
+
+  const listItems = useMemo(() => [...overdueItems, ...periodItems], [overdueItems, periodItems]);
 
   // "Deuda acumulada" (board request 2026-09-18): everything unpaid due in
   // the current month or earlier -- NOT the grace-period-gated admin
@@ -182,43 +219,53 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
         </Card>
       )}
 
-      {overdueItems.length > 0 && (
-        <div className="flex w-full flex-col gap-3">
-          <h2 className="text-base font-semibold">{t('overdueHeading')}</h2>
-          <div className="flex w-full flex-col gap-2">
-            {overdueItems.map((inst) => (
-              <InstallmentCard key={inst.id} inst={inst} graceDays={graceDays} today={today} statusLabels={statusLabels} />
-            ))}
+      <div className="flex w-full flex-col gap-3">
+        <div className="flex w-full flex-wrap items-end justify-between gap-3">
+          <h2 className="text-base font-semibold">{t('cuotasHeading')}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={monthValue}
+              onValueChange={(v) => {
+                if (!v) return;
+                setMonthValue(v);
+                setWholeYear(false);
+              }}
+              disabled={wholeYear}
+              items={monthOptions}
+            >
+              <SelectTrigger aria-label={t('monthFilterLabel')} className="h-9 min-w-[9rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={yearValue} onValueChange={(v) => v && setYearValue(v)}>
+              <SelectTrigger aria-label={t('yearFilterLabel')} className="h-9 min-w-[6rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FilterChip label={t('allYear')} selected={wholeYear} onClick={() => setWholeYear((w) => !w)} />
           </div>
         </div>
-      )}
-
-      <div className="flex w-full flex-col gap-3">
-        <h2 className="text-base font-semibold">{t('upcomingHeading')}</h2>
-        {!nextRecurringMonth && specialUpcoming.length === 0 ? (
+        {listItems.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('empty.pending')}</p>
         ) : (
-          <div className="flex w-full flex-col gap-6">
-            {nextRecurringMonth && (
-              <div className="flex w-full flex-col gap-2">
-                <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  {format(parseISO(`${nextRecurringMonth.monthKey}-01`), 'MMMM yyyy', { locale: dateLocale })}
-                </span>
-                <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
-                  {nextRecurringMonth.items.map((inst) => (
-                    <InstallmentCard key={inst.id} inst={inst} graceDays={graceDays} today={today} statusLabels={statusLabels} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {specialUpcoming.length > 0 && (
-              <div className="flex w-full flex-col gap-2">
-                {specialUpcoming.map((inst) => (
-                  <InstallmentCard key={inst.id} inst={inst} graceDays={graceDays} today={today} statusLabels={statusLabels} />
-                ))}
-              </div>
-            )}
+          <div className="flex w-full flex-col gap-2">
+            {listItems.map((inst) => (
+              <InstallmentCard key={inst.id} inst={inst} graceDays={graceDays} today={today} statusLabels={statusLabels} />
+            ))}
           </div>
         )}
       </div>

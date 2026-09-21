@@ -3,10 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
+import { format, getMonth, getYear, parseISO } from 'date-fns';
+import { es, enUS } from 'date-fns/locale';
 import { AlertTriangle, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from 'cn';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
@@ -23,7 +26,11 @@ function reportTagVariant(status: ResidentReportStatus): 'warning' | 'success' |
   return 'warning';
 }
 
-// Year filter pill row — a plain neutral/primary toggle, not a status
+function capitalize(s: string): string {
+  return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
+}
+
+// "Todo el año" toggle pill — a plain neutral/primary toggle, not a status
 // signal, so it stays outside the success/warning/destructive trio.
 function FilterChip({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
   return (
@@ -60,6 +67,8 @@ export function MisPagosClient({
   const t = useTranslations('residentPayments');
   const tHome = useTranslations('residentHome');
   const locale = useLocale();
+  const dateLocale = locale === 'en' ? enUS : es;
+  const today = useMemo(() => new Date(), []);
   // Sidebar's "Reportar pago" item (PO request 2026-09-18) deep-links here
   // with ?report=1 to auto-open the dialog. A lazy useState initializer only
   // ran once on mount, so clicking the sidebar link while already on this
@@ -105,17 +114,39 @@ export function MisPagosClient({
   // most recent payment_date, which the resident controls when reporting).
   const lastReport = reports[0] ?? null;
 
-  const years = useMemo(
-    () => Array.from(new Set(reports.map((r) => r.payment_date.slice(0, 4)))).sort((a, b) => b.localeCompare(a)),
-    [reports],
+  // Month/year filter (same pattern as MiComunidadClient's Gastos filter,
+  // 2026-09-21 board request): a specific month + year, or "todo el año" as
+  // a separate mutually-exclusive toggle rather than a 13th month option.
+  const availableYears = useMemo(() => {
+    const yrs = new Set<number>([getYear(today)]);
+    for (const r of reports) yrs.add(getYear(parseISO(r.payment_date)));
+    return Array.from(yrs).sort((a, b) => a - b);
+  }, [reports, today]);
+
+  const [yearValue, setYearValue] = useState(String(getYear(today)));
+  const [monthValue, setMonthValue] = useState(String(getMonth(today) + 1));
+  const [wholeYear, setWholeYear] = useState(false);
+
+  const monthOptions = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, i) => ({
+        label: capitalize(format(new Date(2000, i, 1), 'LLLL', { locale: dateLocale })),
+        value: String(i + 1),
+      })),
+    [dateLocale],
   );
 
-  const [yearFilter, setYearFilter] = useState<string>('all');
+  const yearOptions = useMemo(() => availableYears.map((y) => ({ label: String(y), value: String(y) })), [availableYears]);
 
-  const filteredReports = useMemo(
-    () => (yearFilter === 'all' ? reports : reports.filter((r) => r.payment_date.slice(0, 4) === yearFilter)),
-    [reports, yearFilter],
-  );
+  const filteredReports = useMemo(() => {
+    const year = Number(yearValue);
+    return reports.filter((r) => {
+      const d = parseISO(r.payment_date);
+      if (getYear(d) !== year) return false;
+      if (!wholeYear && getMonth(d) + 1 !== Number(monthValue)) return false;
+      return true;
+    });
+  }, [reports, yearValue, monthValue, wholeYear]);
 
   // An untagged report confirmed with no cuotas picked doesn't pay anything
   // off directly -- it becomes wallet credit (board request 2026-09-18:
@@ -176,15 +207,46 @@ export function MisPagosClient({
         </Card>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <FilterChip label={t('filterAll')} selected={yearFilter === 'all'} onClick={() => setYearFilter('all')} />
-        {years.map((y) => (
-          <FilterChip key={y} label={y} selected={yearFilter === y} onClick={() => setYearFilter(y)} />
-        ))}
-      </div>
-
       <div className="flex w-full flex-col gap-3">
-        <h2 className="text-base font-semibold">{t('abonosHeading')}</h2>
+        <div className="flex w-full flex-wrap items-end justify-between gap-3">
+          <h2 className="text-base font-semibold">{t('abonosHeading')}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={monthValue}
+              onValueChange={(v) => {
+                if (!v) return;
+                setMonthValue(v);
+                setWholeYear(false);
+              }}
+              disabled={wholeYear}
+              items={monthOptions}
+            >
+              <SelectTrigger aria-label={t('monthFilterLabel')} className="h-9 min-w-[9rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={yearValue} onValueChange={(v) => v && setYearValue(v)}>
+              <SelectTrigger aria-label={t('yearFilterLabel')} className="h-9 min-w-[6rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FilterChip label={t('allYear')} selected={wholeYear} onClick={() => setWholeYear((w) => !w)} />
+          </div>
+        </div>
         {filteredReports.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('abonosEmpty')}</p>
         ) : (

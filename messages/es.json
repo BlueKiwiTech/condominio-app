@@ -666,20 +666,17 @@
   },
   "residentCuotas": {
     "heading": "Mis Pagos",
-    "tabs": {
-      "pending": "Pendientes",
-      "history": "Histórico"
-    },
     "overdueCard": {
       "heading": "Deuda acumulada",
       "since": "Desde {date}",
       "contact": "Escribir a la junta"
     },
-    "overdueHeading": "Deuda vencida",
-    "upcomingHeading": "Lo que viene",
+    "cuotasHeading": "Tus cuotas",
+    "monthFilterLabel": "Mes",
+    "yearFilterLabel": "Año",
+    "allYear": "Todo el año",
     "empty": {
-      "pending": "No tienes cuotas pendientes.",
-      "history": "Aún no tienes historial de pagos."
+      "pending": "No hay cuotas en este periodo."
     },
     "status": {
       "paid": "Pagada",
@@ -695,7 +692,9 @@
   },
   "residentPayments": {
     "heading": "Mi Cartera",
-    "filterAll": "Todos",
+    "monthFilterLabel": "Mes",
+    "yearFilterLabel": "Año",
+    "allYear": "Todo el año",
     "reportFallback": "Pago reportado",
     "creditAdded": "Saldo agregado a tu cuenta",
     "available": "Disponible",
