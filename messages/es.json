@@ -574,7 +574,7 @@
       "name": "ASOBARCELONA CENTRO",
       "subtitle": "Portal de vecinos"
     },
-    "reportPayment": "Reportar pago",
+    "reportPayment": "Abonar a mi cartera",
     "community": "Mi comunidad",
     "home": "Mi hogar",
     "cuotas": "Mis Pagos",
@@ -625,13 +625,13 @@
       "heading": "Lo que viene",
       "empty": "No tienes cuotas próximas."
     },
-    "reportPayment": "Reportar un pago que hice",
+    "reportPayment": "Abonar a mi cartera",
     "logout": "Cerrar sesión",
     "reportPaymentDialog": {
-      "heading": "Reportar un pago",
-      "intro": "Cuéntale a la junta que ya hiciste un pago. Esto no marca tu cuota como pagada al instante — la junta lo revisa y lo confirma.",
+      "heading": "Abonar a mi cartera",
+      "intro": "Cuéntale a la junta que ya hiciste un abono a tu cartera. Esto no marca tu cuota como pagada al instante — la junta lo revisa y lo confirma.",
       "whichCuotas": "Tus cuotas pendientes",
-  "totalOverdue": "Total pagos vencidos",
+  "totalOverdue": "Total vencido",
       "fields": {
         "currency": "Moneda",
         "amount": "Monto",
@@ -668,7 +668,7 @@
   "residentCuotas": {
     "heading": "Mis Pagos",
     "overdueCard": {
-      "heading": "Deuda acumulada",
+      "heading": "Total vencido",
       "since": "Desde {date}",
       "contact": "Escribir a la junta"
     },
@@ -701,7 +701,7 @@
     "available": "Disponible",
     "pendingBalance": "Pendiente por confirmar",
     "noBalance": "Sin saldo",
-    "lastReportRejected": "Tu último reporte de pago fue rechazado. Revisa los detalles o comunícate con la junta.",
+    "lastReportRejected": "Tu último abono a la cartera fue rechazado. Revisa los detalles o comunícate con la junta.",
     "abonosHeading": "Abonos a tu cartera",
     "abonosEmpty": "Aún no has reportado ningún abono.",
     "reportStatus": {

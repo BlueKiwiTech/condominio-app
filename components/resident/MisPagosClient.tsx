@@ -87,6 +87,11 @@ export function MisPagosClient({
   if (reportParam === '1' && lastHandledReportParam !== reportParam) {
     setLastHandledReportParam(reportParam);
     setReportOpen(true);
+  } else if (reportParam === null && lastHandledReportParam !== null) {
+    // Resets the tracker once the URL is cleared back to /mi-cartera, so the
+    // next ?report=1 click (the param only ever toggles between these two
+    // values) is recognized as new instead of matching the last-handled '1'.
+    setLastHandledReportParam(null);
   }
   useEffect(() => {
     if (reportParam === '1') router.replace(pathname);
@@ -193,13 +198,13 @@ export function MisPagosClient({
       )}
 
       <div className="flex w-full flex-wrap gap-4">
-        <Card className="min-w-[10rem] flex-1 border-success/20 bg-success/5 p-4">
+        <Card className="min-w-[10rem] flex-1 border-success/20 bg-success/15 p-4">
           <div className="flex flex-col gap-1">
             <span className="text-xs font-medium tracking-wide text-success uppercase">{t('available')}</span>
             <CurrencyAmountList amounts={available} emptyLabel={t('noBalance')} />
           </div>
         </Card>
-        <Card className="min-w-[10rem] flex-1 border-warning/20 bg-warning/5 p-4">
+        <Card className="min-w-[10rem] flex-1 border-warning/20 bg-warning/30 p-4">
           <div className="flex flex-col gap-1">
             <span className="text-xs font-medium tracking-wide text-warning uppercase">{t('pendingBalance')}</span>
             <CurrencyAmountList amounts={pendingBalance} emptyLabel={t('noBalance')} />

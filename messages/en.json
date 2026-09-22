@@ -668,7 +668,7 @@
   "residentCuotas": {
     "heading": "My Payments",
     "overdueCard": {
-      "heading": "Accumulated debt",
+      "heading": "Total overdue",
       "since": "Since {date}",
       "contact": "Write to the board"
     },

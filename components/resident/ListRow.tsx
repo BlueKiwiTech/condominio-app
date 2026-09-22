@@ -13,8 +13,10 @@ const TAG_CLASSES: Record<TagVariant, string> = {
 // (+ optional status tag) right-aligned on the right — used by
 // MisCuotasClient's InstallmentCard, MiComunidadClient's expense breakdown,
 // and MisPagosClient's payment/report rows so every list row in the portal
-// reads the same way. Always a plain bordered row — status is communicated
-// only through the tag, never a colored background.
+// reads the same way. Always a plain bordered row on an explicit light
+// background — status is communicated only through the tag, never a colored
+// background — so it stays visually lighter than the container it sits in,
+// e.g. the tinted "vencidas" mascot card.
 export function ListRow({
   title,
   subtitle,
@@ -27,7 +29,7 @@ export function ListRow({
   tag?: { label: string; variant: TagVariant };
 }) {
   return (
-    <div className="flex w-full items-center justify-between gap-4 rounded-[var(--radius)] border p-4">
+    <div className="flex w-full items-center justify-between gap-4 rounded-[var(--radius)] border bg-background p-4">
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="truncate text-sm font-semibold">{title}</span>
         <span className="truncate text-xs text-muted-foreground">{subtitle}</span>

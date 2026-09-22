@@ -130,7 +130,7 @@ export function MiComunidadClient({
       <div className="flex w-full flex-col gap-3">
         <h2 className="text-base font-semibold">{t('communityDashboard.heading')}</h2>
         <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
-          <Card className="border-success/20 bg-success/5 p-6">
+          <Card className="border-success/20 bg-success/15 p-6">
             <div className="flex flex-col gap-2">
               <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {t('communityDashboard.available')}
@@ -139,7 +139,7 @@ export function MiComunidadClient({
               <p className="text-xs text-muted-foreground">{t('communityDashboard.availableCaption')}</p>
             </div>
           </Card>
-          <Card className="border-warning/20 bg-warning/5 p-6">
+          <Card className="border-warning/20 bg-warning/30 p-6">
             <div className="flex flex-col gap-2">
               <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {t('communityDashboard.pending')}
@@ -191,7 +191,7 @@ export function MiComunidadClient({
             <FilterChip label={t('communityDashboard.allYear')} selected={wholeYear} onClick={() => setWholeYear((w) => !w)} />
           </div>
         </div>
-        <Card className="border-destructive/20 bg-destructive/5 p-6">
+        <Card className="border-destructive/20 bg-destructive/15 p-6">
           <div className="flex flex-col gap-2">
             <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{periodLabel}</span>
             <CurrencyAmountList amounts={expensesTotal} emptyLabel={t('communityDashboard.empty')} />

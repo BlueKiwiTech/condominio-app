@@ -68,12 +68,12 @@ export function MiHogarClient({
 
       <div className="flex w-full flex-col gap-3">
         {isUpToDate && (
-          <Card className="border-success/20 bg-success/5 p-5">
+          <Card className="border-success/20 bg-success/15 p-5">
             <span className="text-base font-semibold text-success">{t('upToDate')}</span>
           </Card>
         )}
         {credits.map(([currency, amount]) => (
-          <Card key={`credit-${currency}`} className="border-success/20 bg-success/5 p-5">
+          <Card key={`credit-${currency}`} className="border-success/20 bg-success/15 p-5">
             <div className="flex flex-col gap-1">
               <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {t('creditLabel')}
@@ -83,7 +83,7 @@ export function MiHogarClient({
           </Card>
         ))}
         {morosos.map((m) => (
-          <Card key={`debt-${m.currency}`} className="border-destructive/20 bg-destructive/5 p-5">
+          <Card key={`debt-${m.currency}`} className="border-destructive/20 bg-destructive/15 p-5">
             <div className="flex flex-col gap-1">
               <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {t('debtLabel', { date: formatShortDate(parseISO(m.owedSince), locale) })}

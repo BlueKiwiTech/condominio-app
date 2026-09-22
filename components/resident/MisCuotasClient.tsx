@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useTranslations, useLocale } from 'next-intl';
-import { endOfMonth, format, getMonth, getYear, parseISO } from 'date-fns';
+import { format, getMonth, getYear, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import { Phone } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -92,9 +92,11 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
   // (same filter control as Mi Comunidad's Gastos and Mi Cartera's Abonos,
   // for consistency across all three resident screens) instead of the
   // previous urgency split with an unbrowsable "just the nearest month"
-  // restriction. Overdue cuotas are the one exception -- they're pinned at
-  // the top of the list REGARDLESS of which month/year is selected, so
-  // browsing to a different period can never make real debt disappear.
+  // restriction. Overdue cuotas are no longer pinned above the filter
+  // (2026-09-22 request) -- they show up like anything else, only when
+  // their own due month/year is the one selected, matching the sibling
+  // screens' filters. The card below still surfaces the running overdue
+  // total independent of whatever period is selected here.
   const overdueItems = useMemo(
     () =>
       pending
@@ -102,7 +104,6 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
         .sort((a, b) => a.due_date.localeCompare(b.due_date)),
     [pending, graceDays, today],
   );
-  const overdueIds = useMemo(() => new Set(overdueItems.map((i) => i.id)), [overdueItems]);
 
   const availableYears = useMemo(() => {
     const yrs = new Set<number>([getYear(today)]);
@@ -125,40 +126,24 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
 
   const yearOptions = useMemo(() => availableYears.map((y) => ({ label: String(y), value: String(y) })), [availableYears]);
 
-  // Excludes anything already pinned in overdueItems above, so a cuota
-  // that's both overdue AND due within the selected period isn't shown twice.
-  const periodItems = useMemo(() => {
+  const listItems = useMemo(() => {
     const year = Number(yearValue);
     return data.installments
       .filter((i) => {
-        if (overdueIds.has(i.id)) return false;
         const d = parseISO(i.due_date);
         if (getYear(d) !== year) return false;
         if (!wholeYear && getMonth(d) + 1 !== Number(monthValue)) return false;
         return true;
       })
       .sort((a, b) => a.due_date.localeCompare(b.due_date));
-  }, [data.installments, overdueIds, yearValue, monthValue, wholeYear]);
+  }, [data.installments, yearValue, monthValue, wholeYear]);
 
-  const listItems = useMemo(() => [...overdueItems, ...periodItems], [overdueItems, periodItems]);
-
-  // "Deuda acumulada" (board request 2026-09-18): everything unpaid due in
-  // the current month or earlier -- NOT the grace-period-gated admin
-  // morosos definition (computeMorosos) and NOT the stricter "already past
-  // its due day" isOverdue check (displayStatus === 'overdue') -- a cuota
-  // due later this month still counts here, since it's still "del mes
-  // actual". Future months' cuotas are excluded even if already generated.
-  const debtItems = useMemo(
-    () =>
-      pending
-        .filter((i) => parseISO(i.due_date) <= endOfMonth(today))
-        .sort((a, b) => a.due_date.localeCompare(b.due_date)),
-    [pending, today],
-  );
-
-  const debtTotals = useMemo(() => {
+  // "Total vencido" card totals: strictly overdueItems (isOverdue, grace-days
+  // aware) -- independent of the month/year filter above, so the running
+  // total stays visible no matter which period is being browsed.
+  const overdueTotals = useMemo(() => {
     const byCurrency = new Map<string, { currency: string; owed: number; since: string }>();
-    for (const inst of debtItems) {
+    for (const inst of overdueItems) {
       const owedAmount = inst.amount - inst.amount_paid;
       if (owedAmount <= 0) continue;
       const existing = byCurrency.get(inst.currency);
@@ -170,20 +155,20 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
       }
     }
     return Array.from(byCurrency.values());
-  }, [debtItems]);
+  }, [overdueItems]);
 
   return (
     <div className="flex w-full flex-col gap-6">
       <h1 className="text-xl font-bold md:text-2xl">{t('heading')}</h1>
 
-      {debtItems.length > 0 ? (
-        <Card className="border-destructive/20 bg-destructive/5 p-5">
+      {overdueItems.length > 0 ? (
+        <Card className="border-destructive/20 bg-destructive/15 p-5">
           <div className="flex w-full flex-col gap-4">
             <div className="flex items-center gap-4">
               <Image src="/mascota_bad.png" alt="" width={72} height={72} className="w-[72px] h-[72px] shrink-0" priority />
               <div className="flex flex-col gap-2">
                 <h2 className="text-base font-semibold text-destructive">{t('overdueCard.heading')}</h2>
-                {debtTotals.map((d) => (
+                {overdueTotals.map((d) => (
                   <div key={d.currency} className="flex flex-col gap-1">
                     <span className="text-xl font-bold">{formatAmount(d.owed, d.currency)}</span>
                     <span className="text-xs text-muted-foreground">
@@ -192,6 +177,11 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
                   </div>
                 ))}
               </div>
+            </div>
+            <div className="flex w-full flex-col gap-2">
+              {overdueItems.map((inst) => (
+                <InstallmentCard key={inst.id} inst={inst} graceDays={graceDays} today={today} statusLabels={statusLabels} />
+              ))}
             </div>
             {data.community?.phone && (
               <Button
@@ -208,7 +198,7 @@ export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
           </div>
         </Card>
       ) : (
-        <Card className="border-success/20 bg-success/5 p-5">
+        <Card className="border-success/20 bg-success/15 p-5">
           <div className="flex items-center gap-4">
             <Image src="/mascota_good.png" alt="" width={72} height={69} className="w-[72px] h-[69px] shrink-0" priority />
             <div className="flex flex-col gap-1">
