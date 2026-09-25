@@ -486,16 +486,11 @@
         "reference": "Reference (optional)",
         "notes": "Notes (optional)"
       },
-      "table": {
-        "cuota": "Cuota",
-        "due": "Due",
-        "balance": "Balance",
-        "status": "Status"
-      },
       "status": {
         "pending": "Pending",
         "partial": "Partial",
-        "paid": "Paid"
+        "paid": "Paid",
+        "overdue": "Overdue"
       },
       "noHouses": "No houses registered.",
       "noPendingInstallments": "This house has no pending cuotas.",
@@ -505,6 +500,14 @@
       "submit": "Register payment",
       "cancel": "Cancel",
       "toastSuccess": "Payment registered successfully.",
+      "overdueCard": {
+        "heading": "Total overdue",
+        "since": "Since {date}"
+      },
+      "allCaughtUp": {
+        "heading": "All caught up!",
+        "subtitle": "This house has no overdue cuotas."
+      },
       "summary": {
         "heading": "Payment summary",
         "empty": "Select a house and at least one cuota to see the summary.",

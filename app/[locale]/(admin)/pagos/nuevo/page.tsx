@@ -8,7 +8,7 @@ export default async function NuevoPagoPage() {
   const t = await getTranslations('payments.new');
   const supabase = await createClient();
 
-  const [{ data: houses }, { data: installments }, { data: credits }, exchangeRates] = await Promise.all([
+  const [{ data: houses }, { data: installments }, { data: credits }, { data: community }, exchangeRates] = await Promise.all([
     supabase.from('condo_houses').select('id, house_number, house_name, owner_name').order('house_number'),
     supabase
       .from('condo_installments')
@@ -16,6 +16,7 @@ export default async function NuevoPagoPage() {
       .in('status', ['pending', 'partial'])
       .order('due_date'),
     supabase.from('condo_house_credits').select('house_id, currency, balance').gt('balance', 0),
+    supabase.from('condo_communities').select('grace_period_days').limit(1).maybeSingle(),
     getLatestExchangeRates(),
   ]);
 
@@ -26,6 +27,7 @@ export default async function NuevoPagoPage() {
         houses={(houses as HouseOption[] | null) ?? []}
         pendingInstallments={(installments as PendingInstallment[] | null) ?? []}
         houseCredits={(credits as HouseCredit[] | null) ?? []}
+        gracePeriodDays={community?.grace_period_days ?? 0}
         exchangeRates={exchangeRates}
       />
     </div>

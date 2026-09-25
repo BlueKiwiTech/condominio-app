@@ -486,16 +486,11 @@
         "reference": "Referencia (opcional)",
         "notes": "Notas (opcional)"
       },
-      "table": {
-        "cuota": "Cuota",
-        "due": "Vence",
-        "balance": "Saldo",
-        "status": "Estado"
-      },
       "status": {
         "pending": "Pendiente",
         "partial": "Parcial",
-        "paid": "Pagada"
+        "paid": "Pagada",
+        "overdue": "Vencida"
       },
       "noHouses": "No hay casas registradas.",
       "noPendingInstallments": "Esta casa no tiene cuotas pendientes.",
@@ -505,6 +500,14 @@
       "submit": "Registrar pago",
       "cancel": "Cancelar",
       "toastSuccess": "Pago registrado correctamente.",
+      "overdueCard": {
+        "heading": "Total vencido",
+        "since": "Desde {date}"
+      },
+      "allCaughtUp": {
+        "heading": "¡Está al día!",
+        "subtitle": "Esta casa no tiene cuotas vencidas."
+      },
       "summary": {
         "heading": "Resumen del pago",
         "empty": "Selecciona una casa y al menos una cuota para ver el resumen.",
