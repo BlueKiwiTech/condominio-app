@@ -4,7 +4,6 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { format } from 'date-fns';
-import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -144,10 +143,6 @@ export function GastosPageClient({
           <AlertDescription>{serverError}</AlertDescription>
         </Alert>
       )}
-      <div className="flex w-full justify-end">
-        <Button render={<Link href="/gastos/new" />} nativeButton={false}>{t('newExpense')}</Button>
-      </div>
-
       <div className="flex w-full flex-wrap items-end gap-4 rounded-[var(--radius)] border bg-card p-4 shadow-sm">
         <div className="flex min-w-[180px] flex-col gap-2">
           <Label htmlFor="statusFilter">{t('filters.status')}</Label>

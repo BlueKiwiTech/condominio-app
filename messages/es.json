@@ -121,13 +121,13 @@
       "dashboard": "Panel",
       "houses": "Casas y vecinos",
       "gastos": "Gastos",
-      "expenseTemplates": "Registrar gasto",
-      "registerPayment": "Abono a cartera",
+      "expenseTemplates": "Conceptos de gasto",
+      "registerPayment": "Registrar abono",
       "paymentReports": "Abonos reportados",
-      "cuotas": "Registrar cuota",
+      "cuotas": "Cuotas",
       "report": "Reporte mensual",
-      "paymentsHistory": "Historial de pagos",
-      "expensePayments": "Pagos de gastos"
+      "paymentsHistory": "Historial de abonos",
+      "expensePayments": "Historial de pagos de gastos"
     },
     "roleLabel": "Administradora",
     "unknownAdmin": "Administrador",
@@ -144,7 +144,7 @@
     "pagosLink": "Pagos",
     "reportLink": "Reporte mensual",
     "actions": {
-      "registerPayment": "Registrar pago",
+      "registerPayment": "Registrar abono",
       "newCuota": "Nueva cuota"
     },
     "kpis": {
@@ -246,6 +246,7 @@
   },
   "cuotas": {
     "heading": "Cuotas",
+    "subtitle": "Define las cuotas de los vecinos y consulta su estado de cobro.",
     "newCuota": "Nueva cuota",
     "editCuota": "Editar cuota",
     "cancel": "Cancelar",
@@ -334,7 +335,8 @@
   },
   "gastos": {
     "heading": "Gastos",
-    "newExpense": "Nuevo gasto",
+    "subtitle": "Consulta los gastos generados y registra sus pagos.",
+    "newConcept": "Nuevo concepto",
     "cancel": "Cancelar",
     "save": "Guardar",
     "empty": "Aún no hay gastos registrados.",
@@ -347,7 +349,7 @@
       "status": "Estado"
     },
     "actions": {
-      "markPaid": "Marcar pagado",
+      "markPaid": "Registrar pago",
       "activate": "Activar",
       "deactivate": "Desactivar",
       "delete": "Borrar",
@@ -387,7 +389,7 @@
       "startDate": "Fecha de inicio"
     },
     "new": {
-      "heading": "Nuevo gasto",
+      "heading": "Nuevo concepto",
       "previewHeading": "Resumen",
       "previewEmpty": "Completa el monto total y la fecha de inicio para ver la vista previa."
     },
@@ -400,22 +402,23 @@
       "installmentCount": "Número de cuotas",
       "installmentAmount": "Monto de la cuota {number}",
       "amountsSumMismatch": "La suma de las cuotas ({sum}) no coincide con el monto total ({total}).",
-      "submit": "Crear gasto"
+      "submit": "Crear concepto"
     },
     "markPaidDialog": {
       "heading": "Marcar gasto como pagado",
       "amount": "Monto final",
       "paidDate": "Fecha de pago",
       "notes": "Notas (opcional)",
-      "confirm": "Marcar pagado"
+      "confirm": "Registrar pago"
     },
     "templates": {
-      "heading": "Registrar gasto",
-      "empty": "Aún no hay gastos fijos creados."
+      "heading": "Conceptos de gasto",
+      "subtitle": "Configura los gastos recurrentes o únicos de la comunidad.",
+      "empty": "Aún no hay conceptos de gasto creados."
     },
     "errors": {
       "invalid": "Datos inválidos. Revisa el formulario.",
-      "createFailed": "No se pudo crear el gasto.",
+      "createFailed": "No se pudo crear el concepto.",
       "notFound": "Gasto no encontrado.",
       "alreadyPaid": "Este gasto ya fue marcado como pagado.",
       "hasPayments": "No se puede eliminar: ya hay cuotas pagadas de este gasto.",
@@ -423,7 +426,7 @@
     }
   },
   "gastosPagados": {
-    "heading": "Pagos de gastos",
+    "heading": "Historial de pagos de gastos",
     "empty": "Aún no hay gastos pagados.",
     "table": {
       "name": "Gasto",
@@ -442,8 +445,8 @@
     }
   },
   "payments": {
-    "heading": "Pagos",
-    "registerPayment": "Registrar pago",
+    "heading": "Historial de abonos",
+    "registerPayment": "Registrar abono",
     "filterHouse": "Filtrar por casa",
     "filterAllHouses": "Todas las casas",
     "searchPlaceholder": "Buscar por casa o referencia...",
@@ -467,7 +470,7 @@
       "reference": "Referencia"
     },
     "detail": {
-      "back": "Volver a pagos",
+      "back": "Volver a abonos",
       "noReceipt": "Sin número de recibo",
       "house": "Casa",
       "cuotasCovered": "Cuotas cubiertas",
@@ -477,7 +480,7 @@
       "notes": "Notas"
     },
     "new": {
-      "heading": "Registrar pago",
+      "heading": "Registrar abono",
       "fields": {
         "house": "Casa",
         "currency": "Moneda",
@@ -497,9 +500,9 @@
       "existingCredit": "Esta casa tiene un saldo a favor de {amount} {currency}, que se aplicará automáticamente a este pago.",
       "currencyFreeHint": "La moneda del pago no tiene que coincidir con la de las cuotas seleccionadas — cada quien hace su propia conversión.",
       "usdReference": "≈ ${amount} (referencia {source})",
-      "submit": "Registrar pago",
+      "submit": "Registrar abono",
       "cancel": "Cancelar",
-      "toastSuccess": "Pago registrado correctamente.",
+      "toastSuccess": "Abono registrado correctamente.",
       "overdueCard": {
         "heading": "Total vencido",
         "since": "Desde {date}"
@@ -529,7 +532,7 @@
     }
   },
   "paymentReports": {
-    "heading": "Pagos reportados",
+    "heading": "Abonos reportados",
     "tabs": {
       "pending": "Pendientes ({count})",
       "all": "Todos"

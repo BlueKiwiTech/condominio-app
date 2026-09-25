@@ -120,14 +120,14 @@
     "items": {
       "dashboard": "Dashboard",
       "houses": "Houses & residents",
-      "cuotas": "Cuota templates",
+      "cuotas": "Cuotas",
       "gastos": "Expenses",
-      "expenseTemplates": "Expense templates",
+      "expenseTemplates": "Expense concepts",
       "registerPayment": "Register payment",
       "paymentReports": "Reported payments",
       "report": "Monthly report",
       "paymentsHistory": "Payment history",
-      "expensePayments": "Expense payments"
+      "expensePayments": "Expense payment history"
     },
     "roleLabel": "Board admin",
     "unknownAdmin": "Admin",
@@ -246,6 +246,7 @@
   },
   "cuotas": {
     "heading": "Cuotas",
+    "subtitle": "Set up your neighbors' cuotas and track their collection status.",
     "newCuota": "New cuota",
     "editCuota": "Edit cuota",
     "cancel": "Cancel",
@@ -334,7 +335,8 @@
   },
   "gastos": {
     "heading": "Expenses",
-    "newExpense": "New expense",
+    "subtitle": "Check the community's generated expenses and record their payments.",
+    "newConcept": "New concept",
     "cancel": "Cancel",
     "save": "Save",
     "empty": "No expenses recorded yet.",
@@ -347,7 +349,7 @@
       "status": "Status"
     },
     "actions": {
-      "markPaid": "Mark paid",
+      "markPaid": "Register payment",
       "activate": "Activate",
       "deactivate": "Deactivate",
       "delete": "Delete",
@@ -387,7 +389,7 @@
       "startDate": "Start date"
     },
     "new": {
-      "heading": "New expense",
+      "heading": "New concept",
       "previewHeading": "Preview",
       "previewEmpty": "Fill in the total amount and start date to see the preview."
     },
@@ -400,22 +402,23 @@
       "installmentCount": "Number of installments",
       "installmentAmount": "Installment {number} amount",
       "amountsSumMismatch": "The installments' sum ({sum}) doesn't match the total amount ({total}).",
-      "submit": "Create expense"
+      "submit": "Create concept"
     },
     "markPaidDialog": {
       "heading": "Mark expense as paid",
       "amount": "Final amount",
       "paidDate": "Payment date",
       "notes": "Notes (optional)",
-      "confirm": "Mark paid"
+      "confirm": "Register payment"
     },
     "templates": {
-      "heading": "Fixed templates",
-      "empty": "No fixed expenses created yet."
+      "heading": "Expense concepts",
+      "subtitle": "Configure the community's recurring or one-time expenses.",
+      "empty": "No expense concepts created yet."
     },
     "errors": {
       "invalid": "Invalid data. Check the form.",
-      "createFailed": "Could not create the expense.",
+      "createFailed": "Could not create the concept.",
       "notFound": "Expense not found.",
       "alreadyPaid": "This expense was already marked as paid.",
       "hasPayments": "Can't delete: some installments of this expense are already paid.",
@@ -423,7 +426,7 @@
     }
   },
   "gastosPagados": {
-    "heading": "Expense payments",
+    "heading": "Expense payment history",
     "empty": "No paid expenses yet.",
     "table": {
       "name": "Expense",
@@ -442,7 +445,7 @@
     }
   },
   "payments": {
-    "heading": "Payments",
+    "heading": "Payment history",
     "registerPayment": "Register payment",
     "filterHouse": "Filter by house",
     "filterAllHouses": "All houses",
@@ -467,7 +470,7 @@
       "reference": "Reference"
     },
     "detail": {
-      "back": "Back to payments",
+      "back": "Back to payment history",
       "noReceipt": "No receipt number",
       "house": "House",
       "cuotasCovered": "Cuotas covered",

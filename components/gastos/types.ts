@@ -21,4 +21,4 @@ export type ExpenseRow = {
   condo_expense_categories: { name: string } | null;
 };
 
-export type FixedTemplateRow = { id: string; name: string; active: boolean };
+export type FixedTemplateRow = { id: string; name: string; active: boolean; cadence: ExpenseCadence };

@@ -48,7 +48,7 @@ export function GastosPlantillasPageClient({ fixedTemplates }: { fixedTemplates:
         </Alert>
       )}
       <div className="flex w-full justify-end">
-        <Button render={<Link href="/gastos/new" />} nativeButton={false}>{t('newExpense')}</Button>
+        <Button render={<Link href="/gastos/new" />} nativeButton={false}>{t('newConcept')}</Button>
       </div>
       {fixedTemplates.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t('templates.empty')}</p>
@@ -59,7 +59,9 @@ export function GastosPlantillasPageClient({ fixedTemplates }: { fixedTemplates:
               key={tpl.id}
               className="flex w-full items-center justify-between rounded-[var(--radius)] border bg-card p-3 shadow-sm"
             >
-              <span className="text-sm font-medium">{tpl.name}</span>
+              <span className="text-sm font-medium">
+                {tpl.name} <span className="font-normal text-muted-foreground">· {t(`cadence.${tpl.cadence}`)}</span>
+              </span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" disabled={isTogglingActive} onClick={() => toggleActive(tpl.id, !tpl.active)}>
                   {tpl.active ? t('actions.deactivate') : t('actions.activate')}
