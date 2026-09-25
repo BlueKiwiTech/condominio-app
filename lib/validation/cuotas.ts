@@ -48,12 +48,22 @@ export function specialTemplateSchema(t: Translator) {
     ...sharedFields(t),
     is_divided: z.boolean().default(false),
     number_of_installments: z.coerce.number().int().min(1).max(360).default(1),
+    // Cadence between divided installments (defaults to monthly server-side
+    // if omitted) — only used to compute the baseline preview/fallback due
+    // dates; not persisted on the template row (unlike recurring's cadence),
+    // since the actual due_dates below are what's authoritative.
+    cadence: cadenceSchema.optional(),
     // Admin-entered per-installment amounts for a divided special cuota — not
     // necessarily equal, must sum to `amount` (checked below, once the union
     // is built, mirroring lib/validation/gastos.ts's variable-expense shape).
     // Omitted (or ignored) when is_divided is false; the action falls back to
     // an even splitAmount() if is_divided is true but this is missing.
     amounts: z.array(z.coerce.number().positive(t('amountPositive'))).optional(),
+    // Admin-entered (or baseline, left untouched) per-installment due dates
+    // for a divided special cuota — individually overridable in the form.
+    // Omitted/mismatched falls back to the cadence-derived baseline, same
+    // tolerance as `amounts` above.
+    due_dates: z.array(isoDate(t)).optional(),
   });
 }
 export type SpecialTemplateInput = z.infer<ReturnType<typeof specialTemplateSchema>>;
@@ -77,6 +87,13 @@ export function createTemplateSchema(t: Translator) {
         !data.is_divided ||
         Math.round((data.amounts ?? []).reduce((sum, a) => sum + a, 0) * 100) === Math.round(data.amount * 100),
       { message: t('amountsSumMismatch'), path: ['amounts'] },
+    )
+    .refine(
+      (data) =>
+        data.installment_type !== 'special' ||
+        !data.is_divided ||
+        (data.due_dates?.length ?? 0) === data.number_of_installments,
+      { message: t('minInstallments'), path: ['due_dates'] },
     );
 }
 export type CreateTemplateInput = z.infer<ReturnType<typeof createTemplateSchema>>;

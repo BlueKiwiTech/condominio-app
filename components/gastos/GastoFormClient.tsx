@@ -1,20 +1,20 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { useTranslations, useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DateInput } from '@/components/ui/date-input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useSplitAmounts, SplitAmountsFields } from '@/components/shared/SplitAmounts';
 import { createExpenseTemplateSchema, type CreateExpenseTemplateInput, type Cadence } from '@/lib/validation/gastos';
 import { createExpenseTemplate } from '@/lib/actions/gastos';
-import { computeVariablePeriodDates, splitAmount, toDateOnly } from '@/lib/gastos/generate';
+import { computeVariablePeriodDates, toDateOnly } from '@/lib/gastos/generate';
 import { CURRENCY_SELECT_OPTIONS, formatAmount, formatMoney } from '@/lib/currency';
 import type { CategoryOption } from './types';
 
@@ -77,29 +77,14 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
     return computeVariablePeriodDates(values.start_date, values.installment_count, values.cadence);
   }, [isVariable, values.start_date, values.installment_count, values.cadence]);
 
-  // Per-installment amounts the admin can edit individually -- they don't
-  // have to be equal, only sum to the total. Reset to an even split
-  // whenever the count or total changes; the admin's own edits persist
-  // until one of those two changes again.
-  const [amounts, setAmounts] = useState<number[]>([]);
-  useEffect(() => {
-    if (!isVariable) return;
-    const count = values.installment_count && values.installment_count > 0 ? values.installment_count : 0;
-    const total = values.default_amount && values.default_amount > 0 ? values.default_amount : 0;
-    if (count === 0 || total === 0) {
-      setAmounts([]);
-      return;
-    }
-    setAmounts(splitAmount(total, count));
-  }, [isVariable, values.installment_count, values.default_amount]);
-
-  const amountsSum = useMemo(() => amounts.reduce((sum, a) => sum + (Number.isFinite(a) ? a : 0), 0), [amounts]);
-  const amountsMismatch =
-    isVariable && amounts.length > 0 && Math.round(amountsSum * 100) !== Math.round((values.default_amount || 0) * 100);
-
-  const updateAmount = (index: number, value: number) => {
-    setAmounts((prev) => prev.map((a, i) => (i === index ? value : a)));
-  };
+  const {
+    amounts,
+    updateAmount,
+    dates,
+    updateDate,
+    sum: amountsSum,
+    mismatch: amountsMismatch,
+  } = useSplitAmounts(values.installment_count, values.default_amount, isVariable, isVariable ? (periodDates ?? undefined) : undefined);
 
   const onSubmit = (data: FormValues) => {
     setServerError(null);
@@ -114,7 +99,14 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
     const payload: CreateExpenseTemplateInput =
       data.kind === 'fixed'
         ? { kind: 'fixed', ...shared, cadence: data.cadence }
-        : { kind: 'variable', ...shared, cadence: data.cadence, installment_count: data.installment_count, amounts };
+        : {
+            kind: 'variable',
+            ...shared,
+            cadence: data.cadence,
+            installment_count: data.installment_count,
+            amounts,
+            period_dates: dates.map(toDateOnly),
+          };
 
     const parsed = createExpenseTemplateSchema(tv).safeParse(payload);
     if (!parsed.success) {
@@ -256,32 +248,6 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
             />
           </div>
 
-          {!isVariable && (
-            <FormField
-              control={control}
-              name="cadence"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('form.cadence')}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange} items={cadenceOptions}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {cadenceOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )}
-            />
-          )}
-
           <FormField
             control={control}
             name="start_date"
@@ -316,6 +282,32 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
             />
           )}
 
+          {(!isVariable || values.installment_count > 1) && (
+            <FormField
+              control={control}
+              name="cadence"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('form.cadence')}</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange} items={cadenceOptions}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {cadenceOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
+          )}
+
           <div className="flex gap-3">
             <Button type="submit" disabled={isPending || (isVariable && amountsMismatch)}>
               {t('form.submit')}
@@ -330,25 +322,18 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
       {isVariable && (
         <div className="flex h-fit min-w-[280px] flex-1 flex-col gap-3 rounded-[var(--radius)] bg-muted p-6">
           <h3 className="text-base font-semibold">{t('new.previewHeading')}</h3>
-          {!periodDates || amounts.length === 0 ? (
+          {!periodDates || amounts.length === 0 || dates.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t('new.previewEmpty')}</p>
           ) : (
             <>
-              <div className="flex flex-col gap-2">
-                {periodDates.map((date, idx) => (
-                  <div key={idx} className="grid gap-2">
-                    <Label htmlFor={`installment-amount-${idx}`}>
-                      {`${t('form.installmentAmount', { number: idx + 1 })} — ${toDateOnly(date)}`}
-                    </Label>
-                    <Input
-                      id={`installment-amount-${idx}`}
-                      type="number"
-                      value={Number.isNaN(amounts[idx]) ? '' : amounts[idx]}
-                      onChange={(e) => updateAmount(idx, e.target.valueAsNumber)}
-                    />
-                  </div>
-                ))}
-              </div>
+              <SplitAmountsFields
+                dates={dates}
+                amounts={amounts}
+                onAmountChange={updateAmount}
+                onDateChange={updateDate}
+                amountLabel={(number) => t('form.installmentAmount', { number })}
+                dateLabel={(number) => t('form.installmentDueDate', { number })}
+              />
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {t('form.amountTotal')}

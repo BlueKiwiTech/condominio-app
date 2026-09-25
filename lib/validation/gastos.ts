@@ -43,13 +43,23 @@ export function variableExpenseTemplateSchema(t: Translator) {
     kind: z.literal('variable'),
     ...sharedFields(t),
     // Cadence between installment due dates — admin-chosen, same options as
-    // a fixed gasto's cadence (previously hardcoded to monthly).
+    // a fixed gasto's cadence (previously hardcoded to monthly). Only used
+    // to compute the baseline preview/fallback dates; the actual
+    // period_dates below are what's authoritative once the admin can edit
+    // them individually.
     cadence: cadenceSchema,
     installment_count: z.coerce.number().int().min(1, t('minInstallments')).max(360, t('maxInstallments')),
     // One amount per installment, admin-entered -- not necessarily equal,
     // must sum to default_amount (checked below, once the union is built,
     // since a discriminated union member must stay a plain ZodObject).
     amounts: z.array(z.coerce.number().positive(t('amountPositive'))).min(1, t('minInstallments')),
+    // Admin-entered (or baseline, left untouched) per-installment period
+    // dates, individually overridable in the form. Required to have exactly
+    // `installment_count` entries, same as `amounts` above -- unlike
+    // cuotas' due_dates, these must also be pairwise distinct: condo_expenses
+    // has a (template_id, period_date) unique constraint, so two identical
+    // dates would silently drop one row on insert (ignoreDuplicates).
+    period_dates: z.array(isoDate(t)).min(1, t('minInstallments')),
   });
 }
 export type VariableExpenseTemplateInput = z.infer<ReturnType<typeof variableExpenseTemplateSchema>>;
@@ -66,6 +76,14 @@ export function createExpenseTemplateSchema(t: Translator) {
         data.kind !== 'variable' ||
         Math.round(data.amounts.reduce((sum, a) => sum + a, 0) * 100) === Math.round(data.default_amount * 100),
       { message: t('amountsSumMismatch'), path: ['amounts'] },
+    )
+    .refine((data) => data.kind !== 'variable' || data.period_dates.length === data.installment_count, {
+      message: t('minInstallments'),
+      path: ['period_dates'],
+    })
+    .refine(
+      (data) => data.kind !== 'variable' || new Set(data.period_dates).size === data.period_dates.length,
+      { message: t('duplicateDates'), path: ['period_dates'] },
     );
 }
 export type CreateExpenseTemplateInput = z.infer<ReturnType<typeof createExpenseTemplateSchema>>;

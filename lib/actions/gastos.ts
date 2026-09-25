@@ -10,7 +10,7 @@ import {
   type CreateExpenseTemplateInput,
   type MarkExpensePaidInput,
 } from '@/lib/validation/gastos';
-import { computeVariablePeriodDates, toDateOnly } from '@/lib/gastos/generate';
+import { computeVariablePeriodDates, parseDateOnly, toDateOnly } from '@/lib/gastos/generate';
 
 type ActionResult = { error: string } | { success: true };
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -88,7 +88,15 @@ export async function createExpenseTemplate(
   // (not necessarily equal) -- createExpenseTemplateSchema already verified
   // data.amounts.length === installment_count and their sum === default_amount.
   const startDate = new Date(`${data.start_date}T00:00:00`);
-  const periodDates = computeVariablePeriodDates(startDate, data.installment_count, data.cadence);
+  // Admin-entered per-installment dates (validated by createExpenseTemplateSchema
+  // to have exactly installment_count distinct entries) take precedence; fall
+  // back to the cadence-derived baseline if they somehow didn't come through
+  // (shouldn't happen given the schema's refine, but this keeps the action
+  // safe on its own) -- same tolerance as `amounts` below.
+  const periodDates =
+    data.period_dates.length === data.installment_count
+      ? data.period_dates.map(parseDateOnly)
+      : computeVariablePeriodDates(startDate, data.installment_count, data.cadence);
 
   const rows = periodDates.map((date, idx) => ({
     template_id: template.id,

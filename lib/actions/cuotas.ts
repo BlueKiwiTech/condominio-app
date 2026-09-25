@@ -45,7 +45,7 @@ function normalizeOptional(value: string | undefined): string | null {
 
 function dueDateModeFor(input: CreateTemplateInput): DueDateMode {
   if (input.installment_type === 'recurring') return { kind: 'recurring', cadence: input.cadence };
-  return input.is_divided ? { kind: 'special-divided' } : { kind: 'special-single' };
+  return input.is_divided ? { kind: 'special-divided', cadence: input.cadence } : { kind: 'special-single' };
 }
 
 export async function createInstallmentTemplate(input: CreateTemplateInput, locale: string): Promise<ActionResult> {
@@ -80,7 +80,16 @@ export async function createInstallmentTemplate(input: CreateTemplateInput, loca
   const count = data.installment_type === 'recurring' ? data.number_of_installments : isDivided ? data.number_of_installments : 1;
   const startDate = parseDateOnly(data.start_date);
   const mode = dueDateModeFor(data);
-  const dueDates = computeDueDates(mode, startDate, count);
+  // Admin-entered per-installment due dates (validated by createTemplateSchema
+  // to have exactly `count` entries when divided) take precedence; fall back
+  // to the cadence-derived baseline if the divided branch somehow didn't send
+  // any (shouldn't happen given the schema's refine, but this keeps the
+  // action safe on its own) -- same tolerance as `amounts` below.
+  const customDueDates = data.installment_type === 'special' ? data.due_dates : undefined;
+  const dueDates =
+    isDivided && customDueDates && customDueDates.length === count
+      ? customDueDates.map(parseDateOnly)
+      : computeDueDates(mode, startDate, count);
   // Admin-entered per-installment amounts (validated by createTemplateSchema
   // to sum to data.amount) take precedence; fall back to an even split if
   // the divided branch somehow didn't send any (shouldn't happen given the

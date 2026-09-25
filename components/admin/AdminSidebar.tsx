@@ -65,7 +65,7 @@ const GROUPS: NavGroup[] = [
   {
     titleKey: 'groups.reports',
     items: [
-      { href: '/reporte', icon: ClipboardList, labelKey: 'items.report' },
+      // { href: '/reporte', icon: ClipboardList, labelKey: 'items.report' },
       { href: '/pagos', icon: FileText, labelKey: 'items.paymentsHistory' },
       { href: '/gastos-pagados', icon: CheckCircle2, labelKey: 'items.expensePayments' },
     ],

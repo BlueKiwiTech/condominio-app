@@ -32,7 +32,8 @@
       "amountPositive": "Amount must be greater than 0.",
       "minInstallments": "There must be at least 1 installment.",
       "maxInstallments": "Number of installments is too high.",
-      "amountsSumMismatch": "The installments' sum doesn't match the total amount."
+      "amountsSumMismatch": "The installments' sum doesn't match the total amount.",
+      "duplicateDates": "Installment dates can't repeat."
     },
     "payments": {
       "invalidDate": "Invalid date.",
@@ -313,6 +314,7 @@
       "amountPerInstallment": "Amount per installment",
       "amountTotal": "Total amount",
       "installmentAmount": "Installment {number} amount",
+      "installmentDueDate": "Installment {number} due date",
       "amountsSumMismatch": "The installments' sum ({sum}) doesn't match the total amount ({total}).",
       "submit": "Create cuota"
     },
@@ -403,6 +405,7 @@
       "amountTotal": "Total amount",
       "installmentCount": "Number of installments",
       "installmentAmount": "Installment {number} amount",
+      "installmentDueDate": "Installment {number} due date",
       "amountsSumMismatch": "The installments' sum ({sum}) doesn't match the total amount ({total}).",
       "submit": "Create concept"
     },
@@ -449,6 +452,8 @@
       "category": "Category",
       "provider": "Person/Company",
       "month": "Month",
+      "year": "Year",
+      "allYear": "Whole year",
       "allCategories": "All",
       "providerPlaceholder": "Search person or company..."
     }

@@ -84,7 +84,7 @@ export function MonthlyReportClient({
     <div className="flex w-full flex-col gap-6 p-4 md:p-8">
       <h1 className="text-2xl font-bold">{t('heading')}</h1>
 
-      <div className="flex flex-wrap items-end gap-6">
+      <div className="flex flex-wrap items-end gap-6 rounded-[var(--radius)] border bg-card p-4 shadow-sm">
         <div className="flex min-w-[200px] flex-col gap-2">
           <Label htmlFor="month">{t('monthLabel')}</Label>
           <Select value={monthValue} onValueChange={(v) => v && setMonthValue(v)} items={monthOptions}>

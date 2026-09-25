@@ -49,7 +49,11 @@ export function PaymentsPageClient({
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <div className="flex w-full flex-wrap items-end gap-4">
+      {/* <div className="flex w-full justify-end">
+        <Button render={<Link href="/pagos/nuevo" />} nativeButton={false}>{t('registerPayment')}</Button>
+      </div> */}
+
+      <div className="flex w-full flex-wrap items-end gap-4 rounded-[var(--radius)] border bg-card p-4 shadow-sm">
         <div className="flex min-w-[220px] flex-col gap-2">
           <Label htmlFor="house-filter">{t('filterHouse')}</Label>
           <Select value={houseFilter} onValueChange={(v) => v && setHouseFilter(v)} items={houseOptions}>
@@ -73,9 +77,6 @@ export function PaymentsPageClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-        </div>
-        <div className="flex justify-end">
-          <Button render={<Link href="/pagos/nuevo" />} nativeButton={false}>{t('registerPayment')}</Button>
         </div>
       </div>
 

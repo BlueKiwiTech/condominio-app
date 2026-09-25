@@ -20,13 +20,16 @@ export type Currency = 'USD' | 'Bs' | 'USDT';
 // - recurring/weekly: straight +7-day increments, no day forcing (a week has
 //   no "day of month" concept to normalize).
 // - special-single: exactly the one date the admin picked, no math.
-// - special-divided: staggered one calendar month apart, PRESERVING the
-//   admin's chosen day-of-month (this is NOT a "recurring" cuota per the
-//   locked decision, so the day-1 forcing rule does not apply here).
+// - special-divided: staggered by the chosen cadence (defaults to one
+//   calendar month apart), PRESERVING the admin's chosen day-of-month (this
+//   is NOT a "recurring" cuota per the locked decision, so the day-1 forcing
+//   rule does not apply here). This is only the BASELINE the admin sees
+//   before individually overriding installment dates in the form — see
+//   components/shared/SplitInstallments.tsx's useSplitDates.
 export type DueDateMode =
   | { kind: 'recurring'; cadence: Cadence }
   | { kind: 'special-single' }
-  | { kind: 'special-divided' };
+  | { kind: 'special-divided'; cadence?: Cadence };
 
 export function computeDueDates(mode: DueDateMode, startDate: Date, count: number): Date[] {
   if (mode.kind === 'special-single') return [startDate];
@@ -34,7 +37,10 @@ export function computeDueDates(mode: DueDateMode, startDate: Date, count: numbe
   const dates: Date[] = [];
   for (let n = 0; n < count; n++) {
     if (mode.kind === 'special-divided') {
-      dates.push(addMonths(startDate, n));
+      const cadence = mode.cadence ?? 'monthly';
+      if (cadence === 'weekly') dates.push(addWeeks(startDate, n));
+      else if (cadence === 'annual') dates.push(addMonths(startDate, n * 12));
+      else dates.push(addMonths(startDate, n));
       continue;
     }
     // mode.kind === 'recurring'

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { useTranslations, useLocale } from 'next-intl';
@@ -14,9 +14,10 @@ import { DateInput } from '@/components/ui/date-input';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useSplitAmounts, SplitAmountsFields } from '@/components/shared/SplitAmounts';
 import { createTemplateSchema, type CreateTemplateInput, type Cadence } from '@/lib/validation/cuotas';
 import { createInstallmentTemplate } from '@/lib/actions/cuotas';
-import { buildPreview, splitAmount, toDateOnly, type DueDateMode } from '@/lib/cuotas/generate';
+import { buildPreview, toDateOnly, type DueDateMode } from '@/lib/cuotas/generate';
 import { CURRENCY_SELECT_OPTIONS, formatAmount, formatMoney } from '@/lib/currency';
 import type { HouseOption } from './types';
 
@@ -68,50 +69,38 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
     { value: 'annual', label: t('cadence.annual') },
   ];
 
-  // Per-installment amounts for a divided special cuota, editable individually
-  // — they don't have to be equal, only sum to the total. Reset to an even
-  // split whenever the count or total changes; the admin's own edits persist
-  // until one of those two changes again. Mirrors components/gastos/GastoFormClient.tsx's
-  // variable-expense amounts pattern.
-  const [amounts, setAmounts] = useState<number[]>([]);
-  useEffect(() => {
-    if (!isDivided) {
-      setAmounts([]);
-      return;
-    }
-    const count = values.number_of_installments && values.number_of_installments > 0 ? values.number_of_installments : 0;
-    const total = values.amount && values.amount > 0 ? values.amount : 0;
-    if (count === 0 || total === 0) {
-      setAmounts([]);
-      return;
-    }
-    setAmounts(splitAmount(total, count));
-  }, [isDivided, values.number_of_installments, values.amount]);
-
-  const amountsSum = useMemo(() => amounts.reduce((sum, a) => sum + (Number.isFinite(a) ? a : 0), 0), [amounts]);
-  const amountsMismatch =
-    isDivided && amounts.length > 0 && Math.round(amountsSum * 100) !== Math.round((values.amount || 0) * 100);
-
-  const updateAmount = (index: number, value: number) => {
-    setAmounts((prev) => prev.map((a, i) => (i === index ? value : a)));
-  };
-
-  const preview = useMemo(() => {
+  // Baseline preview, computed from count/cadence/start_date alone -- the
+  // amounts (and, for a divided cuota, the dates) below start out matching
+  // this exactly, but can then be edited individually per installment.
+  const baseline = useMemo(() => {
     if (!values.amount || values.amount <= 0 || !values.start_date) return null;
     const mode: DueDateMode =
       installmentType === 'recurring'
         ? { kind: 'recurring', cadence: values.cadence }
         : isDivided
-          ? { kind: 'special-divided' }
+          ? { kind: 'special-divided', cadence: values.cadence }
           : { kind: 'special-single' };
     const count = installmentType === 'recurring' ? values.number_of_installments : isDivided ? values.number_of_installments : 1;
     if (!count || count < 1) return null;
-    const base = buildPreview({ mode, startDate: values.start_date, count, amount: values.amount, isDivided });
-    if (isDivided && amounts.length === count) {
-      return { ...base, amounts, totalPerHouse: amountsSum };
+    return buildPreview({ mode, startDate: values.start_date, count, amount: values.amount, isDivided });
+  }, [installmentType, isDivided, values.amount, values.start_date, values.cadence, values.number_of_installments]);
+
+  const {
+    amounts,
+    updateAmount,
+    dates,
+    updateDate,
+    sum: amountsSum,
+    mismatch: amountsMismatch,
+  } = useSplitAmounts(values.number_of_installments, values.amount, isDivided, isDivided ? baseline?.dueDates : undefined);
+
+  const preview = useMemo(() => {
+    if (!baseline) return null;
+    if (isDivided && amounts.length === baseline.count && dates.length === baseline.count) {
+      return { ...baseline, dueDates: dates, amounts, totalPerHouse: amountsSum };
     }
-    return base;
-  }, [installmentType, isDivided, values.amount, values.start_date, values.cadence, values.number_of_installments, amounts, amountsSum]);
+    return baseline;
+  }, [baseline, isDivided, amounts, dates, amountsSum]);
 
   const toggleHouse = (houseId: string) => {
     setHouseSelection((prev) => {
@@ -144,7 +133,9 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
             ...shared,
             is_divided: data.is_divided,
             number_of_installments: data.is_divided ? data.number_of_installments : 1,
+            cadence: data.is_divided ? data.cadence : undefined,
             amounts: data.is_divided ? amounts : undefined,
+            due_dates: data.is_divided ? dates.map(toDateOnly) : undefined,
           };
 
     const parsed = createTemplateSchema(tv).safeParse(payload);
@@ -251,7 +242,7 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
           />
         </div>
 
-        {installmentType === 'recurring' && (
+        {(installmentType === 'recurring' || (isDivided && values.number_of_installments > 1)) && (
           <Controller
             control={control}
             name="cadence"
@@ -376,28 +367,25 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
         {preview && (
           <div className="flex flex-col gap-3">
             <span className="text-sm text-muted-foreground">{t('preview.info')}</span>
-            <div className={cn('flex flex-col', isDivided ? 'gap-2' : 'gap-1')}>
-              {preview.dueDates.map((date, idx) =>
-                isDivided ? (
-                  <div key={idx} className="grid gap-1.5">
-                    <Label htmlFor={`installment-amount-${idx}`}>
-                      {`${t('form.installmentAmount', { number: idx + 1 })} — ${toDateOnly(date)}`}
-                    </Label>
-                    <Input
-                      id={`installment-amount-${idx}`}
-                      type="number"
-                      value={Number.isNaN(amounts[idx]) ? '' : amounts[idx]}
-                      onChange={(e) => updateAmount(idx, e.target.valueAsNumber)}
-                    />
-                  </div>
-                ) : (
+            {isDivided ? (
+              <SplitAmountsFields
+                dates={dates}
+                amounts={amounts}
+                onAmountChange={updateAmount}
+                onDateChange={updateDate}
+                amountLabel={(number) => t('form.installmentAmount', { number })}
+                dateLabel={(number) => t('form.installmentDueDate', { number })}
+              />
+            ) : (
+              <div className="flex flex-col gap-1">
+                {preview.dueDates.map((date, idx) => (
                   <div key={idx} className="flex justify-between">
                     <span className="text-sm">{toDateOnly(date)}</span>
                     <span className="text-sm">{formatAmount(preview.amounts[idx], values.currency)}</span>
                   </div>
-                ),
-              )}
-            </div>
+                ))}
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-xs font-medium text-muted-foreground">{t('preview.totalPerHouse')}</span>
               <span className="text-sm font-semibold">{formatAmount(preview.totalPerHouse, values.currency)}</span>

@@ -32,7 +32,8 @@
       "amountPositive": "El monto debe ser mayor a 0.",
       "minInstallments": "Debe haber al menos 1 cuota.",
       "maxInstallments": "Número de cuotas demasiado alto.",
-      "amountsSumMismatch": "La suma de las cuotas no coincide con el monto total."
+      "amountsSumMismatch": "La suma de las cuotas no coincide con el monto total.",
+      "duplicateDates": "Las fechas de las cuotas no pueden repetirse."
     },
     "payments": {
       "invalidDate": "Fecha inválida.",
@@ -313,6 +314,7 @@
       "amountPerInstallment": "Monto por cuota",
       "amountTotal": "Monto total",
       "installmentAmount": "Monto de la cuota {number}",
+      "installmentDueDate": "Fecha de la cuota {number}",
       "amountsSumMismatch": "La suma de las cuotas ({sum}) no coincide con el monto total ({total}).",
       "submit": "Crear cuota"
     },
@@ -359,7 +361,7 @@
     "confirmDeleteAll": "¿Borrar todas las cuotas de este gasto? No volverás a verlas en la lista.",
     "kind": {
       "fixed": "Recurrente",
-      "variable": "?????"
+      "variable": "Extraordinario"
     },
     "cadence": {
       "weekly": "Semanal",
@@ -397,12 +399,13 @@
     },
     "form": {
       "kindFixed": "Recurrente",
-      "kindVariable": "?????",
+      "kindVariable": "Extraordinario",
       "cadence": "Frecuencia",
       "amountPerPeriod": "Monto por período",
       "amountTotal": "Monto total",
       "installmentCount": "Número de cuotas",
       "installmentAmount": "Monto de la cuota {number}",
+      "installmentDueDate": "Fecha de la cuota {number}",
       "amountsSumMismatch": "La suma de las cuotas ({sum}) no coincide con el monto total ({total}).",
       "submit": "Crear gasto"
     },
@@ -449,6 +452,8 @@
       "category": "Categoría",
       "provider": "Persona/Empresa",
       "month": "Mes",
+      "year": "Año",
+      "allYear": "Todo el año",
       "allCategories": "Todas",
       "providerPlaceholder": "Buscar persona o empresa..."
     }
