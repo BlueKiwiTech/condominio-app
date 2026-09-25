@@ -106,9 +106,9 @@ export function DashboardPageClient({
           <Link href="/pagos/nuevo" className={buttonVariants({ variant: 'default' })}>
             {t('actions.registerPayment')}
           </Link>
-          <Link href="/cuotas/new" className={buttonVariants({ variant: 'outline' })}>
+          {/* <Link href="/cuotas/new" className={buttonVariants({ variant: 'outline' })}>
             {t('actions.newCuota')}
-          </Link>
+          </Link> */}
         </div>
       </div>
 

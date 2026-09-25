@@ -9,7 +9,7 @@ export default async function GastosPlantillasPage() {
 
   const { data: fixedTemplates } = await supabase
     .from('condo_expense_templates')
-    .select('id, name, active, cadence')
+    .select('id, name, active, cadence, provider, currency, default_amount, start_date, condo_expense_categories(name)')
     .eq('kind', 'fixed')
     .is('deleted_at', null)
     .order('name');
@@ -20,7 +20,7 @@ export default async function GastosPlantillasPage() {
         <h1 className="text-2xl font-bold">{t('templates.heading')}</h1>
         <p className="text-sm text-muted-foreground">{t('templates.subtitle')}</p>
       </div>
-      <GastosPlantillasPageClient fixedTemplates={(fixedTemplates as FixedTemplateRow[] | null) ?? []} />
+      <GastosPlantillasPageClient fixedTemplates={(fixedTemplates as unknown as FixedTemplateRow[] | null) ?? []} />
     </div>
   );
 }

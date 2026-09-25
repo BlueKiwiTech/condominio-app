@@ -336,7 +336,7 @@
   "gastos": {
     "heading": "Gastos",
     "subtitle": "Consulta los gastos generados y registra sus pagos.",
-    "newConcept": "Nuevo concepto",
+    "newConcept": "Nuevo gasto",
     "cancel": "Cancelar",
     "save": "Guardar",
     "empty": "Aún no hay gastos registrados.",
@@ -377,6 +377,8 @@
       "category": "Categoría",
       "provider": "Persona/Empresa",
       "month": "Mes",
+      "year": "Año",
+      "allYear": "Todo el año",
       "allStatuses": "Todos",
       "allCategories": "Todas",
       "providerPlaceholder": "Buscar persona o empresa..."
@@ -389,7 +391,7 @@
       "startDate": "Fecha de inicio"
     },
     "new": {
-      "heading": "Nuevo concepto",
+      "heading": "Nuevo gasto",
       "previewHeading": "Resumen",
       "previewEmpty": "Completa el monto total y la fecha de inicio para ver la vista previa."
     },
@@ -402,7 +404,7 @@
       "installmentCount": "Número de cuotas",
       "installmentAmount": "Monto de la cuota {number}",
       "amountsSumMismatch": "La suma de las cuotas ({sum}) no coincide con el monto total ({total}).",
-      "submit": "Crear concepto"
+      "submit": "Crear gasto"
     },
     "markPaidDialog": {
       "heading": "Marcar gasto como pagado",
@@ -414,7 +416,14 @@
     "templates": {
       "heading": "Conceptos de gasto",
       "subtitle": "Configura los gastos recurrentes o únicos de la comunidad.",
-      "empty": "Aún no hay conceptos de gasto creados."
+      "empty": "Aún no hay conceptos de gasto creados.",
+      "table": {
+        "name": "Concepto"
+      },
+      "status": {
+        "active": "Activo",
+        "inactive": "Inactivo"
+      }
     },
     "errors": {
       "invalid": "Datos inválidos. Revisa el formulario.",

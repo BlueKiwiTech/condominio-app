@@ -3,7 +3,9 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { format } from 'date-fns';
+import { format, getMonth, getYear, parseISO } from 'date-fns';
+import { es, enUS } from 'date-fns/locale';
+import { cn } from 'cn';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -24,6 +26,29 @@ const STATUS_CLASSES: Record<ExpenseStatus, string> = {
   paid: 'bg-success/10 text-success',
 };
 
+function capitalize(s: string): string {
+  return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
+}
+
+// "Todo el año" toggle pill -- same pattern as the resident portal's
+// month/year filters (e.g. components/resident/MisPagosClient.tsx).
+function FilterChip({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex h-9 cursor-pointer items-center rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
+        selected
+          ? 'border-transparent bg-primary text-primary-foreground'
+          : 'border-border bg-background text-foreground hover:bg-muted',
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
 export function GastosPageClient({
   initialExpenses,
   categories,
@@ -34,6 +59,8 @@ export function GastosPageClient({
   const t = useTranslations('gastos');
   const tv = useTranslations('validation.gastos');
   const locale = useLocale();
+  const dateLocale = locale === 'en' ? enUS : es;
+  const today = useMemo(() => new Date(), []);
   const router = useRouter();
   const [isMarkingPaid, startMarkPaidTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
@@ -41,7 +68,30 @@ export function GastosPageClient({
   const [statusFilter, setStatusFilter] = useState<'all' | ExpenseStatus>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [providerFilter, setProviderFilter] = useState('');
-  const [monthFilter, setMonthFilter] = useState('');
+
+  // Month + year filter (same pattern as the resident portal's, e.g.
+  // MisPagosClient): a specific month + year, or "todo el año" as a
+  // separate mutually-exclusive toggle rather than a 13th month option.
+  const availableYears = useMemo(() => {
+    const years = new Set<number>([getYear(today)]);
+    for (const e of initialExpenses) years.add(getYear(parseISO(e.period_date)));
+    return Array.from(years).sort((a, b) => a - b);
+  }, [initialExpenses, today]);
+
+  const [yearValue, setYearValue] = useState(String(getYear(today)));
+  const [monthValue, setMonthValue] = useState(String(getMonth(today) + 1));
+  const [wholeYear, setWholeYear] = useState(false);
+
+  const monthOptions = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, i) => ({
+        label: capitalize(format(new Date(2000, i, 1), 'LLLL', { locale: dateLocale })),
+        value: String(i + 1),
+      })),
+    [dateLocale],
+  );
+
+  const yearOptions = useMemo(() => availableYears.map((y) => ({ label: String(y), value: String(y) })), [availableYears]);
 
   const [markPaidTarget, setMarkPaidTarget] = useState<ExpenseRow | null>(null);
   const [amount, setAmount] = useState(0);
@@ -60,14 +110,17 @@ export function GastosPageClient({
   ];
 
   const filtered = useMemo(() => {
+    const year = Number(yearValue);
     return initialExpenses.filter((e) => {
       if (statusFilter !== 'all' && e.status !== statusFilter) return false;
       if (categoryFilter !== 'all' && e.category_id !== categoryFilter) return false;
       if (providerFilter && !(e.provider ?? '').toLowerCase().includes(providerFilter.toLowerCase())) return false;
-      if (monthFilter && !e.period_date.startsWith(monthFilter)) return false;
+      const d = parseISO(e.period_date);
+      if (getYear(d) !== year) return false;
+      if (!wholeYear && getMonth(d) + 1 !== Number(monthValue)) return false;
       return true;
     });
-  }, [initialExpenses, statusFilter, categoryFilter, providerFilter, monthFilter]);
+  }, [initialExpenses, statusFilter, categoryFilter, providerFilter, yearValue, monthValue, wholeYear]);
 
   // How many total installments a variable gasto has, keyed by template_id --
   // a single-installment variable gasto shows "Borrar" like a fixed gasto
@@ -183,10 +236,46 @@ export function GastosPageClient({
             onChange={(e) => setProviderFilter(e.target.value)}
           />
         </div>
-        <div className="flex min-w-[160px] flex-col gap-2">
+        <div className="flex min-w-[140px] flex-col gap-2">
           <Label htmlFor="monthFilter">{t('filters.month')}</Label>
-          <Input id="monthFilter" type="month" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} />
+          <Select
+            value={monthValue}
+            onValueChange={(v) => {
+              if (!v) return;
+              setMonthValue(v);
+              setWholeYear(false);
+            }}
+            disabled={wholeYear}
+            items={monthOptions}
+          >
+            <SelectTrigger id="monthFilter" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+        <div className="flex min-w-[110px] flex-col gap-2">
+          <Label htmlFor="yearFilter">{t('filters.year')}</Label>
+          <Select value={yearValue} onValueChange={(v) => v && setYearValue(v)} items={yearOptions}>
+            <SelectTrigger id="yearFilter" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {yearOptions.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <FilterChip label={t('filters.allYear')} selected={wholeYear} onClick={() => setWholeYear((w) => !w)} />
       </div>
 
       <div className="w-full overflow-hidden rounded-[var(--radius)] border shadow-sm">

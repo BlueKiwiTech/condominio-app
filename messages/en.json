@@ -377,6 +377,8 @@
       "category": "Category",
       "provider": "Person/Company",
       "month": "Month",
+      "year": "Year",
+      "allYear": "Whole year",
       "allStatuses": "All",
       "allCategories": "All",
       "providerPlaceholder": "Search person or company..."
@@ -414,7 +416,14 @@
     "templates": {
       "heading": "Expense concepts",
       "subtitle": "Configure the community's recurring or one-time expenses.",
-      "empty": "No expense concepts created yet."
+      "empty": "No expense concepts created yet.",
+      "table": {
+        "name": "Concept"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      }
     },
     "errors": {
       "invalid": "Invalid data. Check the form.",

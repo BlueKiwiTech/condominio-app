@@ -152,44 +152,42 @@ export function MiComunidadClient({
       </div>
 
       <div className="flex w-full flex-col gap-3">
-        <div className="flex w-full flex-wrap items-end justify-between gap-3">
-          <h2 className="text-base font-semibold">{t('communityDashboard.expensesHeading')}</h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value={monthValue}
-              onValueChange={(v) => {
-                if (!v) return;
-                setMonthValue(v);
-                setWholeYear(false);
-              }}
-              disabled={wholeYear}
-              items={monthOptions}
-            >
-              <SelectTrigger aria-label={t('communityDashboard.monthFilterLabel')} className="h-9 min-w-[9rem]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {monthOptions.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={yearValue} onValueChange={(v) => v && setYearValue(v)} items={yearOptions}>
-              <SelectTrigger aria-label={t('communityDashboard.yearFilterLabel')} className="h-9 min-w-[6rem]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {yearOptions.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FilterChip label={t('communityDashboard.allYear')} selected={wholeYear} onClick={() => setWholeYear((w) => !w)} />
-          </div>
+        <h2 className="text-base font-semibold">{t('communityDashboard.expensesHeading')}</h2>
+        <div className="flex w-full flex-wrap items-center gap-2 rounded-[var(--radius)] border bg-card p-3 shadow-sm">
+          <Select
+            value={monthValue}
+            onValueChange={(v) => {
+              if (!v) return;
+              setMonthValue(v);
+              setWholeYear(false);
+            }}
+            disabled={wholeYear}
+            items={monthOptions}
+          >
+            <SelectTrigger aria-label={t('communityDashboard.monthFilterLabel')} className="h-9 min-w-[9rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={yearValue} onValueChange={(v) => v && setYearValue(v)} items={yearOptions}>
+            <SelectTrigger aria-label={t('communityDashboard.yearFilterLabel')} className="h-9 min-w-[6rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {yearOptions.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FilterChip label={t('communityDashboard.allYear')} selected={wholeYear} onClick={() => setWholeYear((w) => !w)} />
         </div>
         <Card className="border-destructive/20 bg-destructive/15 p-6">
           <div className="flex flex-col gap-2">

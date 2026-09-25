@@ -256,29 +256,31 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
             />
           </div>
 
-          <FormField
-            control={control}
-            name="cadence"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('form.cadence')}</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange} items={cadenceOptions}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {cadenceOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormItem>
-            )}
-          />
+          {!isVariable && (
+            <FormField
+              control={control}
+              name="cadence"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('form.cadence')}</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange} items={cadenceOptions}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {cadenceOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
+          )}
 
           <FormField
             control={control}
