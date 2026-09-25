@@ -46,7 +46,7 @@ export function PaymentFormClient({
 
   const [houseId, setHouseId] = useState<string>('');
   const [currency, setCurrency] = useState<Currency | null>(null);
-  const [amountReceived, setAmountReceived] = useState<number>(0);
+  const [amountReceived, setAmountReceived] = useState<number>(NaN);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
@@ -95,13 +95,6 @@ export function PaymentFormClient({
   }));
 
   const balanceDue = (i: PendingInstallment) => i.amount - i.amount_paid;
-  // Nets out any existing saldo a favor -- if the house already has enough
-  // credit to cover its pending cuotas, the suggested "new cash" amount is 0,
-  // not the cuotas' raw total (which would double-count credit that's
-  // already there and inflate the leftover credit written back after
-  // allocation).
-  const suggestedAmountFor = (installments: PendingInstallment[], credit: number) =>
-    Math.max(0, installments.reduce((sum, i) => sum + balanceDue(i), 0) - credit);
 
   // Not filtered by currency -- a payment can be received in any currency
   // regardless of what currency the house's pending cuotas are denominated
@@ -163,17 +156,16 @@ export function PaymentFormClient({
   // amount/currency reset that follows is a direct consequence of that one
   // user action, not something to "synchronize" reactively. Every pending
   // cuota for the new house is allocated against automatically (oldest-
-  // first, see houseInstallments above), so the suggested amount covers all
-  // of them, net of existing credit. Currency defaults to the oldest
-  // installment's own currency as a starting point, but is freely
-  // changeable.
+  // first, see houseInstallments above). The amount is left blank -- it's
+  // manual input, not a suggestion -- so the admin always types what they
+  // actually received. Currency defaults to the oldest installment's own
+  // currency as a starting point, but is freely changeable.
   const handleHouseSelect = (id: string) => {
     setHouseId(id);
     const nextInstallments = sortOldestFirst(pendingInstallments.filter((i) => i.house_id === id));
     const nextCurrency = nextInstallments[0]?.currency ?? null;
     setCurrency(nextCurrency);
-    const nextCredit = nextCurrency ? houseCredits.find((c) => c.house_id === id && c.currency === nextCurrency)?.balance ?? 0 : 0;
-    setAmountReceived(suggestedAmountFor(nextInstallments, nextCredit));
+    setAmountReceived(NaN);
     setOcrStepDone(false);
     setOcrError(null);
     setOcrPrefilled(false);
