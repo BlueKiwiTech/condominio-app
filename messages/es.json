@@ -29,6 +29,7 @@
       "invalidDate": "Fecha inválida.",
       "nameRequired": "El nombre es obligatorio.",
       "categoryRequired": "La categoría es obligatoria.",
+      "categoryNameRequired": "El nombre de la categoría es obligatorio.",
       "amountPositive": "El monto debe ser mayor a 0.",
       "minInstallments": "Debe haber al menos 1 cuota.",
       "maxInstallments": "Número de cuotas demasiado alto.",
@@ -391,6 +392,18 @@
       "provider": "Persona/Empresa (opcional)",
       "currency": "Moneda",
       "startDate": "Fecha de inicio"
+    },
+    "categories": {
+      "addNew": "+ Agregar nueva categoría",
+      "manage": "Administrar categorías",
+      "nameLabel": "Nombre de la categoría",
+      "add": "Agregar",
+      "empty": "Aún no hay categorías.",
+      "errors": {
+        "duplicateName": "Ya existe una categoría con ese nombre.",
+        "inUse": "No se puede eliminar: esta categoría está en uso.",
+        "createFailed": "No se pudo crear la categoría."
+      }
     },
     "new": {
       "heading": "Nuevo gasto",

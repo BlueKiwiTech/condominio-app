@@ -19,5 +19,5 @@ export default async function MiHogarPage() {
   ]);
   if (!data.house) redirect('/resident-login');
 
-  return <MiHogarClient data={data} communityBalance={communityBalance} />;
+  return <MiHogarClient data={data} communityBalance={communityBalance} graceDays={session.grace_period_days} />;
 }

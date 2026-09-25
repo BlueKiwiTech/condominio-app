@@ -16,7 +16,10 @@ import { createExpenseTemplateSchema, type CreateExpenseTemplateInput, type Cade
 import { createExpenseTemplate } from '@/lib/actions/gastos';
 import { computeVariablePeriodDates, toDateOnly } from '@/lib/gastos/generate';
 import { CURRENCY_SELECT_OPTIONS, formatAmount, formatMoney } from '@/lib/currency';
+import { CategoryManagerDialog } from './CategoryManagerDialog';
 import type { CategoryOption } from './types';
+
+const NEW_CATEGORY_VALUE = '__new_category__';
 
 type FormValues = {
   kind: 'fixed' | 'variable';
@@ -30,13 +33,15 @@ type FormValues = {
   installment_count: number;
 };
 
-export function GastoFormClient({ categories }: { categories: CategoryOption[] }) {
+export function GastoFormClient({ categories: initialCategories }: { categories: CategoryOption[] }) {
   const t = useTranslations('gastos');
   const tv = useTranslations('validation.gastos');
   const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [categories, setCategories] = useState(initialCategories);
+  const [managingCategories, setManagingCategories] = useState(false);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -55,13 +60,17 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
     control,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = form;
 
   const values = watch();
   const isVariable = values.kind === 'variable';
 
-  const categoryOptions = useMemo(() => categories.map((c) => ({ value: c.id, label: c.name })), [categories]);
+  const categoryOptions = useMemo(
+    () => [...categories.map((c) => ({ value: c.id, label: c.name })), { value: NEW_CATEGORY_VALUE, label: t('categories.addNew') }],
+    [categories, t],
+  );
   const cadenceOptions: { value: Cadence; label: string }[] = [
     { value: 'weekly', label: t('cadence.weekly') },
     { value: 'biweekly', label: t('cadence.biweekly') },
@@ -174,7 +183,17 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
               render={({ field }) => (
                 <FormItem className="min-w-[200px] flex-1">
                   <FormLabel>{t('fields.category')}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange} items={categoryOptions}>
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => {
+                      if (value === NEW_CATEGORY_VALUE) {
+                        setManagingCategories(true);
+                        return;
+                      }
+                      field.onChange(value);
+                    }}
+                    items={categoryOptions}
+                  >
                     <FormControl>
                       <SelectTrigger className="w-full">
                         <SelectValue />
@@ -186,6 +205,7 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
                           {c.name}
                         </SelectItem>
                       ))}
+                      <SelectItem value={NEW_CATEGORY_VALUE}>{t('categories.addNew')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormItem>
@@ -353,6 +373,25 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
             </>
           )}
         </div>
+      )}
+
+      {managingCategories && (
+        <CategoryManagerDialog
+          categories={categories}
+          onClose={() => setManagingCategories(false)}
+          onCategoryCreated={(category) => {
+            setCategories((prev) => [...prev, category]);
+            setValue('category_id', category.id);
+            setManagingCategories(false);
+          }}
+          onCategoryDeleted={(categoryId) => {
+            const next = categories.filter((c) => c.id !== categoryId);
+            setCategories(next);
+            if (values.category_id === categoryId) {
+              setValue('category_id', next[0]?.id ?? '');
+            }
+          }}
+        />
       )}
     </div>
   );

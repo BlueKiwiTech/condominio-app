@@ -71,12 +71,11 @@ function InstallmentCard({
   );
 }
 
-export function MisCuotasClient({ data }: { data: ResidentPortalData }) {
+export function MisCuotasClient({ data, graceDays }: { data: ResidentPortalData; graceDays: number }) {
   const t = useTranslations('residentCuotas');
   const locale = useLocale();
   const dateLocale = locale === 'en' ? enUS : es;
   const today = useMemo(() => new Date(), []);
-  const graceDays = data.community?.grace_period_days ?? 0;
 
   const statusLabels: Record<DisplayStatus, string> = {
     paid: t('status.paid'),

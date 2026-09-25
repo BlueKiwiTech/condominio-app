@@ -22,7 +22,7 @@ export default async function MisPagosPage() {
       reports={data.paymentReports}
       credits={data.credits}
       exchangeRates={data.exchangeRates}
-      graceDays={data.community?.grace_period_days ?? 0}
+      graceDays={session.grace_period_days}
     />
   );
 }

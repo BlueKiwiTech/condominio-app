@@ -21,9 +21,8 @@ export default async function ResidentLayout({ children }: { children: React.Rea
   // page load, unlike the full getResidentPortalData fetch each page does
   // for its own content.
   const service = createServiceClient();
-  const [{ data: house }, { data: community }, { data: lastReport }, { data: installments }] = await Promise.all([
+  const [{ data: house }, { data: lastReport }, { data: installments }] = await Promise.all([
     service.from('condo_houses').select('house_number, house_name').eq('id', session.house_id).maybeSingle(),
-    service.from('condo_communities').select('grace_period_days').limit(1).maybeSingle(),
     service
       .from('condo_payment_reports')
       .select('status')
@@ -39,7 +38,9 @@ export default async function ResidentLayout({ children }: { children: React.Rea
   // have to open Mi Cartera or Mis Pagos just to find out something needs
   // their attention.
   const lastReportRejected = lastReport?.status === 'rejected';
-  const graceDays = community?.grace_period_days ?? 0;
+  // Snapshotted on the session at login (lib/auth/residentToken.ts), not
+  // re-queried here -- see condo_communities.grace_period_days.
+  const graceDays = session.grace_period_days;
   const hasDuePayment = (installments ?? []).some((i) => isOverdue(i.due_date, i.status, graceDays));
 
   return (

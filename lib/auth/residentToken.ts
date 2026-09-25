@@ -19,6 +19,11 @@ export type ResidentSessionPayload = {
   house_id: string;
   community_id: string;
   role: 'resident';
+  // Snapshotted from condo_communities at login time, not re-queried on every
+  // page load -- it changes rarely (admin-edited directly in the DB, no in-app
+  // settings UI) and a stale value here just means "log out and back in" after
+  // a DB edit, same as any other claim on this token.
+  grace_period_days: number;
 };
 
 function getSecret() {
@@ -27,8 +32,17 @@ function getSecret() {
   return new TextEncoder().encode(secret);
 }
 
-export async function signResidentToken(houseId: string, communityId: string): Promise<string> {
-  return new SignJWT({ house_id: houseId, community_id: communityId, role: 'resident' })
+export async function signResidentToken(
+  houseId: string,
+  communityId: string,
+  gracePeriodDays: number,
+): Promise<string> {
+  return new SignJWT({
+    house_id: houseId,
+    community_id: communityId,
+    role: 'resident',
+    grace_period_days: gracePeriodDays,
+  })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${RESIDENT_SESSION_MAX_AGE_SECONDS}s`)
@@ -43,11 +57,17 @@ export async function verifyResidentToken(
     if (
       payload.role !== 'resident' ||
       typeof payload.house_id !== 'string' ||
-      typeof payload.community_id !== 'string'
+      typeof payload.community_id !== 'string' ||
+      typeof payload.grace_period_days !== 'number'
     ) {
       return null;
     }
-    return { house_id: payload.house_id, community_id: payload.community_id, role: 'resident' };
+    return {
+      house_id: payload.house_id,
+      community_id: payload.community_id,
+      role: 'resident',
+      grace_period_days: payload.grace_period_days,
+    };
   } catch {
     return null;
   }

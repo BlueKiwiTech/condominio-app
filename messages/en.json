@@ -29,6 +29,7 @@
       "invalidDate": "Invalid date.",
       "nameRequired": "Name is required.",
       "categoryRequired": "Category is required.",
+      "categoryNameRequired": "Category name is required.",
       "amountPositive": "Amount must be greater than 0.",
       "minInstallments": "There must be at least 1 installment.",
       "maxInstallments": "Number of installments is too high.",
@@ -391,6 +392,18 @@
       "provider": "Person/Company (optional)",
       "currency": "Currency",
       "startDate": "Start date"
+    },
+    "categories": {
+      "addNew": "+ Add new category",
+      "manage": "Manage categories",
+      "nameLabel": "Category name",
+      "add": "Add",
+      "empty": "No categories yet.",
+      "errors": {
+        "duplicateName": "A category with that name already exists.",
+        "inUse": "Can't delete: this category is in use.",
+        "createFailed": "Could not create the category."
+      }
     },
     "new": {
       "heading": "New concept",

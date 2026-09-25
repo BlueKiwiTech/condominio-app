@@ -59,7 +59,14 @@ export async function residentLogin(input: ResidentLoginInput, locale: string): 
     return { error: tr('errors.verifyFailed') };
   }
 
-  await createResidentSession(result.house_id, result.community_id);
+  // Snapshotted onto the session token below -- see residentToken.ts.
+  const { data: community } = await service
+    .from('condo_communities')
+    .select('grace_period_days')
+    .eq('id', result.community_id)
+    .maybeSingle();
+
+  await createResidentSession(result.house_id, result.community_id, community?.grace_period_days ?? 0);
   redirect('/mi-comunidad');
 }
 

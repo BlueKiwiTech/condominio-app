@@ -88,6 +88,13 @@ export function createExpenseTemplateSchema(t: Translator) {
 }
 export type CreateExpenseTemplateInput = z.infer<ReturnType<typeof createExpenseTemplateSchema>>;
 
+export function createExpenseCategorySchema(t: Translator) {
+  return z.object({
+    name: z.string().trim().min(1, t('categoryNameRequired')),
+  });
+}
+export type CreateExpenseCategoryInput = z.infer<ReturnType<typeof createExpenseCategorySchema>>;
+
 export function markExpensePaidSchema(t: Translator) {
   return z.object({
     amount: z.coerce.number().positive(t('amountPositive')),

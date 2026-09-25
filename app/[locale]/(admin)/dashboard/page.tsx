@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { getLatestExchangeRates } from '@/lib/actions/exchangeRate';
+import { resolveAdminGracePeriodDays } from '@/lib/auth/adminGracePeriod';
 import { DashboardPageClient } from '@/components/dashboard/DashboardPageClient';
 import type { DashboardExpense, DashboardHouse, DashboardInstallment } from '@/components/dashboard/types';
 import type { PaymentRow } from '@/components/payments/types';
@@ -12,7 +13,7 @@ import type { PaymentRow } from '@/components/payments/types';
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const [{ data: installments }, { data: houses }, { data: expenses }, { data: payments }, { data: community }, exchangeRates] =
+  const [{ data: installments }, { data: houses }, { data: expenses }, { data: payments }, gracePeriodDays, exchangeRates] =
     await Promise.all([
       supabase.from('condo_installments').select('house_id, due_date, status, amount, amount_paid, currency'),
       supabase.from('condo_houses').select('id, house_number, house_name, owner_name').order('house_number'),
@@ -23,7 +24,7 @@ export default async function DashboardPage() {
           'id, house_id, installment_id, payment_batch_id, amount_paid, currency, payment_date, reference, notes, receipt_number, created_at, condo_houses(house_number, house_name), condo_installments(name, due_date)',
         )
         .order('created_at', { ascending: false }),
-      supabase.from('condo_communities').select('grace_period_days').limit(1).maybeSingle(),
+      resolveAdminGracePeriodDays(supabase),
       getLatestExchangeRates(),
     ]);
 
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
       houses={(houses as DashboardHouse[] | null) ?? []}
       expenses={(expenses as DashboardExpense[] | null) ?? []}
       payments={(payments as unknown as PaymentRow[] | null) ?? []}
-      gracePeriodDays={community?.grace_period_days ?? 0}
+      gracePeriodDays={gracePeriodDays}
       exchangeRates={exchangeRates}
     />
   );

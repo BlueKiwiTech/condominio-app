@@ -6,6 +6,7 @@ import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { isAllowlistedAdminEmail } from '@/lib/auth/allowlist';
+import { setAdminGracePeriodCookie, clearAdminGracePeriodCookie } from '@/lib/auth/adminGracePeriod';
 import {
   signupSchema,
   loginSchema,
@@ -108,12 +109,21 @@ export async function login(input: LoginInput, locale: string): Promise<ActionRe
     return { error: ta('errors.invalidCredentials') };
   }
 
+  // Snapshotted onto a cookie below -- see lib/auth/adminGracePeriod.ts.
+  const { data: community } = await supabase
+    .from('condo_communities')
+    .select('grace_period_days')
+    .limit(1)
+    .maybeSingle();
+  await setAdminGracePeriodCookie(community?.grace_period_days ?? 0);
+
   redirect('/dashboard');
 }
 
 export async function logout(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  await clearAdminGracePeriodCookie();
   redirect('/login');
 }
 

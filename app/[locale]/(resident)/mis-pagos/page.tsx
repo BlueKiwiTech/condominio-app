@@ -12,5 +12,5 @@ export default async function MisCuotasPage() {
   const data = await getResidentPortalData(session.house_id);
   if (!data.house) redirect('/resident-login');
 
-  return <MisCuotasClient data={data} />;
+  return <MisCuotasClient data={data} graceDays={session.grace_period_days} />;
 }

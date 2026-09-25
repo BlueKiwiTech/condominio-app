@@ -11,8 +11,12 @@ import {
   type ResidentSessionPayload,
 } from '@/lib/auth/residentToken';
 
-export async function createResidentSession(houseId: string, communityId: string): Promise<void> {
-  const token = await signResidentToken(houseId, communityId);
+export async function createResidentSession(
+  houseId: string,
+  communityId: string,
+  gracePeriodDays: number,
+): Promise<void> {
+  const token = await signResidentToken(houseId, communityId, gracePeriodDays);
   const cookieStore = await cookies();
   cookieStore.set(RESIDENT_SESSION_COOKIE_NAME, token, {
     httpOnly: true,

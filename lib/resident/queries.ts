@@ -49,7 +49,7 @@ export type ResidentInstallment = {
 
 export type ResidentCredit = { currency: Currency; balance: number };
 
-export type ResidentCommunity = { name: string; phone: string | null; grace_period_days: number };
+export type ResidentCommunity = { name: string; phone: string | null };
 
 export type ResidentReportStatus = 'pending' | 'confirmed' | 'rejected';
 
@@ -142,7 +142,9 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
         .eq('house_id', houseId)
         .order('created_at', { ascending: false }),
       supabase.from('condo_house_credits').select('currency, balance').eq('house_id', houseId),
-      supabase.from('condo_communities').select('name, phone, grace_period_days').limit(1).maybeSingle(),
+      // grace_period_days deliberately excluded -- snapshotted on the resident
+      // session at login instead (lib/auth/residentToken.ts).
+      supabase.from('condo_communities').select('name, phone').limit(1).maybeSingle(),
       supabase
         .from('condo_exchange_rates')
         .select('rate_type, rate, source, updated_at')

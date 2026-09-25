@@ -6,8 +6,10 @@ import { createClient } from '@/lib/supabase/server';
 import { logAudit } from '@/lib/audit';
 import {
   createExpenseTemplateSchema,
+  createExpenseCategorySchema,
   markExpensePaidSchema,
   type CreateExpenseTemplateInput,
+  type CreateExpenseCategoryInput,
   type MarkExpensePaidInput,
 } from '@/lib/validation/gastos';
 import { computeVariablePeriodDates, parseDateOnly, toDateOnly } from '@/lib/gastos/generate';
@@ -124,6 +126,60 @@ export async function createExpenseTemplate(
   }
 
   revalidatePath('/gastos');
+  return { success: true };
+}
+
+export async function createExpenseCategory(
+  input: CreateExpenseCategoryInput,
+  locale: string,
+): Promise<{ error: string } | { success: true; category: { id: string; name: string } }> {
+  const [tv, tc, tg] = await Promise.all([
+    getTranslations({ locale, namespace: 'validation.gastos' }),
+    getTranslations({ locale, namespace: 'common' }),
+    getTranslations({ locale, namespace: 'gastos' }),
+  ]);
+  const parsed = createExpenseCategorySchema(tv).safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
+
+  const { error: authError, supabase } = await requireAdmin(tc);
+  if (authError || !supabase) return { error: authError! };
+
+  const communityId = await getCommunityId(supabase);
+  if (!communityId) return { error: tc('communityNotFound') };
+
+  const { data: category, error } = await supabase
+    .from('condo_expense_categories')
+    .insert({ community_id: communityId, name: parsed.data.name })
+    .select('id, name')
+    .single();
+
+  if (error || !category) {
+    if (error?.code === '23505') return { error: tg('categories.errors.duplicateName') };
+    return { error: tg('categories.errors.createFailed') };
+  }
+
+  revalidatePath('/gastos');
+  revalidatePath('/gastos/new');
+  return { success: true, category };
+}
+
+/** Delete-if-unused: attempts the delete directly and reports the FK violation instead of pre-checking usage. */
+export async function deleteExpenseCategory(categoryId: string, locale: string): Promise<ActionResult> {
+  const [tc, tg] = await Promise.all([
+    getTranslations({ locale, namespace: 'common' }),
+    getTranslations({ locale, namespace: 'gastos' }),
+  ]);
+  const { error: authError, supabase } = await requireAdmin(tc);
+  if (authError || !supabase) return { error: authError! };
+
+  const { error } = await supabase.from('condo_expense_categories').delete().eq('id', categoryId);
+  if (error) {
+    if (error.code === '23503') return { error: tg('categories.errors.inUse') };
+    return { error: error.message };
+  }
+
+  revalidatePath('/gastos');
+  revalidatePath('/gastos/new');
   return { success: true };
 }
 

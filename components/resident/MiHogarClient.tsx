@@ -18,9 +18,11 @@ import type { ResidentPortalData, CommunityBalanceData } from '@/lib/resident/qu
 export function MiHogarClient({
   data,
   communityBalance,
+  graceDays,
 }: {
   data: ResidentPortalData;
   communityBalance: CommunityBalanceData;
+  graceDays: number;
 }) {
   const t = useTranslations('residentHome');
   const locale = useLocale();
@@ -38,11 +40,9 @@ export function MiHogarClient({
   );
 
   const morosos = useMemo(
-    () => computeMorosos(data.installments, [{ id: house.id, house_number: house.house_number, house_name: house.house_name, owner_name: house.owner_name }], data.community?.grace_period_days ?? 0, today),
-    [data.installments, house, data.community, today],
+    () => computeMorosos(data.installments, [{ id: house.id, house_number: house.house_number, house_name: house.house_name, owner_name: house.owner_name }], graceDays, today),
+    [data.installments, house, graceDays, today],
   );
-
-  const graceDays = data.community?.grace_period_days ?? 0;
 
   const upcoming = useMemo(
     () => upcomingInstallments(data.installments, graceDays, today, 5),
