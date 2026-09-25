@@ -212,7 +212,7 @@ export function PaymentFormClient({
 
         <div className="grid gap-2">
           <Label htmlFor="house">{t('fields.house')}</Label>
-          <Select value={houseId} onValueChange={(v) => v && handleHouseSelect(v)}>
+          <Select value={houseId} onValueChange={(v) => v && handleHouseSelect(v)} items={houseOptions}>
             <SelectTrigger id="house" className="w-full">
               <SelectValue placeholder={t('noHouses')} />
             </SelectTrigger>
@@ -333,7 +333,7 @@ export function PaymentFormClient({
                   </div>
                   <div className="grid min-w-[160px] flex-1 gap-2">
                     <Label htmlFor="currency">{t('fields.currency')}</Label>
-                    <Select value={currency ?? undefined} onValueChange={(v) => v && setCurrency(v as Currency)}>
+                    <Select value={currency ?? undefined} onValueChange={(v) => v && setCurrency(v as Currency)} items={CURRENCY_SELECT_OPTIONS}>
                       <SelectTrigger id="currency" className="w-full">
                         <SelectValue />
                       </SelectTrigger>

@@ -237,7 +237,7 @@ export function MisPagosClient({
                 ))}
               </SelectContent>
             </Select>
-            <Select value={yearValue} onValueChange={(v) => v && setYearValue(v)}>
+            <Select value={yearValue} onValueChange={(v) => v && setYearValue(v)} items={yearOptions}>
               <SelectTrigger aria-label={t('yearFilterLabel')} className="h-9 min-w-[6rem]">
                 <SelectValue />
               </SelectTrigger>

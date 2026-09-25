@@ -132,7 +132,7 @@ export function CuotaEditDialog({
             render={({ field }) => (
               <div className="grid gap-1.5">
                 <Label htmlFor="currency">{t('fields.currency')}</Label>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={field.onChange} items={CURRENCY_SELECT_OPTIONS}>
                   <SelectTrigger id="currency" className="w-full">
                     <SelectValue />
                   </SelectTrigger>

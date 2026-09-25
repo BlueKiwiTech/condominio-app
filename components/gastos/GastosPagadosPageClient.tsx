@@ -24,6 +24,11 @@ export function GastosPagadosPageClient({
   const [providerFilter, setProviderFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
 
+  const categoryOptions = [
+    { value: 'all', label: t('filters.allCategories') },
+    ...categories.map((c) => ({ value: c.id, label: c.name })),
+  ];
+
   const filtered = useMemo(() => {
     return expenses.filter((e) => {
       if (categoryFilter !== 'all' && e.category_id !== categoryFilter) return false;
@@ -38,15 +43,14 @@ export function GastosPagadosPageClient({
       <div className="flex w-full flex-wrap items-end gap-4 rounded-[var(--radius)] border bg-card p-4 shadow-sm">
         <div className="flex min-w-[180px] flex-col gap-2">
           <Label htmlFor="categoryFilter">{t('filters.category')}</Label>
-          <Select value={categoryFilter} onValueChange={(v) => v && setCategoryFilter(v)}>
+          <Select value={categoryFilter} onValueChange={(v) => v && setCategoryFilter(v)} items={categoryOptions}>
             <SelectTrigger id="categoryFilter" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('filters.allCategories')}</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
+              {categoryOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
                 </SelectItem>
               ))}
             </SelectContent>

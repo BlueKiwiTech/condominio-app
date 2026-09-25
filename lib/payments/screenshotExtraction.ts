@@ -69,24 +69,34 @@ export function parseVenezuelanDate(raw: string | null): string | null {
 }
 
 // Venezuelan receipts write amounts as "1.234,56" (dot thousands, comma
-// decimal) -- parsed deterministically here instead of trusting the model to
-// normalize it (see the schema comment above). Whichever of ',' or '.' comes
-// last in the string is treated as the decimal separator, and every other
-// occurrence of either character is stripped as a thousands separator; this
-// also tolerates a plain-decimal "43.00"-style amount if one ever shows up.
+// decimal), but some screenshots use the US convention "1,234.56" (comma
+// thousands, dot decimal) instead -- both are parsed deterministically here
+// rather than trusting the model to normalize them (see the schema comment
+// above). Whichever of ',' or '.' comes last in the string is the candidate
+// decimal separator, but it's only treated as one when exactly 1-2 digits
+// follow it (a real cents amount); every other occurrence of either
+// character alongside it is then stripped as a thousands separator. When
+// 3+ digits follow the last separator (e.g. "1.234" or "1,234" with no
+// cents), it's a thousands grouping instead and every separator is
+// stripped -- otherwise Number() would misread "1.234" as 1.234 or choke on
+// multi-group amounts like "1.234.567".
 export function parseVenezuelanAmount(raw: string | null): number | null {
   if (!raw) return null;
   const cleaned = raw.replace(/[^\d.,-]/g, '');
   if (!cleaned) return null;
-  const lastComma = cleaned.lastIndexOf(',');
-  const lastDot = cleaned.lastIndexOf('.');
+  const lastSeparatorIndex = Math.max(cleaned.lastIndexOf(','), cleaned.lastIndexOf('.'));
   let normalized: string;
-  if (lastComma > lastDot) {
-    normalized = cleaned.replace(/\./g, '').replace(',', '.');
-  } else if (lastDot > lastComma) {
-    normalized = cleaned.replace(/,/g, '');
-  } else {
+  if (lastSeparatorIndex === -1) {
     normalized = cleaned;
+  } else {
+    const digitsAfter = cleaned.length - lastSeparatorIndex - 1;
+    if (digitsAfter === 1 || digitsAfter === 2) {
+      const integerPart = cleaned.slice(0, lastSeparatorIndex).replace(/[.,]/g, '');
+      const decimalPart = cleaned.slice(lastSeparatorIndex + 1);
+      normalized = `${integerPart}.${decimalPart}`;
+    } else {
+      normalized = cleaned.replace(/[.,]/g, '');
+    }
   }
   const value = Number(normalized);
   return Number.isFinite(value) ? value : null;

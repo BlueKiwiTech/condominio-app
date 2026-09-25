@@ -334,7 +334,7 @@ export function ReportPaymentDialog({
                   </div>
                   <div className="flex min-w-[8rem] flex-1 flex-col gap-2">
                     <Label htmlFor="currency">{t('fields.currency')}</Label>
-                    <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+                    <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)} items={CURRENCY_SELECT_OPTIONS}>
                       <SelectTrigger id="currency" className="w-full">
                         <SelectValue />
                       </SelectTrigger>

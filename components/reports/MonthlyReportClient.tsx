@@ -87,7 +87,7 @@ export function MonthlyReportClient({
       <div className="flex flex-wrap items-end gap-6">
         <div className="flex min-w-[200px] flex-col gap-2">
           <Label htmlFor="month">{t('monthLabel')}</Label>
-          <Select value={monthValue} onValueChange={(v) => v && setMonthValue(v)}>
+          <Select value={monthValue} onValueChange={(v) => v && setMonthValue(v)} items={monthOptions}>
             <SelectTrigger id="month" className="w-full">
               <SelectValue />
             </SelectTrigger>

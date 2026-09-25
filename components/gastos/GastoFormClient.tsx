@@ -61,6 +61,15 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
   const values = watch();
   const isVariable = values.kind === 'variable';
 
+  const categoryOptions = useMemo(() => categories.map((c) => ({ value: c.id, label: c.name })), [categories]);
+  const cadenceOptions: { value: Cadence; label: string }[] = [
+    { value: 'weekly', label: t('cadence.weekly') },
+    { value: 'biweekly', label: t('cadence.biweekly') },
+    { value: 'monthly', label: t('cadence.monthly') },
+    { value: 'quarterly', label: t('cadence.quarterly') },
+    { value: 'annual', label: t('cadence.annual') },
+  ];
+
   const periodDates = useMemo(() => {
     if (!isVariable) return null;
     if (!values.start_date) return null;
@@ -173,7 +182,7 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
               render={({ field }) => (
                 <FormItem className="min-w-[200px] flex-1">
                   <FormLabel>{t('fields.category')}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value} onValueChange={field.onChange} items={categoryOptions}>
                     <FormControl>
                       <SelectTrigger className="w-full">
                         <SelectValue />
@@ -228,7 +237,7 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
               render={({ field }) => (
                 <FormItem className="min-w-[160px] flex-1">
                   <FormLabel>{t('fields.currency')}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value} onValueChange={field.onChange} items={CURRENCY_SELECT_OPTIONS}>
                     <FormControl>
                       <SelectTrigger className="w-full">
                         <SelectValue />
@@ -253,18 +262,18 @@ export function GastoFormClient({ categories }: { categories: CategoryOption[] }
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t('form.cadence')}</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={field.onChange} items={cadenceOptions}>
                   <FormControl>
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="weekly">{t('cadence.weekly')}</SelectItem>
-                    <SelectItem value="biweekly">{t('cadence.biweekly')}</SelectItem>
-                    <SelectItem value="monthly">{t('cadence.monthly')}</SelectItem>
-                    <SelectItem value="quarterly">{t('cadence.quarterly')}</SelectItem>
-                    <SelectItem value="annual">{t('cadence.annual')}</SelectItem>
+                    {cadenceOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </FormItem>

@@ -50,6 +50,16 @@ export function GastosPageClient({
   const [notes, setNotes] = useState('');
   const [serverError, setServerError] = useState<string | null>(null);
 
+  const statusOptions: { value: 'all' | ExpenseStatus; label: string }[] = [
+    { value: 'all', label: t('filters.allStatuses') },
+    { value: 'pending', label: t('status.pending') },
+    { value: 'paid', label: t('status.paid') },
+  ];
+  const categoryOptions = [
+    { value: 'all', label: t('filters.allCategories') },
+    ...categories.map((c) => ({ value: c.id, label: c.name })),
+  ];
+
   const filtered = useMemo(() => {
     return initialExpenses.filter((e) => {
       if (statusFilter !== 'all' && e.status !== statusFilter) return false;
@@ -141,28 +151,29 @@ export function GastosPageClient({
       <div className="flex w-full flex-wrap items-end gap-4 rounded-[var(--radius)] border bg-card p-4 shadow-sm">
         <div className="flex min-w-[180px] flex-col gap-2">
           <Label htmlFor="statusFilter">{t('filters.status')}</Label>
-          <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v as 'all' | ExpenseStatus)}>
+          <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v as 'all' | ExpenseStatus)} items={statusOptions}>
             <SelectTrigger id="statusFilter" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('filters.allStatuses')}</SelectItem>
-              <SelectItem value="pending">{t('status.pending')}</SelectItem>
-              <SelectItem value="paid">{t('status.paid')}</SelectItem>
+              {statusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="flex min-w-[180px] flex-col gap-2">
           <Label htmlFor="categoryFilter">{t('filters.category')}</Label>
-          <Select value={categoryFilter} onValueChange={(v) => v && setCategoryFilter(v)}>
+          <Select value={categoryFilter} onValueChange={(v) => v && setCategoryFilter(v)} items={categoryOptions}>
             <SelectTrigger id="categoryFilter" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t('filters.allCategories')}</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
+              {categoryOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
                 </SelectItem>
               ))}
             </SelectContent>

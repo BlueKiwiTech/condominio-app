@@ -52,7 +52,7 @@ export function PaymentsPageClient({
       <div className="flex w-full flex-wrap items-end gap-4">
         <div className="flex min-w-[220px] flex-col gap-2">
           <Label htmlFor="house-filter">{t('filterHouse')}</Label>
-          <Select value={houseFilter} onValueChange={(v) => v && setHouseFilter(v)}>
+          <Select value={houseFilter} onValueChange={(v) => v && setHouseFilter(v)} items={houseOptions}>
             <SelectTrigger id="house-filter" className="w-full">
               <SelectValue />
             </SelectTrigger>

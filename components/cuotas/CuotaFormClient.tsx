@@ -62,6 +62,12 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
 
   const selectedHouseCount = houseSelection === 'all' ? houses.length : houseSelection.length;
 
+  const cadenceOptions: { value: Cadence; label: string }[] = [
+    { value: 'weekly', label: t('cadence.weekly') },
+    { value: 'monthly', label: t('cadence.monthly') },
+    { value: 'annual', label: t('cadence.annual') },
+  ];
+
   // Per-installment amounts for a divided special cuota, editable individually
   // — they don't have to be equal, only sum to the total. Reset to an even
   // split whenever the count or total changes; the admin's own edits persist
@@ -228,7 +234,7 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
             render={({ field }) => (
               <div className="grid flex-1 gap-1.5">
                 <Label htmlFor="currency">{t('fields.currency')}</Label>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={field.onChange} items={CURRENCY_SELECT_OPTIONS}>
                   <SelectTrigger id="currency" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -252,14 +258,16 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
             render={({ field }) => (
               <div className="grid gap-1.5">
                 <Label htmlFor="cadence">{t('form.cadence')}</Label>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={field.onChange} items={cadenceOptions}>
                   <SelectTrigger id="cadence" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="weekly">{t('cadence.weekly')}</SelectItem>
-                    <SelectItem value="monthly">{t('cadence.monthly')}</SelectItem>
-                    <SelectItem value="annual">{t('cadence.annual')}</SelectItem>
+                    {cadenceOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
