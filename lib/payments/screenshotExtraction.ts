@@ -15,7 +15,16 @@ export type ExtractedPayment = {
 export type ScreenshotExtractionErrorCode = 'invalidFileType' | 'fileTooLarge' | 'extractFailed';
 
 const extractionSchema = z.object({
-  amount: z.number().nullable().describe('The payment/transfer amount, as a plain number (no thousands separators).'),
+  // Transcribed instead of asking the model for a plain number for the same
+  // reason as payment_date_raw below: Venezuelan receipts write amounts as
+  // "1.234,56" (dot thousands, comma decimal) and a vision model asked to
+  // normalize that itself is exactly the kind of silent reformatting step
+  // that produced wrong dates in testing -- parsed deterministically instead
+  // via parseVenezuelanAmount.
+  amount_raw: z
+    .string()
+    .nullable()
+    .describe('The payment/transfer amount exactly as printed on the receipt, digit-for-digit including its thousands/decimal separators (e.g. "1.234,56" or "43,00") -- do not convert or reformat it.'),
   currency: currencySchema
     .nullable()
     .describe(
@@ -59,6 +68,30 @@ export function parseVenezuelanDate(raw: string | null): string | null {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+// Venezuelan receipts write amounts as "1.234,56" (dot thousands, comma
+// decimal) -- parsed deterministically here instead of trusting the model to
+// normalize it (see the schema comment above). Whichever of ',' or '.' comes
+// last in the string is treated as the decimal separator, and every other
+// occurrence of either character is stripped as a thousands separator; this
+// also tolerates a plain-decimal "43.00"-style amount if one ever shows up.
+export function parseVenezuelanAmount(raw: string | null): number | null {
+  if (!raw) return null;
+  const cleaned = raw.replace(/[^\d.,-]/g, '');
+  if (!cleaned) return null;
+  const lastComma = cleaned.lastIndexOf(',');
+  const lastDot = cleaned.lastIndexOf('.');
+  let normalized: string;
+  if (lastComma > lastDot) {
+    normalized = cleaned.replace(/\./g, '').replace(',', '.');
+  } else if (lastDot > lastComma) {
+    normalized = cleaned.replace(/,/g, '');
+  } else {
+    normalized = cleaned;
+  }
+  const value = Number(normalized);
+  return Number.isFinite(value) ? value : null;
+}
+
 /**
  * Shared by lib/actions/paymentOcr.ts (admin) and lib/actions/residentPaymentOcr.ts
  * (resident self-report) -- same model/schema either way, only the auth gate
@@ -94,8 +127,10 @@ export async function extractPaymentFieldsFromScreenshot(
         },
       ],
     });
-    const { payment_date_raw, ...rest } = output;
-    return { data: { ...rest, payment_date: parseVenezuelanDate(payment_date_raw) } };
+    const { payment_date_raw, amount_raw, ...rest } = output;
+    return {
+      data: { ...rest, amount: parseVenezuelanAmount(amount_raw), payment_date: parseVenezuelanDate(payment_date_raw) },
+    };
   } catch {
     return { errorCode: 'extractFailed' };
   }

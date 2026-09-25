@@ -120,11 +120,11 @@
     "items": {
       "dashboard": "Panel",
       "houses": "Casas y vecinos",
-      "cuotas": "Plantillas de cuotas",
       "gastos": "Gastos",
-      "expenseTemplates": "Plantillas de gastos",
-      "registerPayment": "Registrar pago",
-      "paymentReports": "Pagos reportados",
+      "expenseTemplates": "Registrar gasto",
+      "registerPayment": "Abono a cartera",
+      "paymentReports": "Abonos reportados",
+      "cuotas": "Registrar cuota",
       "report": "Reporte mensual",
       "paymentsHistory": "Historial de pagos",
       "expensePayments": "Pagos de gastos"
@@ -343,7 +343,7 @@
       "category": "Categoría",
       "provider": "Persona/Empresa",
       "amount": "Monto",
-      "period": "Período",
+      "period": "Fecha",
       "status": "Estado"
     },
     "actions": {
@@ -356,8 +356,8 @@
     "confirmDelete": "¿Borrar este gasto? No volverás a verlo en la lista.",
     "confirmDeleteAll": "¿Borrar todas las cuotas de este gasto? No volverás a verlas en la lista.",
     "kind": {
-      "fixed": "Fijo",
-      "variable": "Variable"
+      "fixed": "Recurrente",
+      "variable": "?????"
     },
     "cadence": {
       "weekly": "Semanal",
@@ -392,8 +392,8 @@
       "previewEmpty": "Completa el monto total y la fecha de inicio para ver la vista previa."
     },
     "form": {
-      "kindFixed": "Fijo",
-      "kindVariable": "Variable",
+      "kindFixed": "Recurrente",
+      "kindVariable": "?????",
       "cadence": "Frecuencia",
       "amountPerPeriod": "Monto por período",
       "amountTotal": "Monto total",
@@ -410,7 +410,7 @@
       "confirm": "Marcar pagado"
     },
     "templates": {
-      "heading": "Plantillas fijas",
+      "heading": "Registrar gasto",
       "empty": "Aún no hay gastos fijos creados."
     },
     "errors": {
@@ -619,7 +619,11 @@
       "allYear": "Todo el año",
       "breakdownHeading": "Desglose de gastos",
       "breakdownEmpty": "No hay gastos registrados en este periodo.",
-      "empty": "Sin datos."
+      "empty": "Sin datos.",
+      "status": {
+        "pending": "Pendiente",
+        "paid": "Pagado"
+      }
     },
     "upcoming": {
       "heading": "Lo que viene",
@@ -651,7 +655,7 @@
       "successMessage": "¡Listo! Tu reporte fue enviado. La junta lo va a revisar y confirmar.",
       "extractFailed": "No se pudo leer la captura. Completa los datos manualmente.",
       "ocrStepHint": "Adjunta tu comprobante de pago para completar los datos automáticamente.",
-      "manualEntry": "No tengo captura",
+      "manualEntry": "Ingresar manualmente",
       "prefilled": "Datos completados desde la captura — revísalos antes de enviar.",
       "changeScreenshot": "Adjuntar otra captura"
     }

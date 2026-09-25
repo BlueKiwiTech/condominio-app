@@ -619,7 +619,11 @@
       "allYear": "Whole year",
       "breakdownHeading": "Expense breakdown",
       "breakdownEmpty": "No expenses recorded for this period.",
-      "empty": "No data."
+      "empty": "No data.",
+      "status": {
+        "pending": "Pending",
+        "paid": "Paid"
+      }
     },
     "upcoming": {
       "heading": "Coming up",

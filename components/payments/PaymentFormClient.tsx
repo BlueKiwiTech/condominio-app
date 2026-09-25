@@ -378,7 +378,7 @@ export function PaymentFormClient({
         )}
       </div>
 
-      <div className="flex h-fit min-w-[280px] flex-1 flex-col gap-3 rounded-[var(--radius)] bg-muted p-6">
+      {/* <div className="flex h-fit min-w-[280px] flex-1 flex-col gap-3 rounded-[var(--radius)] bg-muted p-6">
         <h3 className="text-base font-semibold">{t('summary.heading')}</h3>
         {!preview && <p className="text-sm text-muted-foreground">{t('summary.empty')}</p>}
         {preview && (
@@ -430,7 +430,7 @@ export function PaymentFormClient({
             )}
           </div>
         )}
-      </div>
+      </div> */}
     </div>
   );
 }

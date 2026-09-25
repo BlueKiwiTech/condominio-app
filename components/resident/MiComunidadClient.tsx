@@ -212,6 +212,10 @@ export function MiComunidadClient({
                 title={e.name}
                 subtitle={formatShortDate(parseISO(e.period_date), locale)}
                 amount={formatAmount(e.amount, e.currency)}
+                tag={{
+                  label: t(`communityDashboard.status.${e.status}`),
+                  variant: e.status === 'paid' ? 'success' : 'warning',
+                }}
               />
             ))}
           </div>

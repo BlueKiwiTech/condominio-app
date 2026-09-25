@@ -228,9 +228,9 @@ export function ReportPaymentDialog({
 
             {visibleInstallments.length > 0 && (
               <div className="flex w-full flex-col gap-2">
-                <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                {/* <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                   {t('whichCuotas')}
-                </span>
+                </span> */}
                 {overdueTotals.length > 0 && (
                   <div className="flex w-full flex-col gap-0.5 rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2">
                     <span className="text-xs font-medium text-destructive">{t('totalOverdue')}</span>
@@ -241,7 +241,7 @@ export function ReportPaymentDialog({
                     ))}
                   </div>
                 )}
-                <div className="flex w-full flex-col gap-2">
+                {/* <div className="flex w-full flex-col gap-2">
                   {visibleInstallments.map((inst) => (
                     <ListRow
                       key={inst.id}
@@ -250,7 +250,7 @@ export function ReportPaymentDialog({
                       amount={formatAmount(balanceDue(inst), inst.currency)}
                     />
                   ))}
-                </div>
+                </div> */}
               </div>
             )}
 
