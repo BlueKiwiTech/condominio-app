@@ -103,9 +103,9 @@ export function DashboardPageClient({
           <p className="text-sm text-muted-foreground">{t('subtitle', { days: daysLeft, month: monthLabel })}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/pagos/nuevo" className={buttonVariants({ variant: 'default' })}>
+          {/* <Link href="/pagos/nuevo" className={buttonVariants({ variant: 'default' })}>
             {t('actions.registerPayment')}
-          </Link>
+          </Link> */}
           {/* <Link href="/cuotas/new" className={buttonVariants({ variant: 'outline' })}>
             {t('actions.newCuota')}
           </Link> */}
