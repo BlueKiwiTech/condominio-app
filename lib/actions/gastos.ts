@@ -12,7 +12,8 @@ import {
   type CreateExpenseCategoryInput,
   type MarkExpensePaidInput,
 } from '@/lib/validation/gastos';
-import { computeVariablePeriodDates, parseDateOnly, toDateOnly } from '@/lib/gastos/generate';
+import { computeVariablePeriodDates, parseDateOnly, toDateOnly, computeHorizonEnd } from '@/lib/gastos/generate';
+import { topUpFixedExpense } from '@/lib/gastos/topUp';
 
 type ActionResult = { error: string } | { success: true };
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -76,11 +77,31 @@ export async function createExpenseTemplate(
 
   if (templateError || !template) return { error: templateError?.message ?? tg('errors.createFailed') };
 
-  // Fixed templates generate no rows here -- the daily cron
-  // (app/api/cron/generate-expenses/route.ts) creates the first (and every
-  // subsequent) pending instance once start_date has arrived, so there's a
-  // single source of truth for "how a fixed gasto's periods are computed."
+  // Fixed templates now generate immediately through the rolling horizon
+  // (Recurring Horizon Generation design) -- the admin sees a populated
+  // schedule right away instead of waiting for tomorrow's cron. The same
+  // topUpFixedExpense function the cron calls is the single source of truth
+  // for "how a fixed gasto's periods are computed," so this is never a
+  // second, divergent implementation of that math.
   if (data.kind === 'fixed') {
+    const horizonEnd = computeHorizonEnd(new Date());
+    const { error: topUpError } = await topUpFixedExpense(
+      supabase,
+      {
+        id: template.id as string,
+        category_id: data.category_id,
+        provider: normalizeOptional(data.provider),
+        currency: data.currency,
+        cadence: data.cadence,
+        default_amount: data.default_amount,
+        start_date: data.start_date,
+      },
+      horizonEnd,
+    );
+    if (topUpError) {
+      await supabase.from('condo_expense_templates').delete().eq('id', template.id);
+      return { error: topUpError };
+    }
     revalidatePath('/gastos');
     return { success: true };
   }
