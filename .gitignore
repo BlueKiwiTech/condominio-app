@@ -36,3 +36,8 @@ temp
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+graphify-out
+
+# superpowers SDD scratch workspace (ledger, briefs, review packages)
+.superpowers/
