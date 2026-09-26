@@ -15,6 +15,17 @@
 //      already carries a credit balance — this is the literal "next cuota
 //      that BECOMES due" case: a cuota that didn't exist a moment ago.
 //
+// 2026-09-26 decision: sweepCreditForNewInstallments (touchpoint 2) is
+// full-or-nothing per installment (lib/payments/allocate.ts's
+// allocateFundsFullOrNothing) — cuotas are paid in full or not at all when
+// the money is applied automatically; if the house's saldo a favor doesn't
+// cover a due completely, that due is left fully pending and the money
+// stays in the wallet, rather than marking it 'partial' with no payment
+// intent from anyone. Mirrors Mi Cartera's own wallet-allocation rule
+// (lib/payments/walletAllocation.ts). registerPayment (touchpoint 1) is
+// unaffected — an admin deliberately entering a smaller amount than owed
+// (PMNT-03) still produces a 'partial' installment, same as always.
+//
 // Deliberately NOT swept: pre-existing pending/overdue installments that
 // were already sitting there before the credit existed and that the admin
 // didn't select in a payment action — auto-clearing old debt via a credit
@@ -23,7 +34,7 @@
 // about getting right over convenience.
 import { randomUUID } from 'crypto';
 import type { createClient } from '@/lib/supabase/server';
-import { allocateFunds, sortOldestFirst, type AllocatableInstallment } from './allocate';
+import { allocateFundsFullOrNothing, sortOldestFirst, type AllocatableInstallment } from './allocate';
 
 // Both callers (lib/actions/payments.ts, lib/actions/cuotas.ts) build their
 // client via lib/supabase/server.ts's createClient() — same cookie-based,
@@ -65,10 +76,13 @@ export async function setHouseCredit(
 
 /**
  * Applies an existing house credit balance across a freshly-generated batch
- * of installments (oldest-first), writing real condo_payments rows (its own
+ * of installments (oldest-first, full-or-nothing per installment — see the
+ * 2026-09-26 decision above), writing real condo_payments rows (its own
  * receipt/batch, distinct from any cash payment) so the auto-settlement
  * shows up in payment history/receipts like any other payment. No-ops
- * silently if there's no credit or nothing was generated.
+ * silently if there's no credit, nothing was generated, or the credit
+ * doesn't fully cover even the oldest new installment (the money stays in
+ * the wallet rather than partially applying).
  */
 export async function sweepCreditForNewInstallments(
   supabase: SupabaseClient,
@@ -88,7 +102,7 @@ export async function sweepCreditForNewInstallments(
   if (credit <= 0) return { error: null };
 
   const sorted = sortOldestFirst(newInstallments);
-  const { allocations, leftoverCents } = allocateFunds(sorted, credit);
+  const { allocations, leftoverCents } = allocateFundsFullOrNothing(sorted, credit);
   if (allocations.length === 0) return { error: null };
 
   const { data: receiptData, error: receiptError } = await supabase.rpc('condo_next_receipt_number');

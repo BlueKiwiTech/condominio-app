@@ -76,3 +76,43 @@ export function allocateFunds(installments: AllocatableInstallment[], fundsAvail
 
   return { allocations, leftoverCents: remainingCents };
 }
+
+/**
+ * Same "oldest due_date first" pass as allocateFunds, but full-or-nothing
+ * per installment: an installment is only ever fully paid, never left
+ * 'partial'. If the remaining funds can't cover an installment's full
+ * balance, that installment is skipped entirely (untouched) and the funds
+ * stay available for a later, smaller installment that CAN be covered —
+ * same "full-or-nothing" philosophy lib/payments/walletAllocation.ts
+ * already documents for Mi Cartera ("if the available money doesn't cover
+ * the cuota completely, it isn't touched at all — the money stays in the
+ * wallet"), applied here to lib/payments/creditSweep.ts's automatic
+ * saldo-a-favor sweep (2026-09-26 user decision: cuotas are paid in full
+ * or not at all, never partially, when the money is auto-applied rather
+ * than manually entered by an admin). registerPayment's manual "Registrar
+ * pago" flow keeps using allocateFunds above — an admin deliberately
+ * adjusting the amount to less than the total owed (PMNT-03) is a
+ * different, still-supported case.
+ */
+export function allocateFundsFullOrNothing(installments: AllocatableInstallment[], fundsAvailable: number): AllocationResult {
+  let remainingCents = toCents(fundsAvailable);
+  const allocations: Allocation[] = [];
+
+  for (const inst of installments) {
+    if (remainingCents <= 0) break;
+    const totalCents = toCents(inst.amount);
+    const balanceCents = totalCents - toCents(inst.amount_paid);
+    if (balanceCents <= 0) continue; // already fully paid, nothing to allocate
+    if (balanceCents > remainingCents) continue; // can't cover this one fully — skip it, keep the funds for a later installment
+
+    remainingCents -= balanceCents;
+    allocations.push({
+      installment_id: inst.id,
+      amountApplied: balanceCents / 100,
+      newAmountPaid: totalCents / 100,
+      newStatus: 'paid',
+    });
+  }
+
+  return { allocations, leftoverCents: remainingCents };
+}
