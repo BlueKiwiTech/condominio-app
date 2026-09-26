@@ -21,9 +21,10 @@ export type TemplateWithInstallments = {
   amount: number;
   currency: Currency;
   start_date: string;
-  number_of_installments: number;
+  number_of_installments: number | null;
   is_divided: boolean;
   applicable_houses: string[];
+  active: boolean;
   created_at: string;
   condo_installments: InstallmentRow[];
 };

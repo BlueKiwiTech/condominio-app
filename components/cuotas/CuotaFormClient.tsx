@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useSplitAmounts, SplitAmountsFields } from '@/components/shared/SplitAmounts';
 import { createTemplateSchema, type CreateTemplateInput, type Cadence } from '@/lib/validation/cuotas';
 import { createInstallmentTemplate } from '@/lib/actions/cuotas';
-import { buildPreview, toDateOnly, type DueDateMode } from '@/lib/cuotas/generate';
+import { buildPreview, computeHorizonEnd, computeRecurringHorizonDueDates, toDateOnly, type DueDateMode } from '@/lib/cuotas/generate';
 import { CURRENCY_SELECT_OPTIONS, formatAmount, formatMoney } from '@/lib/currency';
 import type { HouseOption } from './types';
 
@@ -59,7 +59,7 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
   const values = watch();
   const installmentType = values.installment_type;
   const isDivided = installmentType === 'special' && values.is_divided;
-  const showInstallmentCount = installmentType === 'recurring' || isDivided;
+  const showInstallmentCount = isDivided;
 
   const selectedHouseCount = houseSelection === 'all' ? houses.length : houseSelection.length;
 
@@ -76,13 +76,22 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
   // this exactly, but can then be edited individually per installment.
   const baseline = useMemo(() => {
     if (!values.amount || values.amount <= 0 || !values.start_date) return null;
-    const mode: DueDateMode =
-      installmentType === 'recurring'
-        ? { kind: 'recurring', cadence: values.cadence }
-        : isDivided
-          ? { kind: 'special-divided', cadence: values.cadence }
-          : { kind: 'special-single' };
-    const count = installmentType === 'recurring' ? values.number_of_installments : isDivided ? values.number_of_installments : 1;
+    if (installmentType === 'recurring') {
+      // Open-ended: the preview shows exactly what will be generated right
+      // now (through the rolling horizon), never an admin-entered count —
+      // computed via the SAME function the server calls
+      // (lib/cuotas/recurringGeneration.ts's "no installments exist yet"
+      // branch), so this can never diverge from the real insert.
+      const horizonEnd = computeHorizonEnd(new Date());
+      const dueDates = computeRecurringHorizonDueDates(values.cadence, values.start_date, horizonEnd);
+      if (dueDates.length === 0) return null;
+      const amounts = Array(dueDates.length).fill(values.amount);
+      return { dueDates, amounts, totalPerHouse: amounts.reduce((sum, a) => sum + a, 0), count: dueDates.length };
+    }
+    const mode: DueDateMode = isDivided
+      ? { kind: 'special-divided', cadence: values.cadence }
+      : { kind: 'special-single' };
+    const count = isDivided ? values.number_of_installments : 1;
     if (!count || count < 1) return null;
     return buildPreview({ mode, startDate: values.start_date, count, amount: values.amount, isDivided });
   }, [installmentType, isDivided, values.amount, values.start_date, values.cadence, values.number_of_installments]);
@@ -128,7 +137,6 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
             installment_type: 'recurring',
             ...shared,
             cadence: data.cadence,
-            number_of_installments: data.number_of_installments,
           }
         : {
             installment_type: 'special',
@@ -266,6 +274,10 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
               </div>
             )}
           />
+        )}
+
+        {installmentType === 'recurring' && (
+          <p className="text-xs text-muted-foreground">{t('form.recurringAutoGeneration')}</p>
         )}
 
         {installmentType === 'special' && (

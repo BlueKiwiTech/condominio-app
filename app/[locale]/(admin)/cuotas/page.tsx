@@ -11,7 +11,7 @@ export default async function CuotasPage() {
     supabase
       .from('condo_installment_templates')
       .select(
-        'id, name, description, installment_type, cadence, amount, currency, start_date, number_of_installments, is_divided, applicable_houses, created_at, condo_installments(id, status, due_date, amount, house_id)',
+        'id, name, description, installment_type, cadence, amount, currency, start_date, number_of_installments, is_divided, applicable_houses, active, created_at, condo_installments(id, status, due_date, amount, house_id)',
       )
       .order('created_at', { ascending: false }),
     resolveAdminGracePeriodDays(supabase),

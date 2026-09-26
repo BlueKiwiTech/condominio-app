@@ -268,7 +268,9 @@
     },
     "actions": {
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "activate": "Activate",
+      "deactivate": "Deactivate"
     },
     "cadence": {
       "weekly": "Weekly",
@@ -285,7 +287,9 @@
       "pending": "{count} pending",
       "partial": "{count} partial",
       "overdue": "{count} overdue",
-      "paid": "{count} paid"
+      "paid": "{count} paid",
+      "active": "Active",
+      "inactive": "Inactive"
     },
     "fields": {
       "name": "Description",
@@ -307,6 +311,7 @@
       "typeRecurring": "Recurring",
       "typeSpecial": "Special",
       "cadence": "Cadence",
+      "recurringAutoGeneration": "Installments are generated automatically at least 6 months ahead (or through year-end, whichever is further) — you don't need to enter a count.",
       "isDivided": "Split into installments",
       "startDate": "Start date",
       "firstInstallmentDate": "First installment",

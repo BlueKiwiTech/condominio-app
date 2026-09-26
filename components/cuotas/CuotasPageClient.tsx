@@ -11,11 +11,16 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { deleteInstallmentTemplate } from '@/lib/actions/cuotas';
+import { deleteInstallmentTemplate, setInstallmentTemplateActive } from '@/lib/actions/cuotas';
 import { summarizeTemplate } from '@/lib/cuotas/status';
 import { CuotaEditDialog } from './CuotaEditDialog';
 import { formatAmount } from '@/lib/currency';
 import type { TemplateWithInstallments } from './types';
+
+const ACTIVE_CLASSES: Record<'active' | 'inactive', string> = {
+  active: 'bg-success/10 text-success',
+  inactive: 'bg-muted text-muted-foreground',
+};
 
 export function CuotasPageClient({
   initialTemplates,
@@ -50,6 +55,20 @@ export function CuotasPageClient({
     setError(null);
     startTransition(async () => {
       const result = await deleteInstallmentTemplate(template.id, locale);
+      if ('error' in result) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  };
+
+  const [isToggling, startToggleTransition] = useTransition();
+
+  const handleToggleActive = (template: TemplateWithInstallments) => {
+    setError(null);
+    startToggleTransition(async () => {
+      const result = await setInstallmentTemplateActive(template.id, !template.active, locale);
       if ('error' in result) {
         setError(result.error);
         return;
@@ -128,12 +147,24 @@ export function CuotasPageClient({
                         {summary.paidCount > 0 && (
                           <StatusBadge status="al-dia" label={t('status.paid', { count: summary.paidCount })} />
                         )}
+                        <Badge variant="outline" className={ACTIVE_CLASSES[template.active ? 'active' : 'inactive']}>
+                          {template.active ? t('status.active') : t('status.inactive')}
+                        </Badge>
                       </div>
                     </TableCell>
                     <TableCell className="h-11">
                       <div className="flex justify-end gap-2">
                         <Button size="sm" variant="outline" type="button" onClick={() => setEditing(template)}>
                           {t('actions.edit')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          type="button"
+                          disabled={isToggling}
+                          onClick={() => handleToggleActive(template)}
+                        >
+                          {template.active ? t('actions.deactivate') : t('actions.activate')}
                         </Button>
                         <Button
                           size="sm"

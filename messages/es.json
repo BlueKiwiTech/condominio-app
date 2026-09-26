@@ -268,7 +268,9 @@
     },
     "actions": {
       "edit": "Editar",
-      "delete": "Eliminar"
+      "delete": "Eliminar",
+      "activate": "Activar",
+      "deactivate": "Desactivar"
     },
     "cadence": {
       "weekly": "Semanal",
@@ -285,7 +287,9 @@
       "pending": "{count} pendiente(s)",
       "partial": "{count} parcial(es)",
       "overdue": "{count} vencida(s)",
-      "paid": "{count} pagada(s)"
+      "paid": "{count} pagada(s)",
+      "active": "Activo",
+      "inactive": "Inactivo"
     },
     "fields": {
       "name": "Descripción",
@@ -307,6 +311,7 @@
       "typeRecurring": "Recurrente",
       "typeSpecial": "Especial",
       "cadence": "Frecuencia",
+      "recurringAutoGeneration": "Se generan automáticamente las cuotas de al menos los próximos 6 meses (o hasta fin de año, lo que sea más lejano) — no necesitas indicar cuántas.",
       "isDivided": "Dividir en cuotas",
       "startDate": "Fecha de inicio",
       "firstInstallmentDate": "Primera cuota",
