@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
+import { Plus } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -57,7 +58,10 @@ export function GastosPlantillasPageClient({ fixedTemplates }: { fixedTemplates:
         </Alert>
       )}
       <div className="flex w-full justify-end">
-        <Button render={<Link href="/gastos/new" />} nativeButton={false}>{t('newConcept')}</Button>
+        <Button render={<Link href="/gastos/new" />} nativeButton={false}>
+          <Plus className="size-4" />
+          {t('newConcept')}
+        </Button>
       </div>
 
       <div className="w-full overflow-hidden rounded-[var(--radius)] border shadow-sm">
