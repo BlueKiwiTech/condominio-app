@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/generate-expenses",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/generate-cuotas",
+      "schedule": "0 6 * * *"
     }
   ]
 }
