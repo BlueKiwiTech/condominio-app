@@ -11,6 +11,13 @@ export default async function LoginPage({
 }) {
   const t = await getTranslations('auth');
   const params = await searchParams;
+  // VERCEL_GIT_COMMIT_SHA is a Vercel System Environment Variable (build +
+  // runtime, requires "Enable access to System Environment Variables" in the
+  // project's dashboard settings) — the full 40-char SHA, no short form, so
+  // it's truncated here. Absent entirely in local dev, so the suffix is
+  // simply omitted rather than showing "-undefined".
+  const commitSha = process.env.VERCEL_GIT_COMMIT_SHA;
+  const buildLabel = `v${packageJson.version}${commitSha ? `-${commitSha.slice(0, 5)}` : ''}`;
 
   return (
     <div className="flex w-full max-w-md flex-col items-center gap-6">
@@ -33,7 +40,7 @@ export default async function LoginPage({
         />
       </CardContent>
     </Card>
-      <span className="text-xs text-primary">v{packageJson.version}</span>
+      <span className="text-xs text-primary">{buildLabel}</span>
     </div>
   );
 }
