@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { LoginForm } from '@/components/auth/LoginForm';
+import packageJson from '@/package.json';
 
 export default async function LoginPage({
   searchParams,
@@ -32,6 +33,7 @@ export default async function LoginPage({
         />
       </CardContent>
     </Card>
+      <span className="text-xs text-primary">v{packageJson.version}</span>
     </div>
   );
 }
