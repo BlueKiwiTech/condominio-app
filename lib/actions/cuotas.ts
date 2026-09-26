@@ -12,11 +12,13 @@ import {
 import {
   buildInstallmentRows,
   computeDueDates,
+  computeHorizonEnd,
   parseDateOnly,
   splitAmount,
   toDateOnly,
   type DueDateMode,
 } from '@/lib/cuotas/generate';
+import { generateRecurringCuotaInstallments, type OpenEndedRecurringTemplate } from '@/lib/cuotas/recurringGeneration';
 import { sweepCreditForNewInstallments } from '@/lib/payments/creditSweep';
 import type { AllocatableInstallment } from '@/lib/payments/allocate';
 
@@ -76,8 +78,59 @@ export async function createInstallmentTemplate(input: CreateTemplateInput, loca
   }
   if (houseIds.length === 0) return { error: tq('errors.noHousesAvailable') };
 
-  const isDivided = data.installment_type === 'special' && data.is_divided;
-  const count = data.installment_type === 'recurring' ? data.number_of_installments : isDivided ? data.number_of_installments : 1;
+  if (data.installment_type === 'recurring') {
+    const { data: template, error: templateError } = await supabase
+      .from('condo_installment_templates')
+      .insert({
+        community_id: communityId,
+        name: data.name,
+        description: normalizeOptional(data.description),
+        installment_type: 'recurring',
+        cadence: data.cadence,
+        amount: data.amount,
+        currency: data.currency,
+        start_date: data.start_date,
+        number_of_installments: null,
+        is_divided: false,
+        applicable_houses: houseIds,
+        created_by: userId,
+      })
+      .select('id')
+      .single();
+
+    if (templateError || !template) return { error: templateError?.message ?? tq('errors.createFailed') };
+
+    const openEndedTemplate: OpenEndedRecurringTemplate = {
+      id: template.id as string,
+      name: data.name,
+      cadence: data.cadence,
+      amount: data.amount,
+      currency: data.currency,
+      start_date: data.start_date,
+      applicable_houses: houseIds,
+      created_by: userId,
+    };
+
+    const horizonEnd = computeHorizonEnd(new Date());
+    const { error: generationError } = await generateRecurringCuotaInstallments(supabase, openEndedTemplate, horizonEnd);
+    if (generationError) {
+      // Same rollback rationale as the special-cuota path below: the
+      // multi-row insert is its own atomic statement, but it isn't wrapped
+      // in a single DB transaction with the template-row insert above
+      // (Server Actions call PostgREST over HTTP, not a shared connection).
+      await supabase.from('condo_installment_templates').delete().eq('id', template.id);
+      return { error: generationError };
+    }
+
+    revalidatePath('/cuotas');
+    revalidatePath('/pagos');
+    return { success: true };
+  }
+
+  // installment_type === 'special' (single or divided) -- unchanged finite
+  // model, generated in full at creation, no cron involved.
+  const isDivided = data.is_divided;
+  const count = isDivided ? data.number_of_installments : 1;
   const startDate = parseDateOnly(data.start_date);
   const mode = dueDateModeFor(data);
   // Admin-entered per-installment due dates (validated by createTemplateSchema
@@ -85,7 +138,7 @@ export async function createInstallmentTemplate(input: CreateTemplateInput, loca
   // to the cadence-derived baseline if the divided branch somehow didn't send
   // any (shouldn't happen given the schema's refine, but this keeps the
   // action safe on its own) -- same tolerance as `amounts` below.
-  const customDueDates = data.installment_type === 'special' ? data.due_dates : undefined;
+  const customDueDates = data.due_dates;
   const dueDates =
     isDivided && customDueDates && customDueDates.length === count
       ? customDueDates.map(parseDateOnly)
@@ -94,7 +147,7 @@ export async function createInstallmentTemplate(input: CreateTemplateInput, loca
   // to sum to data.amount) take precedence; fall back to an even split if
   // the divided branch somehow didn't send any (shouldn't happen given the
   // schema's refine, but this keeps the action safe on its own).
-  const customAmounts = data.installment_type === 'special' ? data.amounts : undefined;
+  const customAmounts = data.amounts;
   const amounts = isDivided
     ? (customAmounts && customAmounts.length === count ? customAmounts : splitAmount(data.amount, count))
     : Array(count).fill(data.amount);
@@ -105,8 +158,8 @@ export async function createInstallmentTemplate(input: CreateTemplateInput, loca
       community_id: communityId,
       name: data.name,
       description: normalizeOptional(data.description),
-      installment_type: data.installment_type,
-      cadence: data.installment_type === 'recurring' ? data.cadence : null,
+      installment_type: 'special',
+      cadence: null,
       amount: data.amount,
       currency: data.currency,
       start_date: data.start_date,
@@ -329,6 +382,22 @@ export async function deleteInstallmentTemplate(templateId: string, locale: stri
     .delete()
     .eq('id', templateId);
   if (deleteTemplateError) return { error: deleteTemplateError.message };
+
+  revalidatePath('/cuotas');
+  return { success: true };
+}
+
+export async function setInstallmentTemplateActive(
+  templateId: string,
+  active: boolean,
+  locale: string,
+): Promise<ActionResult> {
+  const tc = await getTranslations({ locale, namespace: 'common' });
+  const { error: authError, supabase } = await requireAdmin(tc);
+  if (authError || !supabase) return { error: authError! };
+
+  const { error } = await supabase.from('condo_installment_templates').update({ active }).eq('id', templateId);
+  if (error) return { error: error.message };
 
   revalidatePath('/cuotas');
   return { success: true };

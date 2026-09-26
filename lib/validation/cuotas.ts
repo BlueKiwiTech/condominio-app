@@ -33,11 +33,6 @@ export function recurringTemplateSchema(t: Translator) {
     installment_type: z.literal('recurring'),
     ...sharedFields(t),
     cadence: cadenceSchema,
-    number_of_installments: z.coerce
-      .number()
-      .int()
-      .min(1, t('minInstallments'))
-      .max(360, t('maxInstallments')),
   });
 }
 export type RecurringTemplateInput = z.infer<ReturnType<typeof recurringTemplateSchema>>;
