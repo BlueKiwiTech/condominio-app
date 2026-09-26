@@ -52,7 +52,7 @@ export async function generateRecurringCuotaInstallments(
   supabase: AnySupabaseClient,
   template: OpenEndedRecurringTemplate,
   horizonEnd: Date,
-): Promise<{ error: string | null; generatedCount: number; lastDueDate: string | null }> {
+): Promise<{ error: string | null; generatedCount: number; lastDueDate: string | null; sweepErrors: string[] }> {
   const { data: lastInstallment, error: lastError } = await supabase
     .from('condo_installments')
     .select('installment_number, due_date')
@@ -60,7 +60,7 @@ export async function generateRecurringCuotaInstallments(
     .order('installment_number', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (lastError) return { error: lastError.message, generatedCount: 0, lastDueDate: null };
+  if (lastError) return { error: lastError.message, generatedCount: 0, lastDueDate: null, sweepErrors: [] };
 
   let startingInstallmentNumber: number;
   let dueDates: Date[];
@@ -85,7 +85,7 @@ export async function generateRecurringCuotaInstallments(
     dueDates = computeRecurringHorizonDueDates(template.cadence, parseDateOnly(template.start_date), horizonEnd);
   }
 
-  if (dueDates.length === 0) return { error: null, generatedCount: 0, lastDueDate: null };
+  if (dueDates.length === 0) return { error: null, generatedCount: 0, lastDueDate: null, sweepErrors: [] };
 
   // One bulk upsert covering every house x every new due date -- a single
   // atomic INSERT statement (CUOT-05's "transactional generation"), same
@@ -106,7 +106,7 @@ export async function generateRecurringCuotaInstallments(
     .from('condo_installments')
     .upsert(rows, { onConflict: 'template_id,house_id,installment_number', ignoreDuplicates: true })
     .select('id, house_id, installment_number, due_date, amount');
-  if (insertError) return { error: insertError.message, generatedCount: 0, lastDueDate: null };
+  if (insertError) return { error: insertError.message, generatedCount: 0, lastDueDate: null, sweepErrors: [] };
 
   // PLAN.md Phase 5 decision ("saldo a favor is auto-applied to the next
   // cuota that becomes due") applies identically whether this top-up ran at
@@ -126,8 +126,9 @@ export async function generateRecurringCuotaInstallments(
     });
     byHouse.set(row.house_id as string, list);
   }
+  const sweepErrors: string[] = [];
   for (const [houseId, newInstallments] of byHouse) {
-    await sweepCreditForNewInstallments(supabase, {
+    const { error: sweepError } = await sweepCreditForNewInstallments(supabase, {
       houseId,
       currency: template.currency,
       createdBy: template.created_by,
@@ -135,7 +136,13 @@ export async function generateRecurringCuotaInstallments(
       paymentDate: toDateOnly(new Date()),
       notes: 'Aplicado automáticamente desde saldo a favor.',
     });
+    if (sweepError) sweepErrors.push(sweepError);
   }
 
-  return { error: null, generatedCount: dueDates.length, lastDueDate: toDateOnly(dueDates[dueDates.length - 1]) };
+  return {
+    error: null,
+    generatedCount: dueDates.length,
+    lastDueDate: toDateOnly(dueDates[dueDates.length - 1]),
+    sweepErrors,
+  };
 }

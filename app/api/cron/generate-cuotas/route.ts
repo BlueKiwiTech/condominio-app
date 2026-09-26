@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     // Each template is independent -- one bad row shouldn't block generating
     // the others (same isolation as generate-expenses' per-template try/catch).
     try {
-      const { error, generatedCount, lastDueDate } = await generateRecurringCuotaInstallments(
+      const { error, generatedCount, lastDueDate, sweepErrors } = await generateRecurringCuotaInstallments(
         service,
         template,
         horizonEnd,
@@ -49,6 +49,12 @@ export async function GET(request: Request) {
         results[template.id] = 'skipped: horizon already covered';
       } else {
         results[template.id] = `ok: generated ${generatedCount} installment(s) through ${lastDueDate}`;
+      }
+      if (sweepErrors.length > 0) {
+        console.error(
+          `[cron/generate-cuotas] credit sweep failed for template ${template.id}: ${sweepErrors.join('; ')}`,
+        );
+        results[template.id] = `${results[template.id]} (WARNING: credit sweep failed for ${sweepErrors.length} house(s))`;
       }
     } catch (err) {
       results[template.id] = `error: ${(err as Error).message}`;
