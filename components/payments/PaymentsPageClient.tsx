@@ -2,15 +2,41 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
+import { format, getMonth, getYear, parseISO } from 'date-fns';
+import { es, enUS } from 'date-fns/locale';
 import { Link } from '@/i18n/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { cn } from 'cn';
 import { groupPaymentsByBatch, type PaymentRow, type HouseOption } from './types';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
+
+function capitalize(s: string): string {
+  return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
+}
+
+// "Todo el año" toggle pill — same pattern as MiComunidadClient/MisPagosClient's
+// month/year filter: a plain neutral/primary toggle, not a status signal.
+function FilterChip({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex h-9 cursor-pointer items-center rounded-full border px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
+        selected
+          ? 'border-transparent bg-primary text-primary-foreground'
+          : 'border-border bg-background text-foreground hover:bg-muted',
+      )}
+    >
+      {label}
+    </button>
+  );
+}
 
 export function PaymentsPageClient({
   initialPayments,
@@ -21,6 +47,8 @@ export function PaymentsPageClient({
 }) {
   const t = useTranslations('payments');
   const locale = useLocale();
+  const dateLocale = locale === 'en' ? enUS : es;
+  const today = useMemo(() => new Date(), []);
   const [houseFilter, setHouseFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
 
@@ -39,13 +67,50 @@ export function PaymentsPageClient({
 
   const batches = useMemo(() => groupPaymentsByBatch(filtered), [filtered]);
 
+  // Month/year filter (same pattern as MiComunidadClient's Gastos filter and
+  // MisPagosClient's Mi Cartera filter): a specific month + year, or "todo
+  // el año" as a separate mutually-exclusive toggle rather than a 13th month
+  // option. Years derive from the FULL unfiltered payment set (not the
+  // house-filtered `filtered`/`batches`), so the year dropdown's options
+  // don't shrink/change as the admin switches the house filter.
+  const availableYears = useMemo(() => {
+    const years = new Set<number>([getYear(today)]);
+    for (const p of initialPayments) years.add(getYear(parseISO(p.payment_date)));
+    return Array.from(years).sort((a, b) => a - b);
+  }, [initialPayments, today]);
+
+  const [yearValue, setYearValue] = useState(String(getYear(today)));
+  const [monthValue, setMonthValue] = useState(String(getMonth(today) + 1));
+  const [wholeYear, setWholeYear] = useState(false);
+
+  const monthOptions = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, i) => ({
+        label: capitalize(format(new Date(2000, i, 1), 'LLLL', { locale: dateLocale })),
+        value: String(i + 1),
+      })),
+    [dateLocale],
+  );
+
+  const yearOptions = useMemo(() => availableYears.map((y) => ({ label: String(y), value: String(y) })), [availableYears]);
+
+  const scopedBatches = useMemo(() => {
+    const year = Number(yearValue);
+    return batches.filter((batch) => {
+      const d = parseISO(batch.paymentDate);
+      if (getYear(d) !== year) return false;
+      if (!wholeYear && getMonth(d) + 1 !== Number(monthValue)) return false;
+      return true;
+    });
+  }, [batches, yearValue, monthValue, wholeYear]);
+
   const visibleBatches = useMemo(() => {
-    if (!search) return batches;
+    if (!search) return scopedBatches;
     const q = search.toLowerCase();
-    return batches.filter((batch) =>
+    return scopedBatches.filter((batch) =>
       [batch.houseLabel, batch.reference ?? '', ...batch.installmentNames].some((v) => v.toLowerCase().includes(q)),
     );
-  }, [batches, search]);
+  }, [scopedBatches, search]);
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -69,6 +134,46 @@ export function PaymentsPageClient({
             </SelectContent>
           </Select>
         </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="month-filter">{t('monthFilterLabel')}</Label>
+          <Select
+            value={monthValue}
+            onValueChange={(v) => {
+              if (!v) return;
+              setMonthValue(v);
+              setWholeYear(false);
+            }}
+            disabled={wholeYear}
+            items={monthOptions}
+          >
+            <SelectTrigger id="month-filter" className="h-9 min-w-[9rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="year-filter">{t('yearFilterLabel')}</Label>
+          <Select value={yearValue} onValueChange={(v) => v && setYearValue(v)} items={yearOptions}>
+            <SelectTrigger id="year-filter" className="h-9 min-w-[6rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {yearOptions.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <FilterChip label={t('allYear')} selected={wholeYear} onClick={() => setWholeYear((w) => !w)} />
         <div className="flex min-w-[220px] flex-1 flex-col gap-2">
           <Label htmlFor="payments-search">{t('searchPlaceholder')}</Label>
           <Input
