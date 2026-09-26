@@ -4,12 +4,12 @@
 // so both the create-form's live preview and the actual writers build
 // identical rows from the same functions.
 import { addWeeks, addMonths } from 'date-fns';
-import { splitAmount, toDateOnly, parseDateOnly } from '@/lib/cuotas/generate';
+import { splitAmount, toDateOnly, parseDateOnly, computeHorizonEnd } from '@/lib/cuotas/generate';
 
 export type Cadence = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'annual';
 export type Currency = 'USD' | 'Bs' | 'USDT';
 
-export { splitAmount, toDateOnly, parseDateOnly };
+export { splitAmount, toDateOnly, parseDateOnly, computeHorizonEnd };
 
 // Next occurrence of a fixed expense's cadence, from its last generated
 // period_date (or start_date if none exist yet — see the cron in

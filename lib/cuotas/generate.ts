@@ -95,6 +95,61 @@ export function parseDateOnly(value: string): Date {
   return parseISO(value);
 }
 
+// Recurring Horizon Generation design (docs/superpowers/specs/2026-09-26-
+// recurring-horizon-generation-design.md): both fixed gastos and open-ended
+// recurring cuotas generate through this same computed horizon, re-evaluated
+// fresh on every call using that call's "today" -- so the target rolls
+// forward every year automatically, with no special-cased "new year" logic
+// anywhere, and never collapses to less than 6 months out no matter when a
+// template was created or how long it's been running.
+const MAX_PERIODS_PER_TEMPLATE = 400;
+
+export function computeHorizonEnd(today: Date): Date {
+  const yearEnd = new Date(today.getFullYear(), 11, 31);
+  const sixMonthsOut = addMonths(today, 6);
+  return yearEnd > sixMonthsOut ? yearEnd : sixMonthsOut;
+}
+
+// The incremental step from one recurring due date to the next -- mirrors
+// lib/gastos/generate.ts's computeNextPeriodDate shape, but (unlike gastos)
+// preserves the existing day-1 forcing rule for monthly/quarterly/annual
+// (unchanged from computeDueDates' 'recurring' branch above): weekly/
+// biweekly step by a plain +7/+14 days with no day forcing (a week has no
+// "day of month" concept to normalize).
+export function computeNextRecurringDueDate(cadence: Cadence, lastDueDate: Date): Date {
+  switch (cadence) {
+    case 'weekly':
+      return addWeeks(lastDueDate, 1);
+    case 'biweekly':
+      return addWeeks(lastDueDate, 2);
+    case 'quarterly':
+      return setDate(addMonths(lastDueDate, 3), 1);
+    case 'annual':
+      return setDate(addMonths(lastDueDate, 12), 1);
+    default:
+      return setDate(addMonths(lastDueDate, 1), 1);
+  }
+}
+
+// Every due date a BRAND NEW open-ended recurring template would generate,
+// from its own start_date through horizonEnd -- shared verbatim by the
+// create-cuota form's live preview (components/cuotas/CuotaFormClient.tsx)
+// and lib/cuotas/recurringGeneration.ts's "no installments exist yet"
+// branch, so the preview can never diverge from what actually gets
+// inserted. The first date reuses computeDueDates' own n=0 formula (count:
+// 1) instead of re-deriving the day-forcing rule here, so it stays
+// identical to the existing finite model's first-installment date; every
+// date after that steps via computeNextRecurringDueDate.
+export function computeRecurringHorizonDueDates(cadence: Cadence, startDate: Date, horizonEnd: Date): Date[] {
+  const dates: Date[] = [];
+  let next = computeDueDates({ kind: 'recurring', cadence }, startDate, 1)[0];
+  while (next <= horizonEnd && dates.length < MAX_PERIODS_PER_TEMPLATE) {
+    dates.push(next);
+    next = computeNextRecurringDueDate(cadence, next);
+  }
+  return dates;
+}
+
 export type GeneratedInstallment = {
   house_id: string;
   installment_number: number;
