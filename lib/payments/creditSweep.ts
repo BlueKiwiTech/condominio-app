@@ -16,15 +16,17 @@
 //      that BECOMES due" case: a cuota that didn't exist a moment ago.
 //
 // 2026-09-26 decision: sweepCreditForNewInstallments (touchpoint 2) is
-// full-or-nothing per installment (lib/payments/allocate.ts's
-// allocateFundsFullOrNothing) — cuotas are paid in full or not at all when
-// the money is applied automatically; if the house's saldo a favor doesn't
-// cover a due completely, that due is left fully pending and the money
-// stays in the wallet, rather than marking it 'partial' with no payment
-// intent from anyone. Mirrors Mi Cartera's own wallet-allocation rule
-// (lib/payments/walletAllocation.ts). registerPayment (touchpoint 1) is
-// unaffected — an admin deliberately entering a smaller amount than owed
-// (PMNT-03) still produces a 'partial' installment, same as always.
+// full-or-nothing per installment, AND strictly oldest-first with no
+// skipping (lib/payments/allocate.ts's allocateFundsFullOrNothing) —
+// cuotas are paid in full or not at all when the money is applied
+// automatically, and the sweep stays blocked on the oldest unpaid
+// installment until enough credit accumulates to cover it; it never jumps
+// ahead to pay a newer, smaller installment while an older one goes
+// uncovered. Whatever isn't used stays in the wallet rather than marking
+// anything 'partial' with no payment intent from anyone. registerPayment
+// (touchpoint 1) is unaffected — an admin deliberately entering a smaller
+// amount than owed (PMNT-03) still produces a 'partial' installment, same
+// as always.
 //
 // Deliberately NOT swept: pre-existing pending/overdue installments that
 // were already sitting there before the credit existed and that the admin
