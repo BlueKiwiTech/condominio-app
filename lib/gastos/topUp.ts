@@ -12,7 +12,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { computeNextPeriodDate, toDateOnly, type Cadence, type Currency } from './generate';
 
-type AnySupabaseClient = SupabaseClient<any, any, any>;
+type AnySupabaseClient = SupabaseClient;
 
 const MAX_PERIODS_PER_TEMPLATE = 400;
 

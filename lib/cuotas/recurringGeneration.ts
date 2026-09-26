@@ -33,7 +33,7 @@ import type { AllocatableInstallment } from '@/lib/payments/allocate';
 // param loosely; this one is typed directly against the base class (rather
 // than `Awaited<ReturnType<typeof createClient>>`, the pattern used by
 // single-caller helpers like creditSweep.ts) since it must accept either.
-type AnySupabaseClient = SupabaseClient<any, any, any>;
+type AnySupabaseClient = SupabaseClient;
 
 const MAX_PERIODS_PER_TEMPLATE = 400;
 
