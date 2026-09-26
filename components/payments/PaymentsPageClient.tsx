@@ -134,6 +134,15 @@ export function PaymentsPageClient({
             </SelectContent>
           </Select>
         </div>
+        <div className="flex min-w-[220px] flex-1 flex-col gap-2">
+          <Label htmlFor="payments-search">{t('searchPlaceholder')}</Label>
+          <Input
+            id="payments-search"
+            placeholder={t('searchPlaceholder')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="month-filter">{t('monthFilterLabel')}</Label>
           <Select
@@ -174,15 +183,6 @@ export function PaymentsPageClient({
           </Select>
         </div>
         <FilterChip label={t('allYear')} selected={wholeYear} onClick={() => setWholeYear((w) => !w)} />
-        <div className="flex min-w-[220px] flex-1 flex-col gap-2">
-          <Label htmlFor="payments-search">{t('searchPlaceholder')}</Label>
-          <Input
-            id="payments-search"
-            placeholder={t('searchPlaceholder')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
       </div>
 
       <div className="w-full overflow-hidden rounded-[var(--radius)] border shadow-sm">
