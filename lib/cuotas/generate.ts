@@ -9,7 +9,7 @@
 // generation is the other place date bugs would surface.
 import { addWeeks, addMonths, setDate, format, parseISO } from 'date-fns';
 
-export type Cadence = 'weekly' | 'monthly' | 'annual';
+export type Cadence = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'annual';
 export type Currency = 'USD' | 'Bs' | 'USDT';
 
 // Discriminates the three due-date generation rules (PLAN.md Phase 4
@@ -38,18 +38,40 @@ export function computeDueDates(mode: DueDateMode, startDate: Date, count: numbe
   for (let n = 0; n < count; n++) {
     if (mode.kind === 'special-divided') {
       const cadence = mode.cadence ?? 'monthly';
-      if (cadence === 'weekly') dates.push(addWeeks(startDate, n));
-      else if (cadence === 'annual') dates.push(addMonths(startDate, n * 12));
-      else dates.push(addMonths(startDate, n));
+      switch (cadence) {
+        case 'weekly':
+          dates.push(addWeeks(startDate, n));
+          break;
+        case 'biweekly':
+          dates.push(addWeeks(startDate, n * 2));
+          break;
+        case 'quarterly':
+          dates.push(addMonths(startDate, n * 3));
+          break;
+        case 'annual':
+          dates.push(addMonths(startDate, n * 12));
+          break;
+        default:
+          dates.push(addMonths(startDate, n));
+      }
       continue;
     }
     // mode.kind === 'recurring'
-    if (mode.cadence === 'weekly') {
-      dates.push(addWeeks(startDate, n));
-    } else if (mode.cadence === 'annual') {
-      dates.push(setDate(addMonths(startDate, n * 12), 1));
-    } else {
-      dates.push(setDate(addMonths(startDate, n), 1));
+    switch (mode.cadence) {
+      case 'weekly':
+        dates.push(addWeeks(startDate, n));
+        break;
+      case 'biweekly':
+        dates.push(addWeeks(startDate, n * 2));
+        break;
+      case 'quarterly':
+        dates.push(setDate(addMonths(startDate, n * 3), 1));
+        break;
+      case 'annual':
+        dates.push(setDate(addMonths(startDate, n * 12), 1));
+        break;
+      default:
+        dates.push(setDate(addMonths(startDate, n), 1));
     }
   }
   return dates;

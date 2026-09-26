@@ -65,7 +65,9 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
 
   const cadenceOptions: { value: Cadence; label: string }[] = [
     { value: 'weekly', label: t('cadence.weekly') },
+    { value: 'biweekly', label: t('cadence.biweekly') },
     { value: 'monthly', label: t('cadence.monthly') },
+    { value: 'quarterly', label: t('cadence.quarterly') },
     { value: 'annual', label: t('cadence.annual') },
   ];
 

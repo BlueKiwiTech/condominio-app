@@ -272,7 +272,9 @@
     },
     "cadence": {
       "weekly": "Semanal",
+      "biweekly": "Quincenal",
       "monthly": "Mensual",
+      "quarterly": "Trimestral",
       "annual": "Anual"
     },
     "type": {

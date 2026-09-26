@@ -5,7 +5,7 @@ import { z } from 'zod';
 type Translator = (key: string) => string;
 
 export const currencySchema = z.enum(['USD', 'Bs', 'USDT']);
-export const cadenceSchema = z.enum(['weekly', 'monthly', 'annual']);
+export const cadenceSchema = z.enum(['weekly', 'biweekly', 'monthly', 'quarterly', 'annual']);
 export type Currency = z.infer<typeof currencySchema>;
 export type Cadence = z.infer<typeof cadenceSchema>;
 
