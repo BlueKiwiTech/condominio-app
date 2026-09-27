@@ -371,7 +371,27 @@ Between the last real PLAN.md narration (2026-09-06, third Phase 8 session) and 
 
 **Known, accepted edge case (not fixed, low-severity):** the create-cuota form's live preview computes `computeHorizonEnd(new Date())` in the browser's local timezone; the server computes the same call in the deploy region's timezone. Near a day or year boundary these could disagree by one generated period. Revisit only if this is ever actually observed.
 
-**Expected UX consequence, not a bug:** dashboard/admin "saldo pendiente" totals for open-ended cuotas will visibly jump once a year, every Jan 1, as the horizon rolls forward roughly 6 more periods per house — inherent to the `max(year-end, +6mo)` formula, not something to chase down as a regression.
+~~**Expected UX consequence, not a bug:** dashboard/admin "saldo pendiente" totals for open-ended cuotas will visibly jump once a year, every Jan 1, as the horizon rolls forward roughly 6 more periods per house — inherent to the `max(year-end, +6mo)` formula, not something to chase down as a regression.~~ **SUPERSEDED 2026-09-27 — see below: this WAS a bug**, not just a once-a-year annoyance; it also fired immediately on every new template, and a second bug let the wallet actually pay off those future periods, not just display them.
+
+---
+
+### Wallet/horizon bug: cartera pre-paying future cuotas + inflated cuotas totals (2026-09-27)
+
+**Reported by Josi during testing:** creating a new $12/Bs monthly recurring cuota ("Mensualidad Condominio") starting 2026-09-01 for house 20-43 (Luigi), which had 84 Bs in its wallet, produced one payment (#0002) covering **7** monthly installments (Sept 2026 – Mar 2027) at once — the wallet paid off six months that hadn't come due yet, not just the one that was actually vencida. The admin Cuotas list's per-template totals were also inflated the same way, independent of any payment.
+
+**Root cause (two independent gaps, confirmed by reading the code, not guessing):**
+1. The horizon generator (`lib/cuotas/recurringGeneration.ts`, above) correctly creates every `pending` installment through `computeHorizonEnd` (≥6 months out) immediately on template creation — as designed.
+2. Nothing that later touches those installments filtered by `due_date`: `allocateWalletFunds` (`lib/payments/walletAllocation.ts`) and `sweepCreditForNewInstallments` (`lib/payments/creditSweep.ts`, the credit-sweep path referenced in the 2026-09-26 RESOLVED bullet above) both walk oldest-first, full-or-nothing, with **no "is this due yet" check at all** — they happily paid every future `pending` installment the wallet/credit balance could cover. Same gap, two call sites (`confirmPaymentReport`'s untagged-report wallet flow, and the credit sweep that runs right after horizon top-up). `lib/cuotas/status.ts`'s `summarizeTemplate` (admin Cuotas list totals/counts) had the identical gap — summed every horizon-generated row, not just current ones.
+
+**User's explicit rule (2026-09-27), now the enforced behavior everywhere above:** only cuotas already **vencida** (`due_date <= today`) are ever auto-paid from wallet/credit — a cron/wallet payment on the 1st pays that day's due and stops; it never reaches into next month's installment even if the balance would cover it. Cuotas-list totals count **vencidas + cuotas del mes actual** only (not the full horizon) — "no tiene sentido" to count future months as if they were current debt.
+
+**Fixed:**
+- `lib/actions/paymentReports.ts`'s `confirmPaymentReport` — the untagged-report due query now adds `.lte('due_date', today)`.
+- `lib/payments/creditSweep.ts`'s `sweepCreditForNewInstallments` — now filters `newInstallments` to `due_date <= today` before allocating (fixes both call sites: the open-ended recurring horizon top-up and `lib/actions/cuotas.ts`'s finite special-template sweep).
+- `lib/cuotas/status.ts`'s `summarizeTemplate` — now filters to `due_date <= end of current month` before computing every count/total (`totalAmount`, `housesCount`, `paidCount`/`partialCount`/`overdueCount`/`pendingCount`); the admin Cuotas list (`CuotasPageClient.tsx`, its only caller) picks this up automatically.
+- `allocateWalletFunds` (`lib/payments/walletAllocation.ts`) itself stays date-agnostic by design (pure allocation math, matching `allocate.ts`'s existing pattern of pure functions + caller-owned eligibility) — its docstring now says callers MUST pre-filter to vencida dues.
+
+**Verified:** `npm run build` passes; a throwaway script reproduced the exact reported scenario (7 pending installments, 84 Bs wallet balance) and confirmed the fixed `allocateWalletFunds`+pre-filter pays only the 1 vencida installment (not 7) and `summarizeTemplate` now totals 12 Bs / 1 installment (not 84 Bs / 7) for that template. **Not yet re-verified against the live Supabase project** (the original bug's bad data — payment #0002 and the 6 wrongly-paid installments on Luigi's house — has not been touched/corrected; that's a manual data-cleanup decision for the admin, not something this fix does automatically).
 
 ---
 

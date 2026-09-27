@@ -10,6 +10,7 @@ import { setHouseCredit } from '@/lib/payments/creditSweep';
 import { allocateWalletFunds, type DueForWallet, type WalletBalances } from '@/lib/payments/walletAllocation';
 import { getLatestExchangeRates } from '@/lib/actions/exchangeRate';
 import { logAudit } from '@/lib/audit';
+import { toDateOnly } from '@/lib/cuotas/generate';
 
 type ActionResult = { error: string } | { success: true };
 type Currency = 'USD' | 'Bs' | 'USDT';
@@ -76,9 +77,12 @@ export async function rejectPaymentReport(reportId: string, locale: string): Pro
  * "Mi Cartera"'s wallet allocation instead (2026-09-19/20 decision,
  * lib/payments/walletAllocation.ts): the reported amount is added to the
  * house's wallet balance in ITS OWN CURRENCY (no conversion at deposit
- * time), then EVERY outstanding due for the house (any currency, not just
- * ones the resident happened to be shown) gets checked oldest-first,
- * full-or-nothing, drawing wallet currency in priority order
+ * time), then EVERY outstanding due ALREADY VENCIDA (due_date <= today —
+ * 2026-09-27 fix: never a future month's installment, however many the
+ * horizon generator has pre-created; see the due_date filter on the query
+ * below) for the house (any currency, not just ones the resident happened
+ * to be shown) gets checked oldest-first, full-or-nothing, drawing wallet
+ * currency in priority order
  * Bs -> USDT -> USD regardless of the due's own currency, converting only
  * at the moment funds are actually used. This supersedes the old
  * "untagged reports just become undifferentiated credit, never touch
@@ -113,7 +117,11 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
         .from('condo_installments')
         .select('id, currency, amount, amount_paid, due_date, installment_number')
         .eq('house_id', report.house_id)
-        .neq('status', 'paid'),
+        .neq('status', 'paid')
+        // Only cuotas already vencidas (due_date <= today) — never reach
+        // forward and pay off future months' installments just because the
+        // wallet balance happens to cover them (2026-09-27 bug fix).
+        .lte('due_date', toDateOnly(new Date())),
       getLatestExchangeRates(),
     ]);
     if (creditFetchError) return { error: creditFetchError.message };

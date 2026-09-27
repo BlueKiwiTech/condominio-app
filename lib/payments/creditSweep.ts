@@ -37,6 +37,7 @@
 import { randomUUID } from 'crypto';
 import type { createClient } from '@/lib/supabase/server';
 import { allocateFundsFullOrNothing, sortOldestFirst, type AllocatableInstallment } from './allocate';
+import { toDateOnly } from '@/lib/cuotas/generate';
 
 // Both callers (lib/actions/payments.ts, lib/actions/cuotas.ts) build their
 // client via lib/supabase/server.ts's createClient() — same cookie-based,
@@ -78,13 +79,15 @@ export async function setHouseCredit(
 
 /**
  * Applies an existing house credit balance across a freshly-generated batch
- * of installments (oldest-first, full-or-nothing per installment — see the
- * 2026-09-26 decision above), writing real condo_payments rows (its own
- * receipt/batch, distinct from any cash payment) so the auto-settlement
- * shows up in payment history/receipts like any other payment. No-ops
- * silently if there's no credit, nothing was generated, or the credit
- * doesn't fully cover even the oldest new installment (the money stays in
- * the wallet rather than partially applying).
+ * of installments, FIRST narrowed to those with due_date <= today (never a
+ * future month, however many the horizon generator produced in this batch),
+ * then oldest-first, full-or-nothing per installment — see the 2026-09-26
+ * decision above — writing real condo_payments rows (its own receipt/batch,
+ * distinct from any cash payment) so the auto-settlement shows up in payment
+ * history/receipts like any other payment. No-ops silently if there's no
+ * credit, nothing generated is due yet, or the credit doesn't fully cover
+ * even the oldest due installment (the money stays in the wallet rather than
+ * partially applying or reaching into next month's cuota).
  */
 export async function sweepCreditForNewInstallments(
   supabase: SupabaseClient,
@@ -98,12 +101,23 @@ export async function sweepCreditForNewInstallments(
   },
 ): Promise<{ error: string | null }> {
   const { houseId, currency, createdBy, newInstallments, paymentDate, notes } = params;
-  if (newInstallments.length === 0) return { error: null };
+
+  // Only ever settle installments that are ALREADY due (due_date <= today) —
+  // "the next cuota that BECOMES due" (see file header) means the one
+  // due NOW, never a future month's installment just because the horizon
+  // generator happened to create it in the same batch and credit happens to
+  // cover it too (2026-09-27 bug: a fresh open-ended template's first-run
+  // horizon batch spans up to ~6 months out, and this sweep was consuming
+  // wallet credit across every one of them instead of stopping at the one
+  // actually vencida).
+  const today = toDateOnly(new Date());
+  const dueNow = newInstallments.filter((inst) => inst.due_date <= today);
+  if (dueNow.length === 0) return { error: null };
 
   const credit = await getHouseCredit(supabase, houseId, currency);
   if (credit <= 0) return { error: null };
 
-  const sorted = sortOldestFirst(newInstallments);
+  const sorted = sortOldestFirst(dueNow);
   const { allocations, leftoverCents } = allocateFundsFullOrNothing(sorted, credit);
   if (allocations.length === 0) return { error: null };
 

@@ -95,6 +95,12 @@ function convert(
  * Runs the wallet's oldest-first, full-or-nothing, priority-currency
  * allocation across `dues` (every outstanding due for the house, any
  * currency — NOT just admin-selected ones, unlike applyPaymentAllocation).
+ * Callers MUST pre-filter `dues` to installments already vencida
+ * (due_date <= today) before calling — this function has no date/"today"
+ * concept of its own and will happily consume wallet balance across future
+ * months' installments if handed any (2026-09-27 bug: the only caller,
+ * lib/actions/paymentReports.ts's confirmPaymentReport, used to fetch every
+ * non-paid due regardless of due_date).
  * `startingBalances` should already include the newly reported amount
  * added to its own currency bucket — this function only ever draws funds
  * down, never adds them.

@@ -99,9 +99,12 @@ export function PaymentFormClient({
   // Not filtered by currency -- a payment can be received in any currency
   // regardless of what currency the house's pending cuotas are denominated
   // in (user decision, 2026-09-08). Every pending/partial installment for
-  // the house is allocated against automatically, oldest-first (2026-09-24
-  // decision -- the admin no longer hand-picks which cuotas a payment
-  // covers).
+  // the house ALREADY VENCIDA is allocated against automatically,
+  // oldest-first (2026-09-24 decision -- the admin no longer hand-picks
+  // which cuotas a payment covers). `pendingInstallments` itself is already
+  // pre-filtered to due_date <= today by the server (pagos/nuevo/page.tsx,
+  // 2026-09-27 fix) -- this form never sees, and can never auto-allocate
+  // into, a future month's installment.
   const houseInstallments = useMemo(
     () => sortOldestFirst(pendingInstallments.filter((i) => i.house_id === houseId)),
     [pendingInstallments, houseId],
