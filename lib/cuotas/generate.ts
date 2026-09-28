@@ -7,7 +7,7 @@
 // Calendar-day-safe throughout (date-fns, never raw UTC string splitting) —
 // PLAN.md RPRT-05 / CLAUDE.md date-math rule, applied here since due-date
 // generation is the other place date bugs would surface.
-import { addWeeks, addMonths, setDate, format, parseISO } from 'date-fns';
+import { addWeeks, addMonths, format, parseISO } from 'date-fns';
 
 export type Cadence = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'annual';
 export type Currency = 'USD' | 'Bs' | 'USDT';
@@ -15,16 +15,18 @@ export type Currency = 'USD' | 'Bs' | 'USDT';
 // Discriminates the three due-date generation rules (PLAN.md Phase 4
 // decisions + this phase's own documented assumption for special-divided
 // staggering — see PLAN.md "Assumption made" note under Phase 4):
-// - recurring/monthly & recurring/annual: ALWAYS day 1 of the resulting
-//   month, regardless of the start date's own day-of-month (locked decision).
-// - recurring/weekly: straight +7-day increments, no day forcing (a week has
-//   no "day of month" concept to normalize).
+// - recurring (any cadence): PRESERVES the admin's chosen start date's
+//   day-of-month (2026-09-28 decision, reversing the original Phase 4
+//   "always day 1" rule) — a monthly recurring cuota started on the 15th
+//   is due the 15th of every month, matching how lib/gastos/generate.ts's
+//   computeNextPeriodDate has always treated a fixed gasto's billing day.
+//   recurring/weekly & biweekly step by a plain +7/+14 days regardless (a
+//   week has no "day of month" concept to normalize).
 // - special-single: exactly the one date the admin picked, no math.
 // - special-divided: staggered by the chosen cadence (defaults to one
-//   calendar month apart), PRESERVING the admin's chosen day-of-month (this
-//   is NOT a "recurring" cuota per the locked decision, so the day-1 forcing
-//   rule does not apply here). This is only the BASELINE the admin sees
-//   before individually overriding installment dates in the form — see
+//   calendar month apart), also preserving the admin's chosen day-of-month.
+//   This is only the BASELINE the admin sees before individually overriding
+//   installment dates in the form — see
 //   components/shared/SplitInstallments.tsx's useSplitDates.
 export type DueDateMode =
   | { kind: 'recurring'; cadence: Cadence }
@@ -65,13 +67,13 @@ export function computeDueDates(mode: DueDateMode, startDate: Date, count: numbe
         dates.push(addWeeks(startDate, n * 2));
         break;
       case 'quarterly':
-        dates.push(setDate(addMonths(startDate, n * 3), 1));
+        dates.push(addMonths(startDate, n * 3));
         break;
       case 'annual':
-        dates.push(setDate(addMonths(startDate, n * 12), 1));
+        dates.push(addMonths(startDate, n * 12));
         break;
       default:
-        dates.push(setDate(addMonths(startDate, n), 1));
+        dates.push(addMonths(startDate, n));
     }
   }
   return dates;
@@ -110,12 +112,16 @@ export function computeHorizonEnd(today: Date): Date {
   return yearEnd > sixMonthsOut ? yearEnd : sixMonthsOut;
 }
 
-// The incremental step from one recurring due date to the next -- mirrors
-// lib/gastos/generate.ts's computeNextPeriodDate shape, but (unlike gastos)
-// preserves the existing day-1 forcing rule for monthly/quarterly/annual
-// (unchanged from computeDueDates' 'recurring' branch above): weekly/
-// biweekly step by a plain +7/+14 days with no day forcing (a week has no
-// "day of month" concept to normalize).
+// The incremental step from one recurring due date to the next -- now an
+// exact match of lib/gastos/generate.ts's computeNextPeriodDate (2026-09-28:
+// dropped the day-1 forcing this used to apply for monthly/quarterly/annual,
+// so a cuota keeps the admin's chosen start_date's day-of-month, same as a
+// fixed gasto's billing day always has). weekly/biweekly step by a plain
+// +7/+14 days regardless (a week has no "day of month" concept to
+// normalize). Same day-31-into-a-shorter-month clamping behavior as gastos'
+// version (date-fns addMonths clamps, e.g. Jan 31 -> Feb 28) -- chained from
+// the last generated date each cron run, so, like gastos, a clamp doesn't
+// self-correct back to 31 the next time a long month comes around.
 export function computeNextRecurringDueDate(cadence: Cadence, lastDueDate: Date): Date {
   switch (cadence) {
     case 'weekly':
@@ -123,11 +129,11 @@ export function computeNextRecurringDueDate(cadence: Cadence, lastDueDate: Date)
     case 'biweekly':
       return addWeeks(lastDueDate, 2);
     case 'quarterly':
-      return setDate(addMonths(lastDueDate, 3), 1);
+      return addMonths(lastDueDate, 3);
     case 'annual':
-      return setDate(addMonths(lastDueDate, 12), 1);
+      return addMonths(lastDueDate, 12);
     default:
-      return setDate(addMonths(lastDueDate, 1), 1);
+      return addMonths(lastDueDate, 1);
   }
 }
 

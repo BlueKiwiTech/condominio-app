@@ -13,11 +13,14 @@ export { splitAmount, toDateOnly, parseDateOnly, computeHorizonEnd };
 
 // Next occurrence of a fixed expense's cadence, from its last generated
 // period_date (or start_date if none exist yet — see the cron in
-// app/api/cron/generate-expenses/route.ts). Unlike cuotas' recurring
-// monthly/annual rule, this does NOT force day-of-month to 1 — a fixed
-// gasto's period_date is meant to track an actual vendor billing cycle
-// (e.g. internet due the 15th of every month), so the admin's chosen
-// start_date's day-of-month is preserved.
+// app/api/cron/generate-expenses/route.ts). Does NOT force day-of-month to
+// 1 — a fixed gasto's period_date is meant to track an actual vendor
+// billing cycle (e.g. internet due the 15th of every month), so the
+// admin's chosen start_date's day-of-month is preserved. Cuotas' recurring
+// installments work the same way as of 2026-09-28 (see
+// lib/cuotas/generate.ts's computeNextRecurringDueDate, an exact match of
+// this function) — this used to be the one difference between the two
+// domains; it no longer is.
 export function computeNextPeriodDate(cadence: Cadence, lastPeriodDate: Date): Date {
   switch (cadence) {
     case 'weekly':
