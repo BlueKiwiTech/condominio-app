@@ -124,7 +124,7 @@
       "houses": "Casas y vecinos",
       "gastos": "Gastos",
       "expenseTemplates": "Conceptos de gasto",
-      "registerPayment": "Registrar abono",
+      "registerPayment": "Abonar a mi cartera",
       "paymentReports": "Abonos reportados",
       "cuotas": "Cuotas",
       "report": "Reporte mensual",
@@ -146,7 +146,7 @@
     "pagosLink": "Pagos",
     "reportLink": "Reporte mensual",
     "actions": {
-      "registerPayment": "Registrar abono",
+      "registerPayment": "Abonar a mi cartera",
       "newCuota": "Nueva cuota"
     },
     "kpis": {
@@ -489,7 +489,7 @@
   },
   "payments": {
     "heading": "Historial de abonos",
-    "registerPayment": "Registrar abono",
+    "registerPayment": "Abonar a mi cartera",
     "filterHouse": "Filtrar por casa",
     "filterAllHouses": "Todas las casas",
     "monthFilterLabel": "Mes",
@@ -525,12 +525,12 @@
       "notes": "Notas"
     },
     "new": {
-      "heading": "Registrar abono",
+      "heading": "Abonar a mi cartera",
       "fields": {
         "house": "Casa",
         "currency": "Moneda",
         "amountReceived": "Monto recibido",
-        "paymentDate": "Fecha del pago",
+        "paymentDate": "Fecha de abono",
         "reference": "Referencia (opcional)",
         "notes": "Notas (opcional)"
       },
@@ -545,7 +545,8 @@
       "existingCredit": "Esta casa tiene un saldo a favor de {amount} {currency}, que se aplicará automáticamente a este pago.",
       "currencyFreeHint": "La moneda del pago no tiene que coincidir con la de las cuotas seleccionadas — cada quien hace su propia conversión.",
       "usdReference": "≈ ${amount} (referencia {source})",
-      "submit": "Registrar abono",
+      "immediateNotice": "Este abono se registra de inmediato.",
+      "submit": "Enviar reporte",
       "cancel": "Cancelar",
       "toastSuccess": "Abono registrado correctamente.",
       "overdueCard": {
@@ -690,7 +691,7 @@
       "fields": {
         "currency": "Moneda",
         "amount": "Monto",
-        "paymentDate": "Fecha del pago",
+        "paymentDate": "Fecha de abono",
         "reference": "Referencia (opcional)",
         "notes": "Notas (opcional)"
       },

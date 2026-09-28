@@ -377,6 +377,7 @@ export function PaymentFormClient({
                   <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
                 </div>
 
+                <p className="text-xs text-muted-foreground">{t('immediateNotice')}</p>
                 <div className="flex gap-3">
                   <Button type="button" disabled={isPending || !canSubmit} onClick={onSubmit}>
                     {t('submit')}
