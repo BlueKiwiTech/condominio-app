@@ -4,6 +4,11 @@ export type HouseResident = {
   resident_phone: string | null;
 };
 
+export type HousePhone = {
+  id: string;
+  phone: string;
+};
+
 export type HouseWithResidents = {
   id: string;
   house_number: string;
@@ -12,4 +17,5 @@ export type HouseWithResidents = {
   owner_phone: string | null;
   owner_email: string | null;
   condo_house_residents: HouseResident[];
+  condo_house_phones: HousePhone[];
 };

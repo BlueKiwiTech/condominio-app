@@ -15,7 +15,8 @@
       "pinFormat": "PIN must be 4 digits.",
       "houseNumberRequired": "House number is required.",
       "invalidEmail": "Invalid email.",
-      "residentNameRequired": "Name is required."
+      "residentNameRequired": "Name is required.",
+      "phoneRequired": "Phone is required."
     },
     "cuotas": {
       "invalidDate": "Invalid date.",
@@ -229,6 +230,8 @@
       "houseName": "Name",
       "ownerName": "Owner",
       "ownerPhone": "Phone",
+      "extraPhone": "Phone {number}",
+      "addPhone": "Add phone",
       "ownerEmail": "Email (optional)",
       "pinLabel": "PIN (4 digits)",
       "pinResetLabel": "Reset PIN (leave blank to keep current)"

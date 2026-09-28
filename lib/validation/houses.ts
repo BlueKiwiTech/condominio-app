@@ -20,6 +20,12 @@ function houseFields(t: Translator) {
       .email(t('invalidEmail'))
       .optional()
       .or(z.literal('')),
+    // Extra numbers beyond owner_phone (the "primary" phone, unchanged) --
+    // stored in condo_house_phones, a child table like condo_house_residents.
+    // .optional() only (no .default()) -- a default() here would make this
+    // field's zod input/output types diverge, which breaks react-hook-form's
+    // zodResolver typing against the other fields' input===output shape.
+    extra_phones: z.array(z.object({ phone: z.string().trim().min(1, t('phoneRequired')) })).optional(),
   };
 }
 

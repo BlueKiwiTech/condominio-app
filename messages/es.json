@@ -15,7 +15,8 @@
       "pinFormat": "El PIN debe tener 4 dígitos.",
       "houseNumberRequired": "El número de casa es obligatorio.",
       "invalidEmail": "Correo inválido.",
-      "residentNameRequired": "El nombre es obligatorio."
+      "residentNameRequired": "El nombre es obligatorio.",
+      "phoneRequired": "El teléfono es obligatorio."
     },
     "cuotas": {
       "invalidDate": "Fecha inválida.",
@@ -229,6 +230,8 @@
       "houseName": "Nombre",
       "ownerName": "Propietario",
       "ownerPhone": "Teléfono",
+      "extraPhone": "Teléfono {number}",
+      "addPhone": "Agregar teléfono",
       "ownerEmail": "Email (opcional)",
       "pinLabel": "PIN (4 dígitos)",
       "pinResetLabel": "Restablecer PIN (dejar en blanco para no cambiar)"
