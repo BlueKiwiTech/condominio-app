@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useSplitAmounts, SplitAmountsFields } from '@/components/shared/SplitAmounts';
 import { createTemplateSchema, type CreateTemplateInput, type Cadence } from '@/lib/validation/cuotas';
 import { createInstallmentTemplate } from '@/lib/actions/cuotas';
-import { buildPreview, computeHorizonEnd, computeRecurringHorizonDueDates, toDateOnly, type DueDateMode } from '@/lib/cuotas/generate';
+import { buildPreview, toDateOnly, type DueDateMode } from '@/lib/cuotas/generate';
 import { CURRENCY_SELECT_OPTIONS, formatAmount, formatMoney } from '@/lib/currency';
 import type { HouseOption } from './types';
 
@@ -71,23 +71,27 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
     { value: 'annual', label: t('cadence.annual') },
   ];
 
-  // Baseline preview, computed from count/cadence/start_date alone -- the
-  // amounts (and, for a divided cuota, the dates) below start out matching
-  // this exactly, but can then be edited individually per installment.
+  const periodNouns: Record<Cadence, string> = {
+    weekly: t('preview.periodNoun.weekly'),
+    biweekly: t('preview.periodNoun.biweekly'),
+    monthly: t('preview.periodNoun.monthly'),
+    quarterly: t('preview.periodNoun.quarterly'),
+    annual: t('preview.periodNoun.annual'),
+  };
+
+  // Recurring cuotas are open-ended (topped up indefinitely by a cron), so
+  // there's no real "total" to preview -- only what repeats each period.
+  const recurringSummary =
+    installmentType === 'recurring' && values.amount > 0 && values.start_date
+      ? { amount: values.amount, expectedPerPeriod: values.amount * selectedHouseCount, periodNoun: periodNouns[values.cadence] }
+      : null;
+
+  // Baseline preview for special cuotas, computed from count/cadence/start_date
+  // alone -- the amounts (and, for a divided cuota, the dates) below start out
+  // matching this exactly, but can then be edited individually per installment.
   const baseline = useMemo(() => {
+    if (installmentType !== 'special') return null;
     if (!values.amount || values.amount <= 0 || !values.start_date) return null;
-    if (installmentType === 'recurring') {
-      // Open-ended: the preview shows exactly what will be generated right
-      // now (through the rolling horizon), never an admin-entered count —
-      // computed via the SAME function the server calls
-      // (lib/cuotas/recurringGeneration.ts's "no installments exist yet"
-      // branch), so this can never diverge from the real insert.
-      const horizonEnd = computeHorizonEnd(new Date());
-      const dueDates = computeRecurringHorizonDueDates(values.cadence, values.start_date, horizonEnd);
-      if (dueDates.length === 0) return null;
-      const amounts = Array(dueDates.length).fill(values.amount);
-      return { dueDates, amounts, totalPerHouse: amounts.reduce((sum, a) => sum + a, 0), count: dueDates.length };
-    }
     const mode: DueDateMode = isDivided
       ? { kind: 'special-divided', cadence: values.cadence }
       : { kind: 'special-single' };
@@ -377,55 +381,82 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
 
       <div className="flex flex-1 flex-col gap-3 rounded-[var(--radius)] border bg-muted/50 p-6">
         <h2 className="text-lg font-semibold">{t('preview.heading')}</h2>
-        {!preview && <span className="text-sm text-muted-foreground">{t('preview.empty')}</span>}
-        {preview && (
-          <div className="flex flex-col gap-3">
-            <span className="text-sm text-muted-foreground">{t('preview.info')}</span>
-            {isDivided ? (
-              <SplitAmountsFields
-                dates={dates}
-                amounts={amounts}
-                onAmountChange={updateAmount}
-                onDateChange={updateDate}
-                amountLabel={(number) => t('form.installmentAmount', { number })}
-                dateLabel={(number) => t('form.installmentDueDate', { number })}
-              />
-            ) : (
-              <div className="flex flex-col gap-1">
-                {preview.dueDates.map((date, idx) => (
-                  <div key={idx} className="flex justify-between">
-                    <span className="text-sm">{toDateOnly(date)}</span>
-                    <span className="text-sm">{formatAmount(preview.amounts[idx], values.currency)}</span>
-                  </div>
-                ))}
+        {installmentType === 'recurring' ? (
+          <>
+            {!recurringSummary && <span className="text-sm text-muted-foreground">{t('preview.empty')}</span>}
+            {recurringSummary && (
+              <div className="flex flex-col gap-3">
+                <div className="flex justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">{t('form.amountPerInstallment')}</span>
+                  <span className="text-sm font-semibold">
+                    {t('preview.amountPerPeriodValue', {
+                      amount: formatAmount(recurringSummary.amount, values.currency),
+                      period: recurringSummary.periodNoun,
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">{t('preview.houses')}</span>
+                  <span className="text-sm font-semibold">{selectedHouseCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {t('preview.expectedPerPeriod', { period: recurringSummary.periodNoun })}
+                  </span>
+                  <span className="text-sm font-semibold">
+                    {formatAmount(recurringSummary.expectedPerPeriod, values.currency)}
+                  </span>
+                </div>
+                <Alert>
+                  <AlertDescription>{t('preview.noConversionNote')}</AlertDescription>
+                </Alert>
               </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-xs font-medium text-muted-foreground">{t('preview.totalPerHouse')}</span>
-              <span className="text-sm font-semibold">{formatAmount(preview.totalPerHouse, values.currency)}</span>
-            </div>
-            {isDivided && amountsMismatch && (
-              <Alert variant="destructive">
-                <AlertDescription>
-                  {t('form.amountsSumMismatch', {
-                    sum: formatMoney(amountsSum),
-                    total: formatMoney(values.amount || 0),
-                  })}
-                </AlertDescription>
-              </Alert>
+          </>
+        ) : (
+          <>
+            {!preview && <span className="text-sm text-muted-foreground">{t('preview.empty')}</span>}
+            {preview && (
+              <div className="flex flex-col gap-3">
+                <span className="text-sm text-muted-foreground">{t('preview.info')}</span>
+                {isDivided && (
+                  <SplitAmountsFields
+                    dates={dates}
+                    amounts={amounts}
+                    onAmountChange={updateAmount}
+                    onDateChange={updateDate}
+                    amountLabel={(number) => t('form.installmentAmount', { number })}
+                    dateLabel={(number) => t('form.installmentDueDate', { number })}
+                  />
+                )}
+                <div className="flex justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">{t('preview.totalPerHouse')}</span>
+                  <span className="text-sm font-semibold">{formatAmount(preview.totalPerHouse, values.currency)}</span>
+                </div>
+                {isDivided && amountsMismatch && (
+                  <Alert variant="destructive">
+                    <AlertDescription>
+                      {t('form.amountsSumMismatch', {
+                        sum: formatMoney(amountsSum),
+                        total: formatMoney(values.amount || 0),
+                      })}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">{t('preview.houses')}</span>
+                  <span className="text-sm font-semibold">{selectedHouseCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">{t('preview.expectedTotal')}</span>
+                  <span className="text-sm font-semibold">{formatAmount(preview.totalPerHouse * selectedHouseCount, values.currency)}</span>
+                </div>
+                <Alert>
+                  <AlertDescription>{t('preview.noConversionNote')}</AlertDescription>
+                </Alert>
+              </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-xs font-medium text-muted-foreground">{t('preview.houses')}</span>
-              <span className="text-sm font-semibold">{selectedHouseCount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-xs font-medium text-muted-foreground">{t('preview.expectedTotal')}</span>
-              <span className="text-sm font-semibold">{formatAmount(preview.totalPerHouse * selectedHouseCount, values.currency)}</span>
-            </div>
-            <Alert>
-              <AlertDescription>{t('preview.noConversionNote')}</AlertDescription>
-            </Alert>
-          </div>
+          </>
         )}
       </div>
     </div>

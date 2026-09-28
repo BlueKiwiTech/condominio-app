@@ -333,6 +333,15 @@
       "totalPerHouse": "Total per house",
       "houses": "Applicable houses",
       "expectedTotal": "Expected collection",
+      "amountPerPeriodValue": "{amount} / {period}",
+      "expectedPerPeriod": "Expected collection per {period}",
+      "periodNoun": {
+        "weekly": "week",
+        "biweekly": "two weeks",
+        "monthly": "month",
+        "quarterly": "quarter",
+        "annual": "year"
+      },
       "noConversionNote": "Amounts are never converted between currencies — each installment is recorded and collected in the selected currency."
     },
     "errors": {

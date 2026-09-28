@@ -333,6 +333,15 @@
       "totalPerHouse": "Total por casa",
       "houses": "Casas aplicables",
       "expectedTotal": "Recaudación esperada",
+      "amountPerPeriodValue": "{amount} / {period}",
+      "expectedPerPeriod": "Recaudación esperada por {period}",
+      "periodNoun": {
+        "weekly": "semana",
+        "biweekly": "quincena",
+        "monthly": "mes",
+        "quarterly": "trimestre",
+        "annual": "año"
+      },
       "noConversionNote": "Los montos no se convierten entre monedas — cada cuota se registra y se cobra en la moneda seleccionada."
     },
     "errors": {
