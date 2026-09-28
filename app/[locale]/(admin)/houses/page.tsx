@@ -9,7 +9,7 @@ export default async function HousesPage() {
   const { data: houses } = await supabase
     .from('condo_houses')
     .select(
-      'id, house_number, house_name, owner_name, owner_phone, owner_email, condo_house_residents(id, resident_name, resident_phone)',
+      'id, house_number, house_name, owner_name, owner_phone, owner_email, condo_house_residents(id, resident_name, resident_phone), condo_house_phones(id, phone)',
     )
     .order('house_number');
 

@@ -56,18 +56,32 @@ export async function createHouse(input: CreateHouseInput, locale: string): Prom
   });
   if (hashError || !pinHash) return { error: th('errors.pinProcessingFailed') };
 
-  const { error } = await supabase.from('condo_houses').insert({
-    community_id: communityId,
-    house_number: parsed.data.house_number,
-    house_name: normalizeOptional(parsed.data.house_name),
-    owner_name: normalizeOptional(parsed.data.owner_name),
-    owner_phone: normalizeOptional(parsed.data.owner_phone),
-    owner_email: normalizeOptional(parsed.data.owner_email),
-    pin_hash: pinHash,
-  });
+  const { data: newHouse, error } = await supabase
+    .from('condo_houses')
+    .insert({
+      community_id: communityId,
+      house_number: parsed.data.house_number,
+      house_name: normalizeOptional(parsed.data.house_name),
+      owner_name: normalizeOptional(parsed.data.owner_name),
+      owner_phone: normalizeOptional(parsed.data.owner_phone),
+      owner_email: normalizeOptional(parsed.data.owner_email),
+      pin_hash: pinHash,
+    })
+    .select('id')
+    .single();
   if (error) {
     if (error.code === '23505') return { error: th('errors.duplicateHouseNumber') };
     return { error: error.message };
+  }
+
+  // Best-effort, same non-transactional convention as the rest of this file
+  // (e.g. addResident) — the house row already exists either way.
+  const extraPhones = parsed.data.extra_phones ?? [];
+  if (extraPhones.length > 0) {
+    const { error: phonesError } = await supabase
+      .from('condo_house_phones')
+      .insert(extraPhones.map((p) => ({ house_id: newHouse.id, phone: p.phone })));
+    if (phonesError) return { error: phonesError.message };
   }
 
   revalidatePath('/houses');
@@ -114,6 +128,32 @@ export async function updateHouse(
   if (error) {
     if (error.code === '23505') return { error: th('errors.duplicateHouseNumber') };
     return { error: error.message };
+  }
+
+  // Wholesale replace: simplest correct approach for a small form-scoped
+  // list with no independent per-row persistence (unlike ResidentsManager's
+  // own separately-persisted add/delete actions). Insert the new set BEFORE
+  // deleting the old rows (captured by id first) — not delete-then-insert —
+  // so a failure on the insert leaves the previous phones fully intact
+  // instead of silently losing them; a failure on the follow-up delete
+  // leaves harmless, recoverable duplicates instead.
+  const { data: oldPhoneRows, error: oldPhonesError } = await supabase
+    .from('condo_house_phones')
+    .select('id')
+    .eq('house_id', houseId);
+  if (oldPhonesError) return { error: oldPhonesError.message };
+  const oldPhoneIds = (oldPhoneRows ?? []).map((r) => r.id as string);
+
+  const extraPhones = parsed.data.extra_phones ?? [];
+  if (extraPhones.length > 0) {
+    const { error: phonesError } = await supabase
+      .from('condo_house_phones')
+      .insert(extraPhones.map((p) => ({ house_id: houseId, phone: p.phone })));
+    if (phonesError) return { error: phonesError.message };
+  }
+  if (oldPhoneIds.length > 0) {
+    const { error: deleteOldPhonesError } = await supabase.from('condo_house_phones').delete().in('id', oldPhoneIds);
+    if (deleteOldPhonesError) return { error: deleteOldPhonesError.message };
   }
 
   revalidatePath('/houses');

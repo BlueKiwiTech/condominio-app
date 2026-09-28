@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -53,6 +53,7 @@ export function HouseFormDialog({
           owner_phone: house.owner_phone ?? '',
           owner_email: house.owner_email ?? '',
           pin: '',
+          extra_phones: house.condo_house_phones.map((p) => ({ phone: p.phone })),
         }
       : {
           house_number: '',
@@ -61,7 +62,13 @@ export function HouseFormDialog({
           owner_phone: '',
           owner_email: '',
           pin: '',
+          extra_phones: [],
         },
+  });
+
+  const { fields: phoneFields, append: appendPhone, remove: removePhone } = useFieldArray({
+    control,
+    name: 'extra_phones',
   });
 
   const onSubmit = (data: CreateHouseInput | UpdateHouseInput) => {
@@ -167,6 +174,27 @@ export function HouseFormDialog({
               </div>
             )}
           />
+          <div className="grid gap-1.5">
+            {phoneFields.map((field, index) => (
+              <div key={field.id} className="flex items-end gap-2">
+                <div className="grid flex-1 gap-1.5">
+                  <Label htmlFor={`extra_phones.${index}.phone`}>{t('fields.extraPhone', { number: index + 2 })}</Label>
+                  <Input
+                    id={`extra_phones.${index}.phone`}
+                    {...register(`extra_phones.${index}.phone` as const)}
+                    aria-invalid={!!errors.extra_phones?.[index]?.phone}
+                  />
+                </div>
+                <Button type="button" variant="outline" size="icon" onClick={() => removePhone(index)} aria-label={t('actions.delete')}>
+                  <X className="size-4" />
+                </Button>
+              </div>
+            ))}
+            <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => appendPhone({ phone: '' })}>
+              <Plus className="size-4" />
+              {t('fields.addPhone')}
+            </Button>
+          </div>
           <Controller
             control={control}
             name="owner_email"

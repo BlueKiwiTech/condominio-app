@@ -254,7 +254,13 @@ export function DashboardPageClient({
                   <span className="text-sm font-semibold">{batch.houseLabel}</span>
                   <span className="text-xs text-muted-foreground">{formatShortDate(new Date(batch.paymentDate), locale)}</span>
                 </div>
-                <span className="text-sm font-semibold">{formatAmount(batch.totalAmount, batch.currency)}</span>
+                <div className="flex flex-col items-end gap-0.5">
+                  {Object.entries(batch.totalsByCurrency).map(([currency, amount]) => (
+                    <span key={currency} className="text-sm font-semibold">
+                      {formatAmount(amount ?? 0, currency)}
+                    </span>
+                  ))}
+                </div>
               </Link>
             ))}
           </div>

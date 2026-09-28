@@ -47,9 +47,13 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
               </h2>
               <p className="text-sm text-muted-foreground">{batch.paymentDate}</p>
             </div>
-            <p className="text-lg font-semibold">
-              {formatMoney(batch.totalAmount)} {currencyLabel(batch.currency)}
-            </p>
+            <div className="flex flex-col items-end gap-0.5">
+              {Object.entries(batch.totalsByCurrency).map(([currency, amount]) => (
+                <p key={currency} className="text-lg font-semibold">
+                  {formatMoney(amount ?? 0)} {currencyLabel(currency)}
+                </p>
+              ))}
+            </div>
           </div>
 
           <div className="flex flex-col gap-1">
@@ -72,10 +76,6 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
           </div>
 
           <div className="flex flex-wrap gap-8">
-            <div className="flex flex-col gap-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('currency')}</p>
-              <p className="text-sm">{currencyLabel(batch.currency)}</p>
-            </div>
             <div className="flex flex-col gap-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('reference')}</p>
               <p className="text-sm">{batch.reference ?? '—'}</p>

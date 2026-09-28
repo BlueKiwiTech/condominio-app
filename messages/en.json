@@ -15,7 +15,8 @@
       "pinFormat": "PIN must be 4 digits.",
       "houseNumberRequired": "House number is required.",
       "invalidEmail": "Invalid email.",
-      "residentNameRequired": "Name is required."
+      "residentNameRequired": "Name is required.",
+      "phoneRequired": "Phone is required."
     },
     "cuotas": {
       "invalidDate": "Invalid date.",
@@ -125,7 +126,7 @@
       "cuotas": "Cuotas",
       "gastos": "Expenses",
       "expenseTemplates": "Expense concepts",
-      "registerPayment": "Register payment",
+      "registerPayment": "Report a payment",
       "paymentReports": "Reported payments",
       "report": "Monthly report",
       "paymentsHistory": "Payment history",
@@ -146,7 +147,7 @@
     "pagosLink": "Payments",
     "reportLink": "Monthly report",
     "actions": {
-      "registerPayment": "Register payment",
+      "registerPayment": "Report a payment",
       "newCuota": "New cuota"
     },
     "kpis": {
@@ -229,6 +230,8 @@
       "houseName": "Name",
       "ownerName": "Owner",
       "ownerPhone": "Phone",
+      "extraPhone": "Phone {number}",
+      "addPhone": "Add phone",
       "ownerEmail": "Email (optional)",
       "pinLabel": "PIN (4 digits)",
       "pinResetLabel": "Reset PIN (leave blank to keep current)"
@@ -489,7 +492,7 @@
   },
   "payments": {
     "heading": "Payment history",
-    "registerPayment": "Register payment",
+    "registerPayment": "Report a payment",
     "filterHouse": "Filter by house",
     "filterAllHouses": "All houses",
     "monthFilterLabel": "Month",
@@ -520,13 +523,12 @@
       "noReceipt": "No receipt number",
       "house": "House",
       "cuotasCovered": "Cuotas covered",
-      "currency": "Currency",
       "reference": "Reference",
       "registeredBy": "Registered by",
       "notes": "Notes"
     },
     "new": {
-      "heading": "Register payment",
+      "heading": "Report a payment",
       "fields": {
         "house": "House",
         "currency": "Currency",
@@ -546,7 +548,8 @@
       "existingCredit": "This house has a credit balance of {amount} {currency}, which will be applied automatically to this payment.",
       "currencyFreeHint": "The payment's currency doesn't have to match the selected cuotas' currency — each side works out their own conversion.",
       "usdReference": "≈ ${amount} ({source} reference)",
-      "submit": "Register payment",
+      "immediateNotice": "This payment is registered immediately.",
+      "submit": "Send report",
       "cancel": "Cancel",
       "toastSuccess": "Payment registered successfully.",
       "overdueCard": {

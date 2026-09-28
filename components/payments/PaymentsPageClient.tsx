@@ -214,7 +214,13 @@ export function PaymentsPageClient({
                   <TableCell>
                     {batch.installmentNames.length} {batch.installmentNames.length === 1 ? t('cuotaSingular') : t('cuotaPlural')}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{formatAmount(batch.totalAmount, batch.currency)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    <div className="flex flex-col items-end gap-0.5">
+                      {Object.entries(batch.totalsByCurrency).map(([currency, amount]) => (
+                        <span key={currency}>{formatAmount(amount ?? 0, currency)}</span>
+                      ))}
+                    </div>
+                  </TableCell>
                   <TableCell>{batch.reference ?? '—'}</TableCell>
                   <TableCell>
                     <Link href={`/pagos/${batch.batchId}`} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>

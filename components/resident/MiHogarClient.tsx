@@ -62,6 +62,7 @@ export function MiHogarClient({
         installments={communityBalance.installments}
         credits={communityBalance.credits}
         expenses={communityBalance.expenses}
+        payments={communityBalance.payments}
         graceDays={graceDays}
         today={today}
       />
