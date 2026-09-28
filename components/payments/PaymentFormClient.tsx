@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DateInput } from '@/components/ui/date-input';
+import { MoneyInput } from '@/components/ui/money-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { registerPayment } from '@/lib/actions/payments';
 import { extractPaymentFromScreenshot } from '@/lib/actions/paymentOcr';
@@ -337,11 +338,10 @@ export function PaymentFormClient({
                 <div className="flex flex-wrap gap-4">
                   <div className="grid min-w-[180px] flex-1 gap-2">
                     <Label htmlFor="amount">{t('fields.amountReceived')}</Label>
-                    <Input
+                    <MoneyInput
                       id="amount"
-                      type="number"
-                      value={Number.isNaN(amountReceived) ? '' : amountReceived}
-                      onChange={(e) => setAmountReceived(e.target.valueAsNumber)}
+                      value={Number.isNaN(amountReceived) ? null : amountReceived}
+                      onChange={(v) => setAmountReceived(v ?? NaN)}
                     />
                   </div>
                   <div className="grid min-w-[160px] flex-1 gap-2">

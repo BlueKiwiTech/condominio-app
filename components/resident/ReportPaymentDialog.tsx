@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateInput } from '@/components/ui/date-input';
+import { MoneyInput } from '@/components/ui/money-input';
 import { reportPayment } from '@/lib/actions/residentPayments';
 import { extractResidentPaymentFromScreenshot } from '@/lib/actions/residentPaymentOcr';
 import { toDateOnly } from '@/lib/cuotas/generate';
@@ -325,11 +326,10 @@ export function ReportPaymentDialog({
                 <div className="flex flex-wrap gap-4">
                   <div className="flex min-w-[8rem] flex-1 flex-col gap-2">
                     <Label htmlFor="amount">{t('fields.amount')}</Label>
-                    <Input
+                    <MoneyInput
                       id="amount"
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.valueAsNumber || 0)}
+                      value={amount === '' ? null : amount}
+                      onChange={(v) => setAmount(v ?? '')}
                     />
                   </div>
                   <div className="flex min-w-[8rem] flex-1 flex-col gap-2">
