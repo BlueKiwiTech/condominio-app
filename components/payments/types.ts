@@ -49,11 +49,18 @@ export type PaymentBatch = {
   receiptNumber: number | null;
   houseId: string;
   houseLabel: string;
-  currency: Currency;
   paymentDate: string;
   createdAt: string;
   reference: string | null;
-  totalAmount: number;
+  /**
+   * One total per currency, never a single summed number -- a batch's rows
+   * are NOT guaranteed to share one currency: registerPayment/
+   * sweepCreditForNewInstallments always write single-currency batches, but
+   * confirmPaymentReport's wallet ("Mi Cartera") path can settle overdue
+   * dues billed in different currencies from one wallet top-up under the
+   * same payment_batch_id. Render one line per currency present here.
+   */
+  totalsByCurrency: Partial<Record<Currency, number>>;
   installmentNames: string[];
   rows: PaymentRow[];
 };
@@ -70,19 +77,23 @@ export function groupPaymentsByBatch(payments: PaymentRow[]): PaymentBatch[] {
   for (const [batchId, rows] of byBatch) {
     const first = rows[0];
     const house = first.condo_houses;
+    // Cent-based summation per currency (never a single cross-currency sum
+    // -- see the PaymentBatch.totalsByCurrency comment).
+    const totalsByCurrency: Partial<Record<Currency, number>> = {};
+    for (const r of rows) {
+      const cents = (totalsByCurrency[r.currency] ?? 0) * 100 + Math.round(r.amount_paid * 100);
+      totalsByCurrency[r.currency] = cents / 100;
+    }
+
     batches.push({
       batchId,
       receiptNumber: first.receipt_number,
       houseId: first.house_id,
       houseLabel: house ? (house.house_name ? `${house.house_number} · ${house.house_name}` : house.house_number) : '—',
-      currency: first.currency,
       paymentDate: first.payment_date,
       createdAt: first.created_at,
       reference: first.reference,
-      // Safe to sum: every row in a batch shares one currency (enforced at
-      // write time by registerPayment/sweepCreditForNewInstallments — never
-      // mixed, per the never-sum-across-currencies rule).
-      totalAmount: rows.reduce((sum, r) => sum + r.amount_paid, 0),
+      totalsByCurrency,
       installmentNames: rows.map((r) => r.condo_installments?.name ?? '—'),
       rows,
     });
