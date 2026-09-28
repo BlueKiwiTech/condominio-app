@@ -51,6 +51,26 @@ export function MoneyInput({
         setIsFocused(true)
         setText(value === null ? "" : String(value))
       }}
+      onPaste={(e) => {
+        // A paste is exactly the one case the generic typing filter below
+        // can't safely handle: a user pasting an amount already in this
+        // app's own es-VE display convention (e.g. "1.234,56", copied from
+        // a receipt or payment list) would otherwise have its "." silently
+        // treated as the decimal point and its "," dropped, corrupting the
+        // value by ~1000x. Parse the pasted text as es-VE FIRST -- strip
+        // every "." (thousands) and take "," as the decimal point -- and
+        // only fall through to the generic filter if that doesn't produce
+        // a valid number (e.g. a plain "1234.56" paste, which es-VE parsing
+        // would mis-simplify to 123456 -- so it's not tried blindly).
+        const pasted = e.clipboardData.getData("text").trim()
+        if (/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(pasted) || /^\d+,\d+$/.test(pasted)) {
+          const asEsVe = Number(pasted.replace(/\./g, "").replace(",", "."))
+          if (Number.isFinite(asEsVe)) {
+            e.preventDefault()
+            setText(String(asEsVe))
+          }
+        }
+      }}
       onChange={(e) => {
         // Keep digits plus AT MOST ONE decimal separator ("." or ",",
         // whichever comes first -- forgiving of comma-as-decimal muscle
