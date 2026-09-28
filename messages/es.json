@@ -178,7 +178,7 @@
       "heading": "Casas con deuda",
       "empty": "Ninguna casa está en mora.",
       "house": "Casa",
-      "owner": "Dueño",
+      "owner": "Propietario",
       "owed": "Debe",
       "since": "Desde",
       "daysOverdue": "Días de atraso"
@@ -210,13 +210,13 @@
     "editHouse": "Editar casa",
     "cancel": "Cancelar",
     "save": "Guardar",
-    "searchPlaceholder": "Buscar por casa, nombre o dueño...",
+    "searchPlaceholder": "Buscar por casa, nombre o propietario...",
     "empty": "Aún no hay casas registradas.",
     "confirmDelete": "¿Eliminar la casa {house}? Esta acción no se puede deshacer.",
     "table": {
       "house": "Casa",
       "name": "Nombre",
-      "owner": "Dueño",
+      "owner": "Propietario",
       "phone": "Teléfono",
       "email": "Email"
     },
@@ -227,7 +227,7 @@
     "fields": {
       "houseNumber": "Número de casa",
       "houseName": "Nombre",
-      "ownerName": "Dueño",
+      "ownerName": "Propietario",
       "ownerPhone": "Teléfono",
       "ownerEmail": "Email (opcional)",
       "pinLabel": "PIN (4 dígitos)",
@@ -716,7 +716,7 @@
     "heading": "Perfil",
     "subtitle": "Datos de tu casa y vecinos registrados.",
     "houseNumber": "Casa",
-    "owner": "Dueño",
+    "owner": "Propietario",
     "phone": "Teléfono",
     "email": "Email",
     "residents": "Vecinos"
