@@ -10,7 +10,7 @@ import type { InstallmentType } from '@/components/cuotas/types';
 import type { PaymentRow } from '@/components/payments/types';
 import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
 import type { ReportInstallment, CreditForReport as MonthlyReportCredit } from '@/lib/reporting/monthlyReport';
-import type { ExpenseForReport } from '@/lib/reporting/dashboard';
+import type { ExpenseForReport, PaymentForReport } from '@/lib/reporting/dashboard';
 
 export type Currency = 'USD' | 'Bs' | 'USDT';
 
@@ -186,6 +186,7 @@ export type CommunityBalanceData = {
   installments: ReportInstallment[];
   credits: MonthlyReportCredit[];
   expenses: CommunityExpenseRow[];
+  payments: PaymentForReport[];
 };
 
 type CommunityExpenseQueryRow = {
@@ -211,7 +212,7 @@ type CommunityExpenseQueryRow = {
 export async function getCommunityBalanceData(): Promise<CommunityBalanceData> {
   const supabase = createServiceClient();
 
-  const [{ data: installments }, { data: credits }, { data: expenses }] = await Promise.all([
+  const [{ data: installments }, { data: credits }, { data: expenses }, { data: payments }] = await Promise.all([
     supabase.from('condo_installments').select('house_id, amount, amount_paid, currency, due_date, status'),
     supabase.from('condo_house_credits').select('house_id, currency, balance'),
     supabase
@@ -219,6 +220,7 @@ export async function getCommunityBalanceData(): Promise<CommunityBalanceData> {
       .select('id, currency, amount, period_date, status, paid_date, condo_expense_templates(name)')
       .is('deleted_at', null)
       .order('period_date', { ascending: true }),
+    supabase.from('condo_payments').select('amount_paid, currency, payment_date'),
   ]);
 
   return {
@@ -233,5 +235,6 @@ export async function getCommunityBalanceData(): Promise<CommunityBalanceData> {
       paid_date: e.paid_date,
       name: e.condo_expense_templates?.name ?? '',
     })),
+    payments: (payments as PaymentForReport[] | null) ?? [],
   };
 }

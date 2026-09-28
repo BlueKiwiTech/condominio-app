@@ -4,7 +4,14 @@ import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { buildMonthlyReport, reportTotalsByCurrency, type ReportInstallment, type CreditForReport } from '@/lib/reporting/monthlyReport';
-import { paidExpensesInMonth, totalExpensesInMonth, type ExpenseForReport, type CurrencyAmountMap } from '@/lib/reporting/dashboard';
+import {
+  collectedInMonth,
+  paidExpensesInMonth,
+  totalExpensesInMonth,
+  type ExpenseForReport,
+  type PaymentForReport,
+  type CurrencyAmountMap,
+} from '@/lib/reporting/dashboard';
 import { CurrencyAmountList } from './CurrencyAmountList';
 
 // V2 addition: a community-wide (not per-house) balance overview for
@@ -16,12 +23,14 @@ export function CommunityBalanceCard({
   installments,
   credits,
   expenses,
+  payments,
   graceDays = 0,
   today = new Date(),
 }: {
   installments: ReportInstallment[];
   credits: CreditForReport[];
   expenses: ExpenseForReport[];
+  payments: PaymentForReport[];
   graceDays?: number;
   today?: Date;
 }) {
@@ -37,15 +46,20 @@ export function CommunityBalanceCard({
   );
 
   const expected: CurrencyAmountMap = {};
-  const collected: CurrencyAmountMap = {};
   const pending: CurrencyAmountMap = {};
   const favor: CurrencyAmountMap = {};
   for (const row of totals) {
     expected[row.currency] = row.expected;
-    collected[row.currency] = row.paid;
     pending[row.currency] = row.pending;
     favor[row.currency] = row.favor;
   }
+
+  // Cash-basis (payment_date), not the due_date-scoped `totals` above --
+  // same collectedInMonth the admin dashboard's own "Cobrado" KPI uses, so a
+  // payment settling an old overdue cuota (or landing as unapplied credit)
+  // still counts the month it was actually paid, matching PLAN.md's Phase 6
+  // "collected this month" decision instead of silently undercounting it.
+  const collected = useMemo(() => collectedInMonth(payments, today), [payments, today]);
 
   const paidExpenses = useMemo(() => paidExpensesInMonth(expenses, today), [expenses, today]);
   const totalExpenses = useMemo(() => totalExpensesInMonth(expenses, today), [expenses, today]);
