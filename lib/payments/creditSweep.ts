@@ -89,6 +89,74 @@ export async function setHouseCredit(
  * even the oldest due installment (the money stays in the wallet rather than
  * partially applying or reaching into next month's cuota).
  */
+/**
+ * Daily-cron counterpart to sweepCreditForNewInstallments above: re-checks
+ * EVERY house's existing credit balance against installments that were
+ * already sitting there (not freshly generated) and have since crossed the
+ * due_date <= today threshold. Closes the gap left by the two event-triggered
+ * touchpoints (this file's sweep, only for freshly-generated rows; and
+ * confirmPaymentReport's wallet path, only at report-confirmation time): a
+ * credit created before an installment became vencida previously had no
+ * mechanism to ever get re-applied once that installment later became due.
+ *
+ * Deliberately single-currency, same as sweepCreditForNewInstallments itself
+ * (reused here unmodified) — a house with e.g. Bs credit and only a
+ * USD-billed due overdue won't be caught by this daily sweep; that
+ * cross-currency case is still handled reactively by confirmPaymentReport's
+ * full allocateWalletFunds path whenever an actual payment report is
+ * confirmed. Acceptable for a once-a-day best-effort backstop.
+ */
+export async function sweepStaleCreditsAgainstVencidaInstallments(
+  supabase: SupabaseClient,
+  paymentDate: string,
+): Promise<{ error: string | null; sweepErrors: string[] }> {
+  const today = toDateOnly(new Date());
+
+  const [{ data: creditRows, error: creditError }, { data: instRows, error: instError }] = await Promise.all([
+    supabase.from('condo_house_credits').select('house_id, currency, balance').gt('balance', 0),
+    supabase
+      .from('condo_installments')
+      .select('id, house_id, currency, amount, amount_paid, due_date, installment_number')
+      .neq('status', 'paid')
+      .lte('due_date', today),
+  ]);
+  if (creditError) return { error: creditError.message, sweepErrors: [] };
+  if (instError) return { error: instError.message, sweepErrors: [] };
+
+  type InstallmentRow = AllocatableInstallment & { house_id: string; currency: Currency };
+  const byHouseCurrency = new Map<string, AllocatableInstallment[]>();
+  for (const row of (instRows ?? []) as InstallmentRow[]) {
+    const key = `${row.house_id}::${row.currency}`;
+    const list = byHouseCurrency.get(key) ?? [];
+    list.push({
+      id: row.id,
+      amount: row.amount,
+      amount_paid: row.amount_paid,
+      due_date: row.due_date,
+      installment_number: row.installment_number,
+    });
+    byHouseCurrency.set(key, list);
+  }
+
+  const sweepErrors: string[] = [];
+  for (const credit of (creditRows ?? []) as { house_id: string; currency: Currency; balance: number }[]) {
+    const candidates = byHouseCurrency.get(`${credit.house_id}::${credit.currency}`);
+    if (!candidates || candidates.length === 0) continue;
+
+    const { error } = await sweepCreditForNewInstallments(supabase, {
+      houseId: credit.house_id,
+      currency: credit.currency,
+      createdBy: null,
+      newInstallments: candidates,
+      paymentDate,
+      notes: 'Aplicado automáticamente desde saldo a favor (barrido diario).',
+    });
+    if (error) sweepErrors.push(`${credit.house_id}/${credit.currency}: ${error}`);
+  }
+
+  return { error: null, sweepErrors };
+}
+
 export async function sweepCreditForNewInstallments(
   supabase: SupabaseClient,
   params: {

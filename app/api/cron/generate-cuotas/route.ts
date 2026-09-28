@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service';
-import { computeHorizonEnd } from '@/lib/cuotas/generate';
+import { computeHorizonEnd, toDateOnly } from '@/lib/cuotas/generate';
 import { generateRecurringCuotaInstallments, type OpenEndedRecurringTemplate } from '@/lib/cuotas/recurringGeneration';
+import { sweepStaleCreditsAgainstVencidaInstallments } from '@/lib/payments/creditSweep';
 
 // Vercel Cron hits this once a day (vercel.json: "0 6 * * *"), same schedule
 // as app/api/cron/generate-expenses/route.ts -- default Node.js runtime
@@ -64,5 +65,28 @@ export async function GET(request: Request) {
   const hadFailure = Object.values(results).some((v) => v.startsWith('error'));
   if (hadFailure) console.error('[cron/generate-cuotas] partial failure:', results);
 
-  return Response.json({ success: !hadFailure, results });
+  // Runs after the per-template generation+sweep loop above so it always
+  // sees fresh state -- any installment that loop already paid is already
+  // status='paid' (excluded by this sweep's own query) with its credit
+  // already reduced, so there's no double-application risk regardless of
+  // order. Best-effort: never flips success/hadFailure, same convention as
+  // the per-template sweepErrors above.
+  const { error: communitySweepError, sweepErrors: communitySweepErrors } =
+    await sweepStaleCreditsAgainstVencidaInstallments(service, toDateOnly(new Date()));
+  if (communitySweepError) {
+    console.error('[cron/generate-cuotas] community credit sweep query failed:', communitySweepError);
+  } else if (communitySweepErrors.length > 0) {
+    console.error(
+      `[cron/generate-cuotas] community credit sweep failed for ${communitySweepErrors.length} house/currency pair(s):`,
+      communitySweepErrors,
+    );
+  }
+
+  return Response.json({
+    success: !hadFailure,
+    results,
+    communityCreditSweep: communitySweepError
+      ? { error: communitySweepError }
+      : { sweepErrors: communitySweepErrors },
+  });
 }
