@@ -45,10 +45,14 @@ export async function applyPaymentAllocation(
   const { data: rawInstallments, error: fetchError } = await supabase
     .from('condo_installments')
     .select('id, house_id, currency, status, amount, amount_paid, due_date, installment_number')
-    .in('id', params.installment_ids);
+    .in('id', params.installment_ids)
+    .is('deleted_at', null);
   if (fetchError) return { error: fetchError.message };
 
   const installments = rawInstallments ?? [];
+  // A shorter result than requested means some id is gone or was voided
+  // (deactivated template) since it was selected -- same user-facing error
+  // as a hard delete, since either way the cuota no longer exists to pay.
   if (installments.length !== params.installment_ids.length) {
     return { error: errors.installmentsGone };
   }

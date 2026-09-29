@@ -13,7 +13,10 @@ export default async function ReportePage() {
   const supabase = await createClient();
 
   const [{ data: installments }, { data: houses }, { data: credits }, gracePeriodDays] = await Promise.all([
-    supabase.from('condo_installments').select('house_id, amount, amount_paid, currency, due_date, status'),
+    supabase
+      .from('condo_installments')
+      .select('house_id, amount, amount_paid, currency, due_date, status')
+      .is('deleted_at', null),
     supabase.from('condo_houses').select('id, house_number, house_name').order('house_number'),
     supabase.from('condo_house_credits').select('house_id, currency, balance'),
     resolveAdminGracePeriodDays(supabase),

@@ -399,6 +399,24 @@ export async function setInstallmentTemplateActive(
   const { error } = await supabase.from('condo_installment_templates').update({ active }).eq('id', templateId);
   if (error) return { error: error.message };
 
+  // Deactivating voids every still-pending (untouched, unpaid) installment
+  // already generated for this template -- they disappear from every
+  // admin/resident read (all filter deleted_at is null) without losing the
+  // row or the recurring generator's resume point, which deliberately
+  // ignores deleted_at (lib/cuotas/recurringGeneration.ts). Partial/paid
+  // installments are left alone (PLAN.md's "Desactivar" decision, option 1).
+  if (!active) {
+    const { error: voidError } = await supabase
+      .from('condo_installments')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('template_id', templateId)
+      .eq('status', 'pending')
+      .is('deleted_at', null);
+    if (voidError) return { error: voidError.message };
+  }
+
   revalidatePath('/cuotas');
+  revalidatePath('/dashboard');
+  revalidatePath('/reporte');
   return { success: true };
 }

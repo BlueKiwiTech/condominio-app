@@ -16,6 +16,7 @@ export default async function NuevoPagoPage() {
       .from('condo_installments')
       .select('id, house_id, name, amount, amount_paid, currency, due_date, status, installment_number')
       .in('status', ['pending', 'partial'])
+      .is('deleted_at', null)
       // Only cuotas already vencidas (due_date <= today) — since a payment
       // here auto-allocates across EVERY pending installment for the house
       // (2026-09-24 decision, no admin checklist), an unfiltered query would

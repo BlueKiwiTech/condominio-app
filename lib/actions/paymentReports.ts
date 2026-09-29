@@ -118,6 +118,7 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
         .select('id, currency, amount, amount_paid, due_date, installment_number')
         .eq('house_id', report.house_id)
         .neq('status', 'paid')
+        .is('deleted_at', null)
         // Only cuotas already vencidas (due_date <= today) — never reach
         // forward and pay off future months' installments just because the
         // wallet balance happens to cover them (2026-09-27 bug fix).

@@ -118,6 +118,7 @@ export async function sweepStaleCreditsAgainstVencidaInstallments(
       .from('condo_installments')
       .select('id, house_id, currency, amount, amount_paid, due_date, installment_number')
       .neq('status', 'paid')
+      .is('deleted_at', null)
       .lte('due_date', today),
   ]);
   if (creditError) return { error: creditError.message, sweepErrors: [] };

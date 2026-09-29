@@ -126,6 +126,7 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
           'id, house_id, template_id, installment_number, name, amount, amount_paid, currency, due_date, status, condo_installment_templates(installment_type)',
         )
         .eq('house_id', houseId)
+        .is('deleted_at', null)
         .order('due_date'),
       supabase
         .from('condo_payments')
@@ -213,7 +214,10 @@ export async function getCommunityBalanceData(): Promise<CommunityBalanceData> {
   const supabase = createServiceClient();
 
   const [{ data: installments }, { data: credits }, { data: expenses }, { data: payments }] = await Promise.all([
-    supabase.from('condo_installments').select('house_id, amount, amount_paid, currency, due_date, status'),
+    supabase
+      .from('condo_installments')
+      .select('house_id, amount, amount_paid, currency, due_date, status')
+      .is('deleted_at', null),
     supabase.from('condo_house_credits').select('house_id, currency, balance'),
     supabase
       .from('condo_expenses')

@@ -53,6 +53,13 @@ export async function generateRecurringCuotaInstallments(
   template: OpenEndedRecurringTemplate,
   horizonEnd: Date,
 ): Promise<{ error: string | null; generatedCount: number; lastDueDate: string | null; sweepErrors: string[] }> {
+  // Deliberately NOT filtered by deleted_at: deactivating a template voids
+  // (soft-deletes) its still-pending rows so they disappear from admin/
+  // resident views (lib/actions/cuotas.ts's setInstallmentTemplateActive),
+  // but they must keep occupying their installment_number/due_date so a
+  // later reactivation resumes the sequence forward from here instead of
+  // re-generating (and unique-constraint-conflicting with) the same voided
+  // rows.
   const { data: lastInstallment, error: lastError } = await supabase
     .from('condo_installments')
     .select('installment_number, due_date')

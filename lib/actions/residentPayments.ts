@@ -58,6 +58,7 @@ export async function reportPayment(
       .select('id')
       .eq('house_id', session.house_id)
       .neq('status', 'paid')
+      .is('deleted_at', null)
       .in('id', data.installment_ids);
     verifiedInstallmentIds = (rows ?? []).map((r) => r.id as string);
   }

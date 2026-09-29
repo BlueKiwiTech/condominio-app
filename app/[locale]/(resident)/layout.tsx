@@ -30,7 +30,12 @@ export default async function ResidentLayout({ children }: { children: React.Rea
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    service.from('condo_installments').select('due_date, status').eq('house_id', session.house_id).neq('status', 'paid'),
+    service
+      .from('condo_installments')
+      .select('due_date, status')
+      .eq('house_id', session.house_id)
+      .neq('status', 'paid')
+      .is('deleted_at', null),
   ]);
   const houseLabel = house ? (house.house_name ? `${house.house_number} · ${house.house_name}` : house.house_number) : null;
 

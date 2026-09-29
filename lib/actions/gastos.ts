@@ -264,7 +264,22 @@ export async function setExpenseTemplateActive(
   const { error } = await supabase.from('condo_expense_templates').update({ active }).eq('id', templateId);
   if (error) return { error: error.message };
 
+  // Same "void still-pending instances" behavior as cuotas'
+  // setInstallmentTemplateActive -- deactivating hides every not-yet-paid
+  // generated expense from admin/resident views (deleted_at is null on
+  // every read) without losing the row. Paid expenses are left alone.
+  if (!active) {
+    const { error: voidError } = await supabase
+      .from('condo_expenses')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('template_id', templateId)
+      .eq('status', 'pending')
+      .is('deleted_at', null);
+    if (voidError) return { error: voidError.message };
+  }
+
   revalidatePath('/gastos');
+  revalidatePath('/dashboard');
   return { success: true };
 }
 
