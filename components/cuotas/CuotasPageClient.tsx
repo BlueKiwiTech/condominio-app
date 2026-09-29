@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
+import { parseISO } from 'date-fns';
 import { Plus } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { deleteInstallmentTemplate, setInstallmentTemplateActive } from '@/lib/a
 import { summarizeTemplate } from '@/lib/cuotas/status';
 import { CuotaEditDialog } from './CuotaEditDialog';
 import { formatAmount } from '@/lib/currency';
+import { formatShortDate } from '@/lib/dateFormat';
 import type { TemplateWithInstallments } from './types';
 
 const ACTIVE_CLASSES: Record<'active' | 'inactive', string> = {
@@ -104,6 +106,7 @@ export function CuotasPageClient({
             <TableRow>
               <TableHead>{t('table.name')}</TableHead>
               <TableHead>{t('table.type')}</TableHead>
+              <TableHead>{t('table.startDate')}</TableHead>
               <TableHead className="text-right">{t('table.amount')}</TableHead>
               <TableHead className="text-right">{t('table.perHouseAmount')}</TableHead>
               <TableHead className="text-right">{t('table.houses')}</TableHead>
@@ -114,7 +117,7 @@ export function CuotasPageClient({
           <TableBody>
             {filteredTemplates.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-11 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="h-11 text-center text-sm text-muted-foreground">
                   {t('empty')}
                 </TableCell>
               </TableRow>
@@ -137,9 +140,12 @@ export function CuotasPageClient({
                   <TableRow key={template.id}>
                     <TableCell className="h-11">{template.name}</TableCell>
                     <TableCell className="h-11">{typeLabel}</TableCell>
-                    <TableCell className="h-11 text-right">{formatAmount(summary.totalAmount, template.currency)}</TableCell>
+                    <TableCell className="h-11">{formatShortDate(parseISO(template.start_date), locale)}</TableCell>
+                    <TableCell className="h-11 text-right">
+                      {formatAmount(template.amount * template.applicable_houses.length, template.currency)}
+                    </TableCell>
                     <TableCell className="h-11 text-right">{formatAmount(template.amount, template.currency)}</TableCell>
-                    <TableCell className="h-11 text-right">{summary.housesCount}</TableCell>
+                    <TableCell className="h-11 text-right">{template.applicable_houses.length}</TableCell>
                     <TableCell className="h-11">
                       <div className="flex flex-wrap gap-1.5">
                         {summary.pendingCount > 0 && (

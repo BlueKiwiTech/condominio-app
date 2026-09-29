@@ -265,6 +265,7 @@
     "table": {
       "name": "Nombre",
       "type": "Tipo",
+      "startDate": "Fecha de inicio",
       "amount": "Monto total a recaudar",
       "perHouseAmount": "Monto cuota",
       "houses": "Casas",
