@@ -266,6 +266,7 @@
       "name": "Nombre",
       "type": "Tipo",
       "amount": "Monto total a recaudar",
+      "perHouseAmount": "Monto cuota",
       "houses": "Casas",
       "status": "Estado"
     },

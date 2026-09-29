@@ -265,7 +265,8 @@
     "table": {
       "name": "Name",
       "type": "Type",
-      "amount": "Amount",
+      "amount": "Total amount",
+      "perHouseAmount": "Amount",
       "houses": "Houses",
       "status": "Status"
     },

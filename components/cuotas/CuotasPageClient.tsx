@@ -105,6 +105,7 @@ export function CuotasPageClient({
               <TableHead>{t('table.name')}</TableHead>
               <TableHead>{t('table.type')}</TableHead>
               <TableHead className="text-right">{t('table.amount')}</TableHead>
+              <TableHead className="text-right">{t('table.perHouseAmount')}</TableHead>
               <TableHead className="text-right">{t('table.houses')}</TableHead>
               <TableHead>{t('table.status')}</TableHead>
               <TableHead />
@@ -113,7 +114,7 @@ export function CuotasPageClient({
           <TableBody>
             {filteredTemplates.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-11 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={7} className="h-11 text-center text-sm text-muted-foreground">
                   {t('empty')}
                 </TableCell>
               </TableRow>
@@ -137,6 +138,7 @@ export function CuotasPageClient({
                     <TableCell className="h-11">{template.name}</TableCell>
                     <TableCell className="h-11">{typeLabel}</TableCell>
                     <TableCell className="h-11 text-right">{formatAmount(summary.totalAmount, template.currency)}</TableCell>
+                    <TableCell className="h-11 text-right">{formatAmount(template.amount, template.currency)}</TableCell>
                     <TableCell className="h-11 text-right">{summary.housesCount}</TableCell>
                     <TableCell className="h-11">
                       <div className="flex flex-wrap gap-1.5">
