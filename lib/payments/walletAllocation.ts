@@ -15,10 +15,10 @@
 //
 // Pure, no Supabase/next imports — same "pure lib / fetch+write in the
 // Server Action" split as lib/payments/allocate.ts.
-import { rateTypeForCurrency, isRateFresh, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
+import { rateTypeForCurrency, convertAmount, type ExchangeRateRow, type ExchangeRateType, type Currency } from '@/lib/exchangeRate';
 import { sortOldestFirst } from './allocate';
 
-export type WalletCurrency = 'USD' | 'Bs' | 'USDT';
+export type WalletCurrency = Currency;
 
 /** Fixed draw priority, independent of the due's own currency (locked decision). */
 export const WALLET_DRAW_PRIORITY: readonly WalletCurrency[] = ['Bs', 'USDT', 'USD'];
@@ -59,37 +59,8 @@ function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-/** USD-equivalent of `amount` in `currency` using a fresh (<24h) rate, or null if unavailable/stale. */
-function toUsd(amount: number, currency: WalletCurrency, rates: Record<ExchangeRateType, ExchangeRateRow | null>): number | null {
-  if (currency === 'USD') return amount;
-  const rateType = rateTypeForCurrency(currency);
-  if (!rateType) return null;
-  const row = rates[rateType];
-  if (!row || !isRateFresh(row.updated_at)) return null;
-  return amount / row.rate;
-}
-
-function fromUsd(usdAmount: number, currency: WalletCurrency, rates: Record<ExchangeRateType, ExchangeRateRow | null>): number | null {
-  if (currency === 'USD') return usdAmount;
-  const rateType = rateTypeForCurrency(currency);
-  if (!rateType) return null;
-  const row = rates[rateType];
-  if (!row || !isRateFresh(row.updated_at)) return null;
-  return usdAmount * row.rate;
-}
-
 /** Converts `amount` from `from` to `to`, pivoting through USD (the system's one reference currency). */
-function convert(
-  amount: number,
-  from: WalletCurrency,
-  to: WalletCurrency,
-  rates: Record<ExchangeRateType, ExchangeRateRow | null>,
-): number | null {
-  if (from === to) return amount;
-  const usd = toUsd(amount, from, rates);
-  if (usd === null) return null;
-  return fromUsd(usd, to, rates);
-}
+const convert = convertAmount;
 
 /**
  * Runs the wallet's oldest-first, full-or-nothing, priority-currency

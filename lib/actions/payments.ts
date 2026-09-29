@@ -27,17 +27,26 @@ async function requireAdmin(tc: Awaited<ReturnType<typeof getTranslations>>) {
  * report's own stored data instead of a freshly-submitted form). PLAN.md
  * Phase 5 decisions implemented there:
  *
- * - Oldest-cuota-first allocation among the SELECTED installments (PMNT-03's
- *   "adjustable, supports partial payment").
+ * - Oldest-cuota-first, full-or-nothing allocation among the SELECTED
+ *   installments (2026-09-29 user decision, reversing PLAN.md's original
+ *   PMNT-03 "supports partial payment"): a cuota is only ever marked paid if
+ *   the funds available fully cover it — never left 'partial' — and the walk
+ *   stops at the first installment it can't fully cover, same invariant
+ *   lib/payments/creditSweep.ts's automatic sweep already used.
  * - The payment's currency does NOT have to match the selected cuotas' own
  *   currency (user decision, 2026-09-08) -- a cuota's amount is denominated
  *   in one currency, but it can be paid in any currency the resident
- *   actually hands over; there's no FX-conversion feature here, so
- *   reconciling the exchange rate is the admin's own job. `amount_received`
- *   is applied as a plain number against each installment's own numeric
- *   balance regardless of either currency label -- this was already true
- *   of allocateFunds()'s arithmetic; only a since-removed DB trigger and a
- *   validation check here ever enforced the two matching.
+ *   actually hands over. 2026-09-24's move to auto-allocating against EVERY
+ *   pending installment for the house (not just admin-hand-picked,
+ *   same-currency ones) turned that original decision into a live bug: a
+ *   payment's face-value number was applied directly against a
+ *   different-currency cuota's balance with no conversion, silently wiping
+ *   out e.g. a USD-priced cuota with a Bs amount 1:1. 2026-09-29 fix:
+ *   lib/payments/allocate.ts's allocateFunds now converts at the current
+ *   exchange rate (same lib/exchangeRate.ts pivot-through-USD math
+ *   lib/payments/walletAllocation.ts already used for "Mi Cartera") whenever
+ *   an installment's currency differs from the payment's, and blocks with an
+ *   error if a needed rate is missing/stale rather than guessing.
  * - Any pre-existing saldo a favor (credit) for this house+currency is netted
  *   in as additional available funds BEFORE allocating — this is the
  *   "auto-applied... not something the admin has to manually remember"
@@ -89,6 +98,7 @@ export async function registerPayment(input: RegisterPaymentInput, locale: strin
       mixedHouses: tp('errors.mixedHouses'),
       alreadyPaid: tp('errors.alreadyPaid'),
       insufficientAmount: tp('errors.insufficientAmount'),
+      staleExchangeRate: tp('errors.staleExchangeRate'),
     },
   );
   if ('error' in result) return result;

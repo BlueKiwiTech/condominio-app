@@ -99,13 +99,15 @@ export function PaymentFormClient({
 
   // Not filtered by currency -- a payment can be received in any currency
   // regardless of what currency the house's pending cuotas are denominated
-  // in (user decision, 2026-09-08). Every pending/partial installment for
-  // the house ALREADY VENCIDA is allocated against automatically,
-  // oldest-first (2026-09-24 decision -- the admin no longer hand-picks
-  // which cuotas a payment covers). `pendingInstallments` itself is already
-  // pre-filtered to due_date <= today by the server (pagos/nuevo/page.tsx,
-  // 2026-09-27 fix) -- this form never sees, and can never auto-allocate
-  // into, a future month's installment.
+  // in (user decision, 2026-09-08); registerPayment now converts at the
+  // current exchange rate for any cuota whose currency differs from the
+  // payment's (2026-09-29 fix, lib/payments/allocate.ts). Every
+  // pending/partial installment for the house ALREADY VENCIDA is allocated
+  // against automatically, oldest-first (2026-09-24 decision -- the admin no
+  // longer hand-picks which cuotas a payment covers). `pendingInstallments`
+  // itself is already pre-filtered to due_date <= today by the server
+  // (pagos/nuevo/page.tsx, 2026-09-27 fix) -- this form never sees, and can
+  // never auto-allocate into, a future month's installment.
   const houseInstallments = useMemo(
     () => sortOldestFirst(pendingInstallments.filter((i) => i.house_id === houseId)),
     [pendingInstallments, houseId],
@@ -144,9 +146,10 @@ export function PaymentFormClient({
   );
 
   const preview = useMemo(() => {
-    if (houseInstallments.length === 0) return null;
-    return allocateFunds(houseInstallments, fundsAvailable);
-  }, [houseInstallments, fundsAvailable]);
+    if (houseInstallments.length === 0 || !currency) return null;
+    const result = allocateFunds(houseInstallments, fundsAvailable, currency, exchangeRates);
+    return result.blocked ? null : result;
+  }, [houseInstallments, fundsAvailable, currency, exchangeRates]);
 
   // Reference only (PLAN.md's "cada quien saca la cuenta" decision) -- never
   // sent to the server, never affects the allocation above. Null (renders

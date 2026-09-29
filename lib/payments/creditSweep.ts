@@ -135,6 +135,7 @@ export async function sweepStaleCreditsAgainstVencidaInstallments(
       amount_paid: row.amount_paid,
       due_date: row.due_date,
       installment_number: row.installment_number,
+      currency: row.currency,
     });
     byHouseCurrency.set(key, list);
   }

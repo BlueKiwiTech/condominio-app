@@ -216,6 +216,7 @@ export async function createInstallmentTemplate(input: CreateTemplateInput, loca
       amount_paid: 0,
       due_date: row.due_date as string,
       installment_number: row.installment_number as number,
+      currency: data.currency,
     });
     byHouse.set(row.house_id as string, list);
   }

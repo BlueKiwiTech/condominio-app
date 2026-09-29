@@ -13,6 +13,7 @@
 import { randomUUID } from 'crypto';
 import type { createClient } from '@/lib/supabase/server';
 import { logAudit } from '@/lib/audit';
+import { getLatestExchangeRates } from '@/lib/actions/exchangeRate';
 import { allocateFunds, sortOldestFirst, type AllocatableInstallment } from './allocate';
 import { getHouseCredit, setHouseCredit } from './creditSweep';
 
@@ -35,6 +36,7 @@ export type ApplyAllocationErrors = {
   mixedHouses: string;
   alreadyPaid: string;
   insufficientAmount: string;
+  staleExchangeRate: string;
 };
 
 export async function applyPaymentAllocation(
@@ -65,7 +67,10 @@ export async function applyPaymentAllocation(
   const fundsAvailable = params.amount_received + existingCredit;
 
   const sorted = sortOldestFirst(installments as AllocatableInstallment[]);
-  const { allocations, leftoverCents } = allocateFunds(sorted, fundsAvailable);
+  const rates = await getLatestExchangeRates();
+  const allocationResult = allocateFunds(sorted, fundsAvailable, params.currency, rates);
+  if (allocationResult.blocked) return { error: errors.staleExchangeRate };
+  const { allocations, leftoverCents } = allocationResult;
 
   // A house with nothing currently selected/due can still bank a deposit --
   // the whole amount simply becomes (or tops up) saldo a favor, same as
@@ -95,40 +100,58 @@ export async function applyPaymentAllocation(
     notes: string | null;
     receipt_number: number;
     created_by: string | null;
+    funding_breakdown?: unknown;
   };
+
+  // Each row's currency/amount is the INSTALLMENT's own denomination (same
+  // convention as confirmPaymentReport's wallet path) -- funding_breakdown
+  // records what was actually drawn from the received payment, and at what
+  // rate, whenever that differs from the installment's own currency (see
+  // lib/payments/allocate.ts's allocateFunds).
+  const currencyByInstallmentId = new Map(installments.map((i) => [i.id, i.currency as Currency]));
+  const walletTopUpRow = (amount: number): PaymentInsertRow => ({
+    house_id: params.house_id,
+    installment_id: null,
+    payment_batch_id: batchId,
+    amount_paid: amount,
+    currency: params.currency,
+    payment_date: params.payment_date,
+    reference: params.reference || null,
+    notes: params.notes || null,
+    receipt_number: receiptNumber,
+    created_by: params.created_by,
+  });
 
   const paymentRows: PaymentInsertRow[] =
     allocations.length > 0
-      ? allocations.map((a) => ({
-          house_id: params.house_id,
-          installment_id: a.installment_id,
-          payment_batch_id: batchId,
-          amount_paid: a.amountApplied,
-          currency: params.currency,
-          payment_date: params.payment_date,
-          reference: params.reference || null,
-          notes: params.notes || null,
-          receipt_number: receiptNumber,
-          created_by: params.created_by,
-        }))
-      : // Wallet-only deposit (nothing currently due to apply it to) -- one
-        // ledger row with a null installment_id so it still shows up in
-        // payment history with a real batch/receipt, instead of only being
-        // inferable from the credit balance silently changing.
-        [
-          {
+      ? [
+          ...allocations.map((a) => ({
             house_id: params.house_id,
-            installment_id: null,
+            installment_id: a.installment_id,
             payment_batch_id: batchId,
-            amount_paid: params.amount_received,
-            currency: params.currency,
+            amount_paid: a.amountApplied,
+            currency: currencyByInstallmentId.get(a.installment_id) ?? params.currency,
             payment_date: params.payment_date,
             reference: params.reference || null,
             notes: params.notes || null,
             receipt_number: receiptNumber,
             created_by: params.created_by,
-          },
-        ];
+            funding_breakdown: a.fundingSource ? [a.fundingSource] : null,
+          })),
+          // Funds left after every selected cuota was either paid or the
+          // walk stopped (full-or-nothing) -- gets its own line item so the
+          // receipt total still adds up to what was actually received,
+          // instead of the leftover only being inferable from the credit
+          // balance silently changing (2026-09-29 fix: a payment covering
+          // SOME cuotas with money left over previously wrote no row for
+          // that leftover at all -- see PLAN.md).
+          ...(leftoverCents > 0 ? [walletTopUpRow(leftoverCents / 100)] : []),
+        ]
+      : // Wallet-only deposit (nothing currently due to apply it to) -- one
+        // ledger row with a null installment_id so it still shows up in
+        // payment history with a real batch/receipt, instead of only being
+        // inferable from the credit balance silently changing.
+        [walletTopUpRow(params.amount_received)];
 
   const { error: paymentsError } = await supabase.from('condo_payments').insert(paymentRows);
   if (paymentsError) return { error: paymentsError.message };

@@ -214,6 +214,7 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
       mixedHouses: tp('errors.mixedHouses'),
       alreadyPaid: tp('errors.alreadyPaid'),
       insufficientAmount: tp('errors.insufficientAmount'),
+      staleExchangeRate: tp('errors.staleExchangeRate'),
     },
   );
   if ('error' in result) return result;

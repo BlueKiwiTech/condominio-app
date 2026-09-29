@@ -4,6 +4,7 @@
 
 export type ExchangeRateType = 'bcv' | 'binance';
 export type ExchangeRateSource = 'cron' | 'admin';
+export type Currency = 'USD' | 'Bs' | 'USDT';
 
 export type ExchangeRateRow = {
   rate_type: ExchangeRateType;
@@ -49,4 +50,36 @@ export function referenceUsdAmount(
   if (!row || !isRateFresh(row.updated_at)) return null;
   if (!Number.isFinite(amount) || amount <= 0) return null;
   return amount / row.rate;
+}
+
+/** USD-equivalent of `amount` in `currency` using a fresh (<24h) rate, or null if unavailable/stale. */
+export function toUsd(amount: number, currency: Currency, rates: Record<ExchangeRateType, ExchangeRateRow | null>): number | null {
+  if (currency === 'USD') return amount;
+  const rateType = rateTypeForCurrency(currency);
+  if (!rateType) return null;
+  const row = rates[rateType];
+  if (!row || !isRateFresh(row.updated_at)) return null;
+  return amount / row.rate;
+}
+
+export function fromUsd(usdAmount: number, currency: Currency, rates: Record<ExchangeRateType, ExchangeRateRow | null>): number | null {
+  if (currency === 'USD') return usdAmount;
+  const rateType = rateTypeForCurrency(currency);
+  if (!rateType) return null;
+  const row = rates[rateType];
+  if (!row || !isRateFresh(row.updated_at)) return null;
+  return usdAmount * row.rate;
+}
+
+/** Converts `amount` from `from` to `to`, pivoting through USD (the system's one reference currency). */
+export function convertAmount(
+  amount: number,
+  from: Currency,
+  to: Currency,
+  rates: Record<ExchangeRateType, ExchangeRateRow | null>,
+): number | null {
+  if (from === to) return amount;
+  const usd = toUsd(amount, from, rates);
+  if (usd === null) return null;
+  return fromUsd(usd, to, rates);
 }
