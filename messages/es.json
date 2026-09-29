@@ -525,11 +525,18 @@
       "back": "Volver a abonos",
       "noReceipt": "Sin número de recibo",
       "house": "Casa",
+      "amountReceived": "Monto recibido",
+      "appliedByCurrency": "Aplicado por moneda de cada cuota",
       "cuotasCovered": "Pagos cubiertos",
       "walletTopUp": "Abono a cartera",
       "reference": "Referencia",
       "registeredBy": "Registrado por",
-      "notes": "Notas"
+      "notes": "Notas",
+      "columnConcept": "Concepto",
+      "columnDate": "Fecha",
+      "columnRate": "Tasa",
+      "columnConverted": "Convertido",
+      "columnAmount": "Monto cuota"
     },
     "new": {
       "heading": "Abonar a cartera",

@@ -525,11 +525,18 @@
       "back": "Back to payment history",
       "noReceipt": "No receipt number",
       "house": "House",
+      "amountReceived": "Amount received",
+      "appliedByCurrency": "Applied by each cuota's currency",
       "cuotasCovered": "Cuotas covered",
       "walletTopUp": "Wallet top-up",
       "reference": "Reference",
       "registeredBy": "Registered by",
-      "notes": "Notes"
+      "notes": "Notes",
+      "columnConcept": "Concept",
+      "columnDate": "Date",
+      "columnRate": "Rate",
+      "columnConverted": "Converted",
+      "columnAmount": "Cuota amount"
     },
     "new": {
       "heading": "Report a payment",

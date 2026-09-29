@@ -52,34 +52,53 @@ export function referenceUsdAmount(
   return amount / row.rate;
 }
 
-/** USD-equivalent of `amount` in `currency` using a fresh (<24h) rate, or null if unavailable/stale. */
-export function toUsd(amount: number, currency: Currency, rates: Record<ExchangeRateType, ExchangeRateRow | null>): number | null {
+/**
+ * USD-equivalent of `amount` in `currency` using a fresh (<24h relative to
+ * `referenceDate`) rate, or null if unavailable/stale. `referenceDate`
+ * defaults to "now" (the live-rate case), but callers converting a payment
+ * retroactively should pass that payment's own date instead (see
+ * lib/payments/allocate.ts's allocateFunds) — a rate is judged fresh or
+ * stale relative to WHEN the money was actually received, not relative to
+ * whenever the allocation code happens to run.
+ */
+export function toUsd(
+  amount: number,
+  currency: Currency,
+  rates: Record<ExchangeRateType, ExchangeRateRow | null>,
+  referenceDate: Date = new Date(),
+): number | null {
   if (currency === 'USD') return amount;
   const rateType = rateTypeForCurrency(currency);
   if (!rateType) return null;
   const row = rates[rateType];
-  if (!row || !isRateFresh(row.updated_at)) return null;
+  if (!row || !isRateFresh(row.updated_at, referenceDate)) return null;
   return amount / row.rate;
 }
 
-export function fromUsd(usdAmount: number, currency: Currency, rates: Record<ExchangeRateType, ExchangeRateRow | null>): number | null {
+export function fromUsd(
+  usdAmount: number,
+  currency: Currency,
+  rates: Record<ExchangeRateType, ExchangeRateRow | null>,
+  referenceDate: Date = new Date(),
+): number | null {
   if (currency === 'USD') return usdAmount;
   const rateType = rateTypeForCurrency(currency);
   if (!rateType) return null;
   const row = rates[rateType];
-  if (!row || !isRateFresh(row.updated_at)) return null;
+  if (!row || !isRateFresh(row.updated_at, referenceDate)) return null;
   return usdAmount * row.rate;
 }
 
-/** Converts `amount` from `from` to `to`, pivoting through USD (the system's one reference currency). */
+/** Converts `amount` from `from` to `to`, pivoting through USD (the system's one reference currency). See toUsd's `referenceDate` note. */
 export function convertAmount(
   amount: number,
   from: Currency,
   to: Currency,
   rates: Record<ExchangeRateType, ExchangeRateRow | null>,
+  referenceDate: Date = new Date(),
 ): number | null {
   if (from === to) return amount;
-  const usd = toUsd(amount, from, rates);
+  const usd = toUsd(amount, from, rates, referenceDate);
   if (usd === null) return null;
-  return fromUsd(usd, to, rates);
+  return fromUsd(usd, to, rates, referenceDate);
 }

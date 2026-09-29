@@ -11,9 +11,10 @@
 // them fresh from the DB (never trusts amounts), same as registerPayment
 // always did.
 import { randomUUID } from 'crypto';
+import { parseISO } from 'date-fns';
 import type { createClient } from '@/lib/supabase/server';
 import { logAudit } from '@/lib/audit';
-import { getLatestExchangeRates } from '@/lib/actions/exchangeRate';
+import { getExchangeRatesAsOf } from '@/lib/actions/exchangeRate';
 import { allocateFunds, sortOldestFirst, type AllocatableInstallment } from './allocate';
 import { getHouseCredit, setHouseCredit } from './creditSweep';
 
@@ -67,8 +68,11 @@ export async function applyPaymentAllocation(
   const fundsAvailable = params.amount_received + existingCredit;
 
   const sorted = sortOldestFirst(installments as AllocatableInstallment[]);
-  const rates = await getLatestExchangeRates();
-  const allocationResult = allocateFunds(sorted, fundsAvailable, params.currency, rates);
+  // Rates as of the payment's own "Fecha de abono", not "now" -- a backdated
+  // entry converts at the rate that was actually in effect that day (see
+  // lib/payments/allocate.ts's allocateFunds docstring).
+  const rates = await getExchangeRatesAsOf(params.payment_date);
+  const allocationResult = allocateFunds(sorted, fundsAvailable, params.currency, rates, parseISO(params.payment_date));
   if (allocationResult.blocked) return { error: errors.staleExchangeRate };
   const { allocations, leftoverCents } = allocationResult;
 

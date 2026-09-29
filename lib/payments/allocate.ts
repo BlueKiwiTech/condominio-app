@@ -13,17 +13,18 @@
 import { parseISO } from 'date-fns';
 import { convertAmount, rateTypeForCurrency, isRateFresh, type Currency, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 
-/** Which of a currency pair (at most one is non-USD in this app's model) is missing a usable rate, or null if both are fine. */
+/** Which of a currency pair (at most one is non-USD in this app's model) is missing a usable rate as of `referenceDate`, or null if both are fine. */
 function findMissingRateCurrency(
   a: Currency,
   b: Currency,
   rates: Record<ExchangeRateType, ExchangeRateRow | null>,
+  referenceDate: Date,
 ): Exclude<Currency, 'USD'> | null {
   for (const currency of [a, b]) {
     const rateType = rateTypeForCurrency(currency);
     if (!rateType) continue; // USD needs no rate
     const row = rates[rateType];
-    if (!row || !isRateFresh(row.updated_at)) return currency as Exclude<Currency, 'USD'>;
+    if (!row || !isRateFresh(row.updated_at, referenceDate)) return currency as Exclude<Currency, 'USD'>;
   }
   return null;
 }
@@ -98,20 +99,27 @@ function toCents(amount: number): number {
  * applying or jumping ahead to a smaller, newer installment.
  *
  * An installment billed in a DIFFERENT currency than the payment is converted
- * at the current exchange rate (2026-09-29 fix — see lib/payments/
+ * using `rates` as of `referenceDate` (2026-09-29 fix — see lib/payments/
  * walletAllocation.ts's same convertAmount pivot-through-USD approach; before
  * this, a payment's face-value number was applied directly against every
  * selected installment regardless of currency, silently wiping out e.g. a
- * USD-priced cuota with a Bs amount 1:1). Same "never skip ahead" invariant
- * as the rest of this file: if a needed rate is missing/stale, the whole walk
- * stops right there (`blocked: true`) rather than skipping past the
- * unconvertible installment to a later one.
+ * USD-priced cuota with a Bs amount 1:1). `referenceDate` must be the
+ * payment's own "Fecha de abono", not "now" (2026-09-29 user correction) —
+ * callers fetch `rates` via lib/actions/exchangeRate.ts's
+ * `getExchangeRatesAsOf(payment_date)` rather than `getLatestExchangeRates()`,
+ * so a backdated payment converts at the rate that was actually in effect
+ * that day, not whatever the rate happens to be when the admin clicks
+ * submit. Same "never skip ahead" invariant as the rest of this file: if a
+ * needed rate is missing/stale as of that date, the whole walk stops right
+ * there (`blocked: true`) rather than skipping past the unconvertible
+ * installment to a later one.
  */
 export function allocateFunds(
   installments: AllocatableInstallment[],
   fundsAvailable: number,
   paymentCurrency: Currency,
   rates: Record<ExchangeRateType, ExchangeRateRow | null>,
+  referenceDate: Date,
 ): AllocationResult {
   let remainingCents = toCents(fundsAvailable);
   const allocations: Allocation[] = [];
@@ -140,9 +148,9 @@ export function allocateFunds(
     // installment's own remaining balance costs, converted into the
     // installment's currency.
     const balanceInInstCurrency = balanceCents / 100;
-    const costInPaymentCurrency = convertAmount(balanceInInstCurrency, inst.currency, paymentCurrency, rates);
+    const costInPaymentCurrency = convertAmount(balanceInInstCurrency, inst.currency, paymentCurrency, rates, referenceDate);
     if (costInPaymentCurrency === null) {
-      const missingCurrency = findMissingRateCurrency(inst.currency, paymentCurrency, rates);
+      const missingCurrency = findMissingRateCurrency(inst.currency, paymentCurrency, rates, referenceDate);
       // convertAmount only returns null when a needed rate is actually missing/stale, so this is always found.
       return { blocked: true, missingRateFor: missingCurrency! };
     }

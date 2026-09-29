@@ -147,9 +147,9 @@ export function PaymentFormClient({
 
   const preview = useMemo(() => {
     if (houseInstallments.length === 0 || !currency) return null;
-    const result = allocateFunds(houseInstallments, fundsAvailable, currency, exchangeRates);
+    const result = allocateFunds(houseInstallments, fundsAvailable, currency, exchangeRates, paymentDate);
     return result.blocked ? null : result;
-  }, [houseInstallments, fundsAvailable, currency, exchangeRates]);
+  }, [houseInstallments, fundsAvailable, currency, exchangeRates, paymentDate]);
 
   // Reference only (PLAN.md's "cada quien saca la cuenta" decision) -- never
   // sent to the server, never affects the allocation above. Null (renders

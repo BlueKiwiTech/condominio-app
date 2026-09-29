@@ -11,7 +11,7 @@ export default async function PagosPage() {
     supabase
       .from('condo_payments')
       .select(
-        'id, house_id, installment_id, payment_batch_id, amount_paid, currency, payment_date, reference, notes, receipt_number, created_at, condo_houses(house_number, house_name), condo_installments(name, due_date)',
+        'id, house_id, installment_id, payment_batch_id, amount_paid, currency, payment_date, reference, notes, receipt_number, created_at, funding_breakdown, condo_houses(house_number, house_name), condo_installments(name, due_date)',
       )
       .order('created_at', { ascending: false }),
     supabase.from('condo_houses').select('id, house_number, house_name, owner_name').order('house_number'),

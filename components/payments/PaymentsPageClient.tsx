@@ -218,7 +218,7 @@ export function PaymentsPageClient({
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     <div className="flex flex-col items-end gap-0.5">
-                      {Object.entries(batch.totalsByCurrency).map(([currency, amount]) => (
+                      {Object.entries(batch.receivedByCurrency).map(([currency, amount]) => (
                         <span key={currency}>{formatAmount(amount ?? 0, currency)}</span>
                       ))}
                     </div>
