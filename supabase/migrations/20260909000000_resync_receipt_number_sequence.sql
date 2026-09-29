@@ -9,6 +9,13 @@
 --
 -- setval() below realigns the sequence to the table's current max so the
 -- next nextval() call resumes at max + 1. Safe to run more than once
--- (idempotent: recomputes from the table's current state every time), and a
--- no-op if condo_payments is empty (coalesce to 0, so the next value is 1).
-select setval('condo_payments_receipt_seq', coalesce((select max(receipt_number) from condo_payments), 0));
+-- (idempotent: recomputes from the table's current state every time). On an
+-- empty table (a fresh `supabase db reset`, never exercised until this was
+-- caught) coalescing to 0 made setval() error ("value 0 is out of bounds",
+-- sequences start at minvalue 1) -- clamp to 1 with is_called=false instead,
+-- so the next nextval() still correctly returns 1.
+select setval(
+  'condo_payments_receipt_seq',
+  coalesce((select max(receipt_number) from condo_payments), 1),
+  (select max(receipt_number) from condo_payments) is not null
+);

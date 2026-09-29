@@ -10,7 +10,7 @@
 //
 // Also replicates lib/actions/auth.ts's linkAdminToCommunity() step, since
 // that logic only runs inside the normal signup Server Action -- a user
-// created here would otherwise never get linked to condo_communities.admin_id,
+// created here would otherwise never get linked to condo_community_admins,
 // and the app would have no admin-owned community row to scope anything to.
 //
 // Usage:
@@ -65,23 +65,39 @@ async function main() {
   const userId = data.user.id;
   console.log(`Created auth user ${email} (${userId}).`);
 
-  const { data: community } = await supabase
+  const { data: community, error: communityError } = await supabase
     .from('condo_communities')
-    .select('id, admin_id')
+    .select('id')
     .limit(1)
     .maybeSingle();
-
-  if (!community) {
-    await supabase.from('condo_communities').insert({ name: 'ASOBARCELONA', admin_id: userId });
-    console.log('Created condo_communities row linked to this admin.');
-  } else if (!community.admin_id) {
-    await supabase.from('condo_communities').update({ admin_id: userId }).eq('id', community.id);
-    console.log('Linked existing condo_communities row to this admin.');
-  } else if (community.admin_id !== userId) {
-    console.warn(
-      `condo_communities is already linked to a different admin_id (${community.admin_id}) -- left untouched.`
-    );
+  if (communityError) {
+    console.error(`Reading condo_communities failed: ${communityError.message}`);
+    process.exit(1);
   }
+
+  let communityId = community?.id;
+  if (!communityId) {
+    const { data: created, error: createError } = await supabase
+      .from('condo_communities')
+      .insert({ name: 'ASOBARCELONA' })
+      .select('id')
+      .single();
+    if (createError) {
+      console.error(`Creating condo_communities row failed: ${createError.message}`);
+      process.exit(1);
+    }
+    communityId = created.id;
+    console.log('Created condo_communities row.');
+  }
+
+  const { error: linkError } = await supabase
+    .from('condo_community_admins')
+    .upsert({ community_id: communityId, user_id: userId }, { onConflict: 'community_id,user_id', ignoreDuplicates: true });
+  if (linkError) {
+    console.error(`Linking admin to community failed: ${linkError.message}`);
+    process.exit(1);
+  }
+  console.log('Linked this admin in condo_community_admins.');
 
   console.log(`Done. Log in at /login with ${email} / the password you passed in.`);
 }

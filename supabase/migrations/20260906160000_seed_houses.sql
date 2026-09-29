@@ -18,14 +18,17 @@
 --
 -- community_id: single-tenant app (CLAUDE.md), so this grabs whichever one
 -- condo_communities row exists (created lazily on the first admin signup,
--- Phase 2). If that row doesn't exist yet in the target project when this
--- runs, the subquery returns NULL and every house is inserted unlinked --
--- fix it up afterward with:
---   update condo_houses set community_id = (select id from condo_communities limit 1)
---   where community_id is null;
+-- Phase 2). On a fresh database (no admin has signed up yet -- e.g. a local
+-- `supabase db reset`, never exercised until this was caught) that row
+-- doesn't exist yet, so the guard insert below creates the same placeholder
+-- row Phase 2's signup Server Action would create lazily (admin_id stays
+-- NULL until a real admin signs up and gets linked, same as today).
 --
 -- ON CONFLICT DO NOTHING makes this safe to re-run, and safe if any of these
 -- houses were already created by hand through the admin UI first.
+insert into condo_communities (name)
+select 'ASOBARCELONA'
+where not exists (select 1 from condo_communities);
 insert into condo_houses (community_id, house_number, house_name) values
   ((select id from condo_communities limit 1), '20 01', 'MILMANDA'),
   ((select id from condo_communities limit 1), '21 02', 'LUIZENA'),

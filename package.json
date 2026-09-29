@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:e2e:setup": "bash scripts/e2e/setup-local-supabase.sh",
+    "test:e2e": "npm run test:e2e:setup && playwright test"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^4.0.80",
@@ -42,6 +44,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
