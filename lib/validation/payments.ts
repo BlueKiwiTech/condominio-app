@@ -8,7 +8,10 @@ type Translator = (key: string) => string;
 export function registerPaymentSchema(t: Translator) {
   return z.object({
     house_id: z.string().uuid(t('houseRequired')),
-    installment_ids: z.array(z.string().uuid()).min(1, t('installmentsRequired')),
+    // Can be empty -- a house with nothing currently due can still receive
+    // a pure wallet top-up (applyPaymentAllocation requires amount_received
+    // > 0 in that case instead).
+    installment_ids: z.array(z.string().uuid()),
     currency: currencySchema,
     // decimal(12,2) in the DB — validated as non-negative here (zero is
     // valid: the admin can register a payment funded entirely by an

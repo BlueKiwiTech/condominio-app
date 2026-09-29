@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { resolveAdminGracePeriodDays } from '@/lib/auth/adminGracePeriod';
 import { MonthlyReportClient } from '@/components/reports/MonthlyReportClient';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { ReportInstallment, HouseInfo, CreditForReport } from '@/lib/reporting/monthlyReport';
 
 // A6 · Reporte mensual (RPRT-04) — month picker, currency/status filters,
@@ -12,7 +13,7 @@ import type { ReportInstallment, HouseInfo, CreditForReport } from '@/lib/report
 export default async function ReportePage() {
   const supabase = await createClient();
 
-  const [{ data: installments }, { data: houses }, { data: credits }, gracePeriodDays] = await Promise.all([
+  const [{ data: installments, error: installmentsError }, { data: houses }, { data: credits }, gracePeriodDays] = await Promise.all([
     supabase
       .from('condo_installments')
       .select('house_id, amount, amount_paid, currency, due_date, status')
@@ -23,11 +24,22 @@ export default async function ReportePage() {
   ]);
 
   return (
-    <MonthlyReportClient
-      installments={(installments as ReportInstallment[] | null) ?? []}
-      houses={(houses as HouseInfo[] | null) ?? []}
-      credits={(credits as CreditForReport[] | null) ?? []}
-      gracePeriodDays={gracePeriodDays}
-    />
+    <>
+      {/* A DB error here (e.g. a migration pending on this environment) used
+          to be silently swallowed into an empty report -- loud instead. */}
+      {installmentsError && (
+        <div className="p-4 md:p-8">
+          <Alert variant="destructive">
+            <AlertDescription>Error al cargar el reporte: {installmentsError.message}</AlertDescription>
+          </Alert>
+        </div>
+      )}
+      <MonthlyReportClient
+        installments={(installments as ReportInstallment[] | null) ?? []}
+        houses={(houses as HouseInfo[] | null) ?? []}
+        credits={(credits as CreditForReport[] | null) ?? []}
+        gracePeriodDays={gracePeriodDays}
+      />
+    </>
   );
 }

@@ -119,7 +119,12 @@ export function CuotasPageClient({
               </TableRow>
             ) : (
               filteredTemplates.map((template) => {
-                const summary = summarizeTemplate(template.condo_installments, gracePeriodDays, today);
+                const summary = summarizeTemplate(
+                  template.condo_installments,
+                  gracePeriodDays,
+                  today,
+                  template.installment_type === 'recurring',
+                );
                 const typeLabel =
                   template.installment_type === 'recurring'
                     ? t(`cadence.${template.cadence ?? 'monthly'}`)

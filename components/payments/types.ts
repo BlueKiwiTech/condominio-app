@@ -31,7 +31,9 @@ export type HouseCredit = {
 export type PaymentRow = {
   id: string;
   house_id: string;
-  installment_id: string;
+  // null for a pure wallet top-up (no cuota selected/available to apply it
+  // to) -- see lib/payments/applyAllocation.ts.
+  installment_id: string | null;
   payment_batch_id: string | null;
   amount_paid: number;
   currency: Currency;
@@ -94,7 +96,10 @@ export function groupPaymentsByBatch(payments: PaymentRow[]): PaymentBatch[] {
       createdAt: first.created_at,
       reference: first.reference,
       totalsByCurrency,
-      installmentNames: rows.map((r) => r.condo_installments?.name ?? '—'),
+      // A wallet-only row (installment_id null) isn't a cuota name -- excluded
+      // here so callers can tell "N cuotas covered" apart from "pure wallet
+      // top-up" (see PaymentsPageClient's use of this list's length).
+      installmentNames: rows.filter((r) => r.installment_id !== null).map((r) => r.condo_installments?.name ?? '—'),
       rows,
     });
   }

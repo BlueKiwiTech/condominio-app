@@ -212,7 +212,9 @@ export function PaymentsPageClient({
                   <TableCell>{batch.receiptNumber ? `#${String(batch.receiptNumber).padStart(4, '0')}` : '—'}</TableCell>
                   <TableCell className="whitespace-normal">{batch.houseLabel}</TableCell>
                   <TableCell>
-                    {batch.installmentNames.length} {batch.installmentNames.length === 1 ? t('cuotaSingular') : t('cuotaPlural')}
+                    {batch.installmentNames.length === 0
+                      ? t('walletTopUp')
+                      : `${batch.installmentNames.length} ${batch.installmentNames.length === 1 ? t('cuotaSingular') : t('cuotaPlural')}`}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     <div className="flex flex-col items-end gap-0.5">

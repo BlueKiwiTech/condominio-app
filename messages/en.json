@@ -503,6 +503,7 @@
     "viewDetail": "View detail",
     "cuotaSingular": "cuota",
     "cuotaPlural": "cuotas",
+    "walletTopUp": "Wallet top-up",
     "errors": {
       "installmentsGone": "One or more selected cuotas no longer exist.",
       "mixedHouses": "All cuotas must belong to the same house.",
@@ -523,6 +524,7 @@
       "noReceipt": "No receipt number",
       "house": "House",
       "cuotasCovered": "Cuotas covered",
+      "walletTopUp": "Wallet top-up",
       "reference": "Reference",
       "registeredBy": "Registered by",
       "notes": "Notes"
@@ -543,8 +545,9 @@
         "paid": "Paid",
         "overdue": "Overdue"
       },
-      "noHouses": "No houses registered.",
-      "noPendingInstallments": "This house has no pending cuotas.",
+      "noHouses": "Select a house.",
+      "noHousesRegistered": "No houses registered.",
+      "noPendingInstallments": "This house has no pending cuotas. What you register will be saved as wallet credit.",
       "existingCredit": "This house has a credit balance of {amount} {currency}, which will be applied automatically to this payment.",
       "currencyFreeHint": "The payment's currency doesn't have to match the selected cuotas' currency — each side works out their own conversion.",
       "usdReference": "≈ ${amount} ({source} reference)",

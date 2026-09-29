@@ -175,11 +175,14 @@ export function PaymentFormClient({
     setOcrPrefilled(false);
   };
 
-  // amountReceived (new cash) can be 0 -- a house with enough existing
-  // credit can have a cuota fully paid off from that credit alone, with
-  // nothing new received. fundsAvailable (cash + credit) still has to cover
-  // something, or there's nothing to register.
-  const canSubmit = houseId && currency && houseInstallments.length > 0 && amountReceived >= 0 && fundsAvailable > 0;
+  // amountReceived (new cash) can be 0 when there ARE pending cuotas -- a
+  // house with enough existing credit can have one fully paid off from that
+  // credit alone, with nothing new received. With no pending cuotas at all,
+  // there's nothing for existing credit alone to "pay off" -- the admin has
+  // to actually be depositing something for a wallet-only abono to mean
+  // anything, so amountReceived itself has to be > 0 in that case.
+  const canSubmit =
+    houseId && currency && amountReceived >= 0 && (houseInstallments.length > 0 ? fundsAvailable > 0 : amountReceived > 0);
 
   const onSubmit = () => {
     setServerError(null);
@@ -223,7 +226,7 @@ export function PaymentFormClient({
             </SelectTrigger>
             <SelectContent>
               {houseOptions.length === 0 ? (
-                <div className="px-2 py-1.5 text-sm text-muted-foreground">{t('noHouses')}</div>
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">{t('noHousesRegistered')}</div>
               ) : (
                 houseOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
@@ -284,7 +287,7 @@ export function PaymentFormClient({
           </Alert>
         )}
 
-        {houseId && houseInstallments.length > 0 && (
+        {houseId && (
           <>
             {existingCredit > 0 && (
               <Alert className="border-success/30 bg-success/10">

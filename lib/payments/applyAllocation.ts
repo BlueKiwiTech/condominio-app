@@ -67,7 +67,15 @@ export async function applyPaymentAllocation(
   const sorted = sortOldestFirst(installments as AllocatableInstallment[]);
   const { allocations, leftoverCents } = allocateFunds(sorted, fundsAvailable);
 
-  if (allocations.length === 0) {
+  // A house with nothing currently selected/due can still bank a deposit --
+  // the whole amount simply becomes (or tops up) saldo a favor, same as
+  // residents' own "Abonar a cartera" already allows. Only a real shortfall
+  // against SELECTED cuotas (there WERE installments but funds didn't cover
+  // any of them), or literally nothing received, is an error.
+  if (installments.length > 0 && allocations.length === 0) {
+    return { error: errors.insufficientAmount };
+  }
+  if (installments.length === 0 && params.amount_received <= 0) {
     return { error: errors.insufficientAmount };
   }
 
@@ -76,18 +84,51 @@ export async function applyPaymentAllocation(
   const receiptNumber = receiptData as number;
   const batchId = randomUUID();
 
-  const paymentRows = allocations.map((a) => ({
-    house_id: params.house_id,
-    installment_id: a.installment_id,
-    payment_batch_id: batchId,
-    amount_paid: a.amountApplied,
-    currency: params.currency,
-    payment_date: params.payment_date,
-    reference: params.reference || null,
-    notes: params.notes || null,
-    receipt_number: receiptNumber,
-    created_by: params.created_by,
-  }));
+  type PaymentInsertRow = {
+    house_id: string;
+    installment_id: string | null;
+    payment_batch_id: string;
+    amount_paid: number;
+    currency: Currency;
+    payment_date: string;
+    reference: string | null;
+    notes: string | null;
+    receipt_number: number;
+    created_by: string | null;
+  };
+
+  const paymentRows: PaymentInsertRow[] =
+    allocations.length > 0
+      ? allocations.map((a) => ({
+          house_id: params.house_id,
+          installment_id: a.installment_id,
+          payment_batch_id: batchId,
+          amount_paid: a.amountApplied,
+          currency: params.currency,
+          payment_date: params.payment_date,
+          reference: params.reference || null,
+          notes: params.notes || null,
+          receipt_number: receiptNumber,
+          created_by: params.created_by,
+        }))
+      : // Wallet-only deposit (nothing currently due to apply it to) -- one
+        // ledger row with a null installment_id so it still shows up in
+        // payment history with a real batch/receipt, instead of only being
+        // inferable from the credit balance silently changing.
+        [
+          {
+            house_id: params.house_id,
+            installment_id: null,
+            payment_batch_id: batchId,
+            amount_paid: params.amount_received,
+            currency: params.currency,
+            payment_date: params.payment_date,
+            reference: params.reference || null,
+            notes: params.notes || null,
+            receipt_number: receiptNumber,
+            created_by: params.created_by,
+          },
+        ];
 
   const { error: paymentsError } = await supabase.from('condo_payments').insert(paymentRows);
   if (paymentsError) return { error: paymentsError.message };

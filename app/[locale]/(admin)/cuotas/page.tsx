@@ -2,12 +2,13 @@ import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { resolveAdminGracePeriodDays } from '@/lib/auth/adminGracePeriod';
 import { CuotasPageClient } from '@/components/cuotas/CuotasPageClient';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { InstallmentRow, TemplateWithInstallments } from '@/components/cuotas/types';
 
 export default async function CuotasPage() {
   const t = await getTranslations('cuotas');
   const supabase = await createClient();
-  const [{ data: templates }, gracePeriodDays] = await Promise.all([
+  const [{ data: templates, error: templatesError }, gracePeriodDays] = await Promise.all([
     supabase
       .from('condo_installment_templates')
       .select(
@@ -37,6 +38,15 @@ export default async function CuotasPage() {
         <h1 className="text-2xl font-bold">{t('heading')}</h1>
         <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
+      {/* A DB error here (e.g. a migration pending on this environment) used
+          to be silently swallowed into an empty/zero-count list -- loud and
+          in Spanish so it reads as "something's actually broken", not as
+          "there's nothing to show". */}
+      {templatesError && (
+        <Alert variant="destructive">
+          <AlertDescription>Error al cargar las cuotas: {templatesError.message}</AlertDescription>
+        </Alert>
+      )}
       <CuotasPageClient initialTemplates={visibleTemplates} gracePeriodDays={gracePeriodDays} />
     </div>
   );

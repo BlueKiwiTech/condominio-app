@@ -66,7 +66,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
             <div className="flex flex-col gap-2">
               {batch.rows.map((row) => (
                 <div key={row.id} className="flex w-full items-center justify-between">
-                  <span className="text-sm">{row.condo_installments?.name ?? '—'}</span>
+                  <span className="text-sm">{row.installment_id ? (row.condo_installments?.name ?? '—') : t('walletTopUp')}</span>
                   <span className="text-sm tabular-nums">
                     {formatMoney(row.amount_paid)} {currencyLabel(row.currency)}
                   </span>
