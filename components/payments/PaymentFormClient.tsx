@@ -487,13 +487,7 @@ export function PaymentFormClient({
             )}
           </div>
         )}
-        {currency === 'Bs' && deferredByWindow.length > 0 && (
-          <Alert className="border-warning/30 bg-warning/10">
-            <AlertDescription className="text-warning">
-              {t('summary.deferredByWindow', { count: deferredByWindow.length })}
-            </AlertDescription>
-          </Alert>
-        )}
+        
       </div>
     </div>
   );

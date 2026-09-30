@@ -405,14 +405,6 @@ export function ReportPaymentDialog({
                   <Label htmlFor="notes">{t('fields.notes')}</Label>
                   <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
                 </div>
-
-                {deferredByWindow.length > 0 && (
-                  <Alert className="border-warning/30 bg-warning/10">
-                    <AlertDescription className="text-warning">
-                      {t('deferredByWindow', { count: deferredByWindow.length })}
-                    </AlertDescription>
-                  </Alert>
-                )}
               </>
             )}
           </div>
