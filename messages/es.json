@@ -130,7 +130,8 @@
       "cuotas": "Cuotas",
       "report": "Reporte mensual",
       "paymentsHistory": "Historial de abonos",
-      "expensePayments": "Historial de pagos de gastos"
+      "expensePayments": "Historial de pagos de gastos",
+      "exchangeRate": "Tasa de cambio"
     },
     "roleLabel": "Administradora",
     "unknownAdmin": "Administrador",
@@ -810,6 +811,29 @@
       "partial": "Parcial",
       "paid": "Pagada",
       "overdue": "Vencida"
+    },
+    "exchangeRate": {
+      "heading": "Tasa de cambio",
+      "monthLabel": "Mes",
+      "empty": "No hay tasas registradas para el mes seleccionado.",
+      "chart": {
+        "heading": "Evolución del mes",
+        "empty": "No hay tasas registradas para el mes seleccionado."
+      },
+      "table": {
+        "date": "Fecha",
+        "type": "Tipo",
+        "rate": "Tasa",
+        "source": "Origen"
+      },
+      "type": {
+        "bcv": "BCV",
+        "binance": "Binance"
+      },
+      "source": {
+        "cron": "Automático",
+        "admin": "Manual"
+      }
     }
   }
 }

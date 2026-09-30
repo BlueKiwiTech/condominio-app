@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { subMonths } from 'date-fns';
 import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -106,6 +107,24 @@ export async function getExchangeRatesAsOfForResident(dateStr: string): Promise<
   if (!session) return null;
   const supabase = createServiceClient();
   return fetchRatesAsOf(supabase, dateStr);
+}
+
+/**
+ * Full history for the "Tasa de Cambio" report (RPRT — 2026-09-29 addition):
+ * every condo_exchange_rates row from the last `monthsBack` calendar months,
+ * fetched once and filtered/aggregated client-side by
+ * lib/reporting/exchangeRate.ts's pure helpers — same "fetch a wide window
+ * once" trade-off already accepted by the dashboard and monthly report.
+ */
+export async function getExchangeRateHistory(monthsBack = 12): Promise<ExchangeRateRow[]> {
+  const supabase = await createClient();
+  const since = subMonths(new Date(), monthsBack).toISOString();
+  const { data } = await supabase
+    .from('condo_exchange_rates')
+    .select('rate_type, rate, source, updated_at')
+    .gte('updated_at', since)
+    .order('updated_at', { ascending: false });
+  return (data as ExchangeRateRow[] | null) ?? [];
 }
 
 /** Admin manual override — inserts a new row (source: 'admin'), same append-only history the cron uses. */

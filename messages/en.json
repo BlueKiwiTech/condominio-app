@@ -130,7 +130,8 @@
       "paymentReports": "Reported payments",
       "report": "Monthly report",
       "paymentsHistory": "Payment history",
-      "expensePayments": "Expense payment history"
+      "expensePayments": "Expense payment history",
+      "exchangeRate": "Exchange rate"
     },
     "roleLabel": "Board admin",
     "unknownAdmin": "Admin",
@@ -810,6 +811,29 @@
       "partial": "Partial",
       "paid": "Paid",
       "overdue": "Overdue"
+    },
+    "exchangeRate": {
+      "heading": "Exchange rate",
+      "monthLabel": "Month",
+      "empty": "No rates recorded for the selected month.",
+      "chart": {
+        "heading": "This month's trend",
+        "empty": "No rates recorded for the selected month."
+      },
+      "table": {
+        "date": "Date",
+        "type": "Type",
+        "rate": "Rate",
+        "source": "Source"
+      },
+      "type": {
+        "bcv": "BCV",
+        "binance": "Binance"
+      },
+      "source": {
+        "cron": "Automatic",
+        "admin": "Manual"
+      }
     }
   }
 }

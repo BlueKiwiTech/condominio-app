@@ -14,6 +14,7 @@ import {
   ClipboardList,
   FileText,
   CheckCircle2,
+  TrendingUp,
   LogOut,
   type LucideIcon,
 } from 'lucide-react';
@@ -68,6 +69,7 @@ const GROUPS: NavGroup[] = [
       // { href: '/reporte', icon: ClipboardList, labelKey: 'items.report' },
       { href: '/pagos', icon: FileText, labelKey: 'items.paymentsHistory' },
       { href: '/gastos-pagados', icon: CheckCircle2, labelKey: 'items.expensePayments' },
+      { href: '/reporte/tasa-de-cambio', icon: TrendingUp, labelKey: 'items.exchangeRate' },
     ],
   },
 ];
