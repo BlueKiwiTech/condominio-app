@@ -176,6 +176,7 @@ export function MisPagosClient({
         subtitle={isCreditTopUp ? `${date} · #${String(report.resulting_receipt_number).padStart(4, '0')}` : date}
         amount={formatAmount(report.amount, report.currency)}
         tag={{ label: t(`reportStatus.${report.status}`), variant: reportTagVariant(report.status) }}
+        href={report.resulting_payment_batch_id ? `/mi-cartera/${report.resulting_payment_batch_id}` : undefined}
       />
     );
   };
@@ -193,7 +194,9 @@ export function MisPagosClient({
       {lastReport?.status === 'rejected' && (
         <Alert variant="destructive">
           <AlertTriangle className="size-4" />
-          <AlertDescription>{t('lastReportRejected')}</AlertDescription>
+          <AlertDescription>
+            {lastReport.rejection_reason ? t('lastReportRejectedWithReason', { reason: lastReport.rejection_reason }) : t('lastReportRejected')}
+          </AlertDescription>
         </Alert>
       )}
 

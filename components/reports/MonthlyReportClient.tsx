@@ -8,12 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table';
+import { useSortableTable, SortableTableHead } from '@/components/ui/sortable-table';
 import { StatCard } from '@/components/dashboard/StatCard';
 import {
   buildMonthlyReport,
   reportTotalsByCurrency,
   type MonthlyReportStatus,
+  type MonthlyReportRow,
   type ReportInstallment,
   type HouseInfo,
   type CreditForReport,
@@ -30,6 +32,8 @@ const STATUS_CLASSES: Record<MonthlyReportStatus, string> = {
   partial: 'bg-warning/10 text-warning',
   pending: 'bg-muted text-muted-foreground',
 };
+
+type SortColumn = 'house' | 'currency' | 'expected' | 'paid' | 'pending' | 'favor' | 'status';
 
 export function MonthlyReportClient({
   installments,
@@ -79,6 +83,30 @@ export function MonthlyReportClient({
   );
 
   const totals = useMemo(() => reportTotalsByCurrency(filteredRows), [filteredRows]);
+
+  const { sorted: sortedRows, sort, handleSort } = useSortableTable<MonthlyReportRow, SortColumn>(
+    filteredRows,
+    (row, column) => {
+      switch (column) {
+        case 'house':
+          return row.house_name ? `${row.house_number} · ${row.house_name}` : row.house_number;
+        case 'currency':
+          return row.currency;
+        case 'expected':
+          return row.expected;
+        case 'paid':
+          return row.paid;
+        case 'pending':
+          return row.pending;
+        case 'favor':
+          return row.favor;
+        case 'status':
+          return row.status;
+      }
+    },
+    { column: 'house', direction: 'asc' },
+    locale,
+  );
 
   return (
     <div className="flex w-full flex-col gap-6 p-4 md:p-8">
@@ -170,28 +198,28 @@ export function MonthlyReportClient({
         </div>
       )}
 
-      <div className="w-full overflow-hidden rounded-[var(--radius)] border shadow-sm">
+      <div className="w-full overflow-hidden rounded-[var(--radius)] border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('table.house')}</TableHead>
-              <TableHead>{t('table.currency')}</TableHead>
-              <TableHead className="text-right">{t('table.expected')}</TableHead>
-              <TableHead className="text-right">{t('table.paid')}</TableHead>
-              <TableHead className="text-right">{t('table.pending')}</TableHead>
-              <TableHead className="text-right">{t('table.favor')}</TableHead>
-              <TableHead>{t('table.status')}</TableHead>
+              <SortableTableHead column="house" label={t('table.house')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="currency" label={t('table.currency')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="expected" label={t('table.expected')} sort={sort} onSort={handleSort} align="right" />
+              <SortableTableHead column="paid" label={t('table.paid')} sort={sort} onSort={handleSort} align="right" />
+              <SortableTableHead column="pending" label={t('table.pending')} sort={sort} onSort={handleSort} align="right" />
+              <SortableTableHead column="favor" label={t('table.favor')} sort={sort} onSort={handleSort} align="right" />
+              <SortableTableHead column="status" label={t('table.status')} sort={sort} onSort={handleSort} />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRows.length === 0 ? (
+            {sortedRows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   {t('empty')}
                 </TableCell>
               </TableRow>
             ) : (
-              filteredRows.map((row) => (
+              sortedRows.map((row) => (
                 <TableRow key={`${row.house_id}-${row.currency}`} className="h-11">
                   <TableCell className="whitespace-normal">{row.house_name ? `${row.house_number} · ${row.house_name}` : row.house_number}</TableCell>
                   <TableCell>{currencyLabel(row.currency)}</TableCell>

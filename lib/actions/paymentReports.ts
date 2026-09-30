@@ -1,16 +1,11 @@
 'use server';
 
-import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { applyPaymentAllocation } from '@/lib/payments/applyAllocation';
-import { setHouseCredit } from '@/lib/payments/creditSweep';
-import { allocateWalletFunds, type DueForWallet, type WalletBalances } from '@/lib/payments/walletAllocation';
-import { getLatestExchangeRates } from '@/lib/actions/exchangeRate';
 import { logAudit } from '@/lib/audit';
-import { toDateOnly } from '@/lib/cuotas/generate';
 
 type ActionResult = { error: string } | { success: true };
 type Currency = 'USD' | 'Bs' | 'USDT';
@@ -39,17 +34,19 @@ async function requireAdmin(tc: Awaited<ReturnType<typeof getTranslations>>) {
 /**
  * Admin rejects a resident-submitted payment report (see
  * lib/actions/residentPayments.ts / the condo_payment_reports migration).
- * Just a status flag -- rejecting never created a condo_payments row, so
- * there's nothing to undo.
+ * Just a status flag plus an optional note -- rejecting never created a
+ * condo_payments row, so there's nothing to undo. `reason` is shown to the
+ * resident in Mi Cartera (2026-09-29 business rule from Josi: a rejection
+ * should carry a visible explanation, not just a silent status flip).
  */
-export async function rejectPaymentReport(reportId: string, locale: string): Promise<ActionResult> {
+export async function rejectPaymentReport(reportId: string, locale: string, reason: string | null): Promise<ActionResult> {
   const tc = await getTranslations({ locale, namespace: 'common' });
   const { error: authError, supabase, userId } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
   const { error } = await supabase
     .from('condo_payment_reports')
-    .update({ status: 'rejected' })
+    .update({ status: 'rejected', rejection_reason: reason?.trim() || null })
     .eq('id', reportId);
   if (error) return { error: error.message };
 
@@ -68,29 +65,26 @@ export async function rejectPaymentReport(reportId: string, locale: string): Pro
  * Admin confirms a resident-submitted payment report. Unlike a plain status
  * flag, this actually registers the real payment.
  *
+ * Reuses the exact same allocation "Registrar pago" performs
+ * (lib/payments/applyAllocation.ts's applyPaymentAllocation): oldest-cuota-
+ * first, full-or-nothing, converting at the rate in effect on the report's
+ * own "Fecha de abono" -- and, for a Bs report, capped to vencidas plus
+ * cuotas due within 30 days ahead (lib/payments/allocate.ts's
+ * filterEligibleForConversionWindow; USD/USDT are unrestricted). Whatever
+ * doesn't get applied becomes saldo a favor, to be converted later at
+ * whatever rate is in effect the day it's actually drawn on
+ * (2026-09-29 business rule from Josi).
+ *
  * If the report is TAGGED to specific cuotas (installment_ids non-empty --
  * legacy path, the resident-facing dialog stopped letting residents tag
- * cuotas as of 2026-09-18), this reuses the same allocation "Registrar pago"
- * performs (lib/payments/applyAllocation.ts's applyPaymentAllocation).
- *
- * Every report submitted today arrives untagged, which now runs through
- * "Mi Cartera"'s wallet allocation instead (2026-09-19/20 decision,
- * lib/payments/walletAllocation.ts): the reported amount is added to the
- * house's wallet balance in ITS OWN CURRENCY (no conversion at deposit
- * time), then EVERY outstanding due ALREADY VENCIDA (due_date <= today —
- * 2026-09-27 fix: never a future month's installment, however many the
- * horizon generator has pre-created; see the due_date filter on the query
- * below) for the house (any currency, not just ones the resident happened
- * to be shown) gets checked oldest-first, full-or-nothing, drawing wallet
- * currency in priority order
- * Bs -> USDT -> USD regardless of the due's own currency, converting only
- * at the moment funds are actually used. This supersedes the old
- * "untagged reports just become undifferentiated credit, never touch
- * existing debt" behavior (2026-09-18 fix) -- it's a deliberate, audited
- * paid-in-full operation (funding_breakdown records exactly what funded
- * each due), not the silent auto-sweep lib/payments/creditSweep.ts still
- * avoids for NEW cuotas' pre-existing credit. Blocks with an error instead
- * of guessing if a needed exchange rate is missing/stale.
+ * cuotas as of 2026-09-18), those are the ids used. Every report submitted
+ * today arrives untagged, so all of the house's currently pending
+ * installments are fetched fresh and passed in instead -- same set
+ * "Registrar pago" would auto-select for this house. Pre-existing wallet
+ * credit in a DIFFERENT currency than this report is left untouched here;
+ * it's picked up by the normal automatic sweep
+ * (lib/payments/creditSweep.ts) the next time it applies, not blended in at
+ * confirm time.
  */
 export async function confirmPaymentReport(reportId: string, locale: string): Promise<ActionResult> {
   const [tc, tp] = await Promise.all([
@@ -110,91 +104,16 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
   if (!report) return { error: tc('invalidData') };
   if (report.status !== 'pending') return { error: tc('invalidData') };
 
-  if (report.installment_ids.length === 0) {
-    const [{ data: creditRows, error: creditFetchError }, { data: dueRows, error: dueFetchError }, rates] = await Promise.all([
-      supabase.from('condo_house_credits').select('currency, balance').eq('house_id', report.house_id),
-      supabase
-        .from('condo_installments')
-        .select('id, currency, amount, amount_paid, due_date, installment_number')
-        .eq('house_id', report.house_id)
-        .neq('status', 'paid')
-        .is('deleted_at', null)
-        // Only cuotas already vencidas (due_date <= today) — never reach
-        // forward and pay off future months' installments just because the
-        // wallet balance happens to cover them (2026-09-27 bug fix).
-        .lte('due_date', toDateOnly(new Date())),
-      getLatestExchangeRates(),
-    ]);
-    if (creditFetchError) return { error: creditFetchError.message };
-    if (dueFetchError) return { error: dueFetchError.message };
-
-    const balances: WalletBalances = { USD: 0, Bs: 0, USDT: 0 };
-    for (const row of creditRows ?? []) balances[row.currency as Currency] = row.balance as number;
-    balances[report.currency] = (balances[report.currency] ?? 0) + report.amount;
-
-    const dues = (dueRows ?? []) as DueForWallet[];
-    const allocation = allocateWalletFunds(dues, balances, rates);
-    if (allocation.blocked) return { error: tp('errors.staleExchangeRate') };
-
-    const { data: receiptData, error: receiptError } = await supabase.rpc('condo_next_receipt_number');
-    if (receiptError) return { error: receiptError.message };
-    const receiptNumber = receiptData as number;
-    const batchId = randomUUID();
-
-    if (allocation.payments.length > 0) {
-      const dueById = new Map(dues.map((d) => [d.id, d]));
-      const paymentRows = allocation.payments.map((p) => ({
-        house_id: report.house_id,
-        installment_id: p.installment_id,
-        payment_batch_id: batchId,
-        amount_paid: p.amountApplied,
-        currency: p.currency,
-        payment_date: report.payment_date,
-        reference: report.reference,
-        notes: report.notes,
-        receipt_number: receiptNumber,
-        created_by: userId,
-        funding_breakdown: p.sources,
-      }));
-      const { error: paymentsError } = await supabase.from('condo_payments').insert(paymentRows);
-      if (paymentsError) return { error: paymentsError.message };
-
-      for (const p of allocation.payments) {
-        const due = dueById.get(p.installment_id)!;
-        const { error: updateError } = await supabase
-          .from('condo_installments')
-          .update({ amount_paid: due.amount, status: 'paid' })
-          .eq('id', p.installment_id);
-        if (updateError) return { error: updateError.message };
-      }
-    }
-
-    for (const currency of ['USD', 'Bs', 'USDT'] as const) {
-      const { error: creditError } = await setHouseCredit(supabase, report.house_id, currency, allocation.updatedBalances[currency]);
-      if (creditError) return { error: creditError };
-    }
-
-    const { error } = await supabase
-      .from('condo_payment_reports')
-      .update({
-        status: 'confirmed',
-        resulting_receipt_number: receiptNumber,
-        resulting_payment_batch_id: allocation.payments.length > 0 ? batchId : null,
-      })
-      .eq('id', reportId);
-    if (error) return { error: error.message };
-
-    await logAudit(supabase, {
-      userId,
-      action: 'payment_report.confirm',
-      entityType: 'payment_report',
-      entityId: reportId,
-    });
-
-    revalidatePath('/pagos-reportados');
-    revalidatePath('/pagos');
-    revalidatePath('/cuotas');
-    return { success: true };
+  let installmentIds = report.installment_ids;
+  if (installmentIds.length === 0) {
+    const { data: pendingRows, error: pendingFetchError } = await supabase
+      .from('condo_installments')
+      .select('id')
+      .eq('house_id', report.house_id)
+      .neq('status', 'paid')
+      .is('deleted_at', null);
+    if (pendingFetchError) return { error: pendingFetchError.message };
+    installmentIds = (pendingRows ?? []).map((r) => r.id as string);
   }
 
   const result = await applyPaymentAllocation(
@@ -206,7 +125,7 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
       payment_date: report.payment_date,
       reference: report.reference,
       notes: report.notes,
-      installment_ids: report.installment_ids,
+      installment_ids: installmentIds,
       created_by: userId,
     },
     {

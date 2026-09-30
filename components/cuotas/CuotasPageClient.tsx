@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useSortableTable, SortableTableHead } from '@/components/ui/sortable-table';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { deleteInstallmentTemplate, setInstallmentTemplateActive } from '@/lib/actions/cuotas';
 import { summarizeTemplate } from '@/lib/cuotas/status';
@@ -23,6 +24,8 @@ const ACTIVE_CLASSES: Record<'active' | 'inactive', string> = {
   active: 'bg-success/10 text-success',
   inactive: 'bg-muted text-muted-foreground',
 };
+
+type SortColumn = 'name' | 'start_date' | 'total_amount' | 'per_house_amount' | 'houses_count';
 
 export function CuotasPageClient({
   initialTemplates,
@@ -49,6 +52,26 @@ export function CuotasPageClient({
     if (!query) return initialTemplates;
     return initialTemplates.filter((template) => template.name.toLowerCase().includes(query));
   }, [initialTemplates, search]);
+
+  const { sorted: sortedTemplates, sort, handleSort } = useSortableTable<TemplateWithInstallments, SortColumn>(
+    filteredTemplates,
+    (template, column) => {
+      switch (column) {
+        case 'name':
+          return template.name;
+        case 'start_date':
+          return template.start_date;
+        case 'total_amount':
+          return template.amount * template.applicable_houses.length;
+        case 'per_house_amount':
+          return template.amount;
+        case 'houses_count':
+          return template.applicable_houses.length;
+      }
+    },
+    { column: 'start_date', direction: 'desc' },
+    locale,
+  );
 
   const handleDelete = (template: TemplateWithInstallments) => {
     if (typeof window !== 'undefined' && !window.confirm(t('confirmDelete', { name: template.name }))) {
@@ -104,25 +127,25 @@ export function CuotasPageClient({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('table.name')}</TableHead>
+              <SortableTableHead column="name" label={t('table.name')} sort={sort} onSort={handleSort} />
               <TableHead>{t('table.type')}</TableHead>
-              <TableHead>{t('table.startDate')}</TableHead>
-              <TableHead className="text-right">{t('table.amount')}</TableHead>
-              <TableHead className="text-right">{t('table.perHouseAmount')}</TableHead>
-              <TableHead className="text-right">{t('table.houses')}</TableHead>
+              <SortableTableHead column="start_date" label={t('table.startDate')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="total_amount" label={t('table.amount')} sort={sort} onSort={handleSort} align="right" />
+              <SortableTableHead column="per_house_amount" label={t('table.perHouseAmount')} sort={sort} onSort={handleSort} align="right" />
+              <SortableTableHead column="houses_count" label={t('table.houses')} sort={sort} onSort={handleSort} align="right" />
               <TableHead>{t('table.status')}</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTemplates.length === 0 ? (
+            {sortedTemplates.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="h-11 text-center text-sm text-muted-foreground">
                   {t('empty')}
                 </TableCell>
               </TableRow>
             ) : (
-              filteredTemplates.map((template) => {
+              sortedTemplates.map((template) => {
                 const summary = summarizeTemplate(
                   template.condo_installments,
                   gracePeriodDays,

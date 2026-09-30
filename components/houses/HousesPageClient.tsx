@@ -3,17 +3,17 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { Plus, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useSortableTable, SortableTableHead } from '@/components/ui/sortable-table';
 import { deleteHouse } from '@/lib/actions/houses';
 import { HouseFormDialog } from './HouseFormDialog';
 import type { HouseWithResidents } from './types';
 
 type SortColumn = 'house_number' | 'house_name' | 'owner_name' | 'phone' | 'owner_email';
-type SortState = { column: SortColumn; direction: 'asc' | 'desc' };
 
 function primaryPhone(house: HouseWithResidents): string {
   return house.owner_phone ?? house.condo_house_phones[0]?.phone ?? '';
@@ -21,32 +21,6 @@ function primaryPhone(house: HouseWithResidents): string {
 
 function allPhones(house: HouseWithResidents): string[] {
   return [house.owner_phone, ...house.condo_house_phones.map((p) => p.phone)].filter((p): p is string => !!p);
-}
-
-function SortableHead({
-  column,
-  label,
-  sort,
-  onSort,
-}: {
-  column: SortColumn;
-  label: string;
-  sort: SortState;
-  onSort: (column: SortColumn) => void;
-}) {
-  const active = sort.column === column;
-  return (
-    <TableHead>
-      <button type="button" onClick={() => onSort(column)} className="flex items-center gap-1 hover:text-foreground">
-        {label}
-        {active ? (
-          sort.direction === 'asc' ? <ArrowUp className="size-3.5" /> : <ArrowDown className="size-3.5" />
-        ) : (
-          <ArrowUpDown className="size-3.5 text-muted-foreground/50" />
-        )}
-      </button>
-    </TableHead>
-  );
 }
 
 // dialogState: undefined = closed, null = create mode, HouseWithResidents = edit mode.
@@ -57,7 +31,6 @@ export function HousesPageClient({ initialHouses }: { initialHouses: HouseWithRe
   const [dialogState, setDialogState] = useState<HouseWithResidents | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [sort, setSort] = useState<SortState>({ column: 'house_number', direction: 'asc' });
   const [isPending, startTransition] = useTransition();
 
   const filteredHouses = useMemo(() => {
@@ -70,18 +43,12 @@ export function HousesPageClient({ initialHouses }: { initialHouses: HouseWithRe
     );
   }, [initialHouses, search]);
 
-  const sortedHouses = useMemo(() => {
-    const getValue = (house: HouseWithResidents) =>
-      sort.column === 'phone' ? primaryPhone(house) : (house[sort.column] ?? '');
-    const collator = new Intl.Collator(locale, { numeric: true, sensitivity: 'base' });
-    return [...filteredHouses].sort((a, b) => {
-      const cmp = collator.compare(getValue(a), getValue(b));
-      return sort.direction === 'asc' ? cmp : -cmp;
-    });
-  }, [filteredHouses, sort, locale]);
-
-  const handleSort = (column: SortColumn) =>
-    setSort((prev) => (prev.column === column ? { column, direction: prev.direction === 'asc' ? 'desc' : 'asc' } : { column, direction: 'asc' }));
+  const { sorted: sortedHouses, sort, handleSort } = useSortableTable<HouseWithResidents, SortColumn>(
+    filteredHouses,
+    (house, column) => (column === 'phone' ? primaryPhone(house) : (house[column] ?? '')),
+    { column: 'house_number', direction: 'asc' },
+    locale,
+  );
 
   const handleDelete = (house: HouseWithResidents) => {
     if (typeof window !== 'undefined' && !window.confirm(t('confirmDelete', { house: house.house_number }))) {
@@ -121,11 +88,11 @@ export function HousesPageClient({ initialHouses }: { initialHouses: HouseWithRe
         <Table>
           <TableHeader>
             <TableRow>
-              <SortableHead column="house_number" label={t('table.house')} sort={sort} onSort={handleSort} />
-              <SortableHead column="house_name" label={t('table.name')} sort={sort} onSort={handleSort} />
-              <SortableHead column="owner_name" label={t('table.owner')} sort={sort} onSort={handleSort} />
-              <SortableHead column="phone" label={t('table.phone')} sort={sort} onSort={handleSort} />
-              <SortableHead column="owner_email" label={t('table.email')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="house_number" label={t('table.house')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="house_name" label={t('table.name')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="owner_name" label={t('table.owner')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="phone" label={t('table.phone')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="owner_email" label={t('table.email')} sort={sort} onSort={handleSort} />
               <TableHead />
             </TableRow>
           </TableHeader>

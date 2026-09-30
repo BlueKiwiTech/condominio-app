@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { useSortableTable, SortableTableHead } from '@/components/ui/sortable-table';
 import { markExpensePaidSchema, type MarkExpensePaidInput } from '@/lib/validation/gastos';
 import { markExpensePaid, deleteExpense, deleteExpenseTemplate } from '@/lib/actions/gastos';
 import { formatAmount } from '@/lib/currency';
@@ -25,6 +26,8 @@ const STATUS_CLASSES: Record<ExpenseStatus, string> = {
   pending: 'bg-warning/10 text-warning',
   paid: 'bg-success/10 text-success',
 };
+
+type SortColumn = 'name' | 'category' | 'provider' | 'amount' | 'period' | 'status';
 
 function capitalize(s: string): string {
   return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
@@ -121,6 +124,28 @@ export function GastosPageClient({
       return true;
     });
   }, [initialExpenses, statusFilter, categoryFilter, providerFilter, yearValue, monthValue, wholeYear]);
+
+  const { sorted: sortedExpenses, sort, handleSort } = useSortableTable<ExpenseRow, SortColumn>(
+    filtered,
+    (e, column) => {
+      switch (column) {
+        case 'name':
+          return e.condo_expense_templates?.name ?? '';
+        case 'category':
+          return e.condo_expense_categories?.name ?? '';
+        case 'provider':
+          return e.provider ?? '';
+        case 'amount':
+          return e.amount;
+        case 'period':
+          return e.period_date;
+        case 'status':
+          return e.status;
+      }
+    },
+    { column: 'period', direction: 'desc' },
+    locale,
+  );
 
   // How many total installments a variable gasto has, keyed by template_id --
   // a single-installment variable gasto shows "Borrar" like a fixed gasto
@@ -278,28 +303,28 @@ export function GastosPageClient({
         <FilterChip label={t('filters.allYear')} selected={wholeYear} onClick={() => setWholeYear((w) => !w)} />
       </div>
 
-      <div className="w-full overflow-hidden rounded-[var(--radius)] border shadow-sm">
+      <div className="w-full overflow-hidden rounded-[var(--radius)] border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('table.name')}</TableHead>
-              <TableHead>{t('table.category')}</TableHead>
-              <TableHead>{t('table.provider')}</TableHead>
-              <TableHead className="text-right">{t('table.amount')}</TableHead>
-              <TableHead>{t('table.period')}</TableHead>
-              <TableHead>{t('table.status')}</TableHead>
+              <SortableTableHead column="name" label={t('table.name')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="category" label={t('table.category')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="provider" label={t('table.provider')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="amount" label={t('table.amount')} sort={sort} onSort={handleSort} align="right" />
+              <SortableTableHead column="period" label={t('table.period')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="status" label={t('table.status')} sort={sort} onSort={handleSort} />
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {sortedExpenses.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   {t('empty')}
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((e) => (
+              sortedExpenses.map((e) => (
                 <TableRow key={e.id} className="h-11">
                   <TableCell className="whitespace-normal font-medium">{e.condo_expense_templates?.name ?? '—'}</TableCell>
                   <TableCell className="whitespace-normal">{e.condo_expense_categories?.name ?? '—'}</TableCell>

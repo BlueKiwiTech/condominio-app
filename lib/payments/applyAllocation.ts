@@ -15,7 +15,7 @@ import { parseISO } from 'date-fns';
 import type { createClient } from '@/lib/supabase/server';
 import { logAudit } from '@/lib/audit';
 import { getExchangeRatesAsOf } from '@/lib/actions/exchangeRate';
-import { allocateFunds, sortOldestFirst, type AllocatableInstallment } from './allocate';
+import { allocateFunds, sortOldestFirst, filterEligibleForConversionWindow, type AllocatableInstallment } from './allocate';
 import { getHouseCredit, setHouseCredit } from './creditSweep';
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -67,21 +67,28 @@ export async function applyPaymentAllocation(
   const existingCredit = await getHouseCredit(supabase, params.house_id, params.currency);
   const fundsAvailable = params.amount_received + existingCredit;
 
-  const sorted = sortOldestFirst(installments as AllocatableInstallment[]);
+  const paymentDateParsed = parseISO(params.payment_date);
+  // A Bs payment only reaches vencidas + up to 30 days ahead at its own-day
+  // rate -- cuotas further out are left untouched here (still 'pending')
+  // rather than pre-paid, so any leftover money becomes saldo a favor and
+  // gets converted later at the rate in effect when it's actually drawn on.
+  const eligible = filterEligibleForConversionWindow(installments as AllocatableInstallment[], params.currency, paymentDateParsed);
+  const sorted = sortOldestFirst(eligible);
   // Rates as of the payment's own "Fecha de abono", not "now" -- a backdated
   // entry converts at the rate that was actually in effect that day (see
   // lib/payments/allocate.ts's allocateFunds docstring).
   const rates = await getExchangeRatesAsOf(params.payment_date);
-  const allocationResult = allocateFunds(sorted, fundsAvailable, params.currency, rates, parseISO(params.payment_date));
+  const allocationResult = allocateFunds(sorted, fundsAvailable, params.currency, rates, paymentDateParsed);
   if (allocationResult.blocked) return { error: errors.staleExchangeRate };
   const { allocations, leftoverCents } = allocationResult;
 
-  // A house with nothing currently selected/due can still bank a deposit --
+  // A house with nothing currently selected/due (or, for a Bs payment,
+  // nothing within the 30-day conversion window) can still bank a deposit --
   // the whole amount simply becomes (or tops up) saldo a favor, same as
   // residents' own "Abonar a cartera" already allows. Only a real shortfall
-  // against SELECTED cuotas (there WERE installments but funds didn't cover
-  // any of them), or literally nothing received, is an error.
-  if (installments.length > 0 && allocations.length === 0) {
+  // against ELIGIBLE cuotas (there WERE eligible installments but funds
+  // didn't cover any of them), or literally nothing received, is an error.
+  if (eligible.length > 0 && allocations.length === 0) {
     return { error: errors.insufficientAmount };
   }
   if (installments.length === 0 && params.amount_received <= 0) {

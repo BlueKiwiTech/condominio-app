@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { confirmPaymentReport, rejectPaymentReport, getReportScreenshotUrl } from '@/lib/actions/paymentReports';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate, formatDateTime } from '@/lib/dateFormat';
@@ -35,6 +36,8 @@ function ReportCard({
   const [actionError, setActionError] = useState<string | null>(null);
   const [screenshotError, setScreenshotError] = useState<string | null>(null);
   const [screenshotLoading, setScreenshotLoading] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
   const houseLabel = report.condo_houses
     ? report.condo_houses.house_name
@@ -59,11 +62,13 @@ function ReportCard({
   const handleReject = () => {
     setActionError(null);
     startTransition(async () => {
-      const result = await rejectPaymentReport(report.id, locale);
+      const result = await rejectPaymentReport(report.id, locale, rejectReason);
       if ('error' in result) {
         setActionError(result.error);
         return;
       }
+      setRejecting(false);
+      setRejectReason('');
       router.refresh();
     });
   };
@@ -134,6 +139,12 @@ function ReportCard({
           </Alert>
         )}
 
+        {report.status === 'rejected' && report.rejection_reason && (
+          <p className="text-sm">
+            <span className="text-muted-foreground">{t('rejectionReason')}:</span> {report.rejection_reason}
+          </p>
+        )}
+
         {screenshotError && (
           <Alert variant="destructive">
             <AlertDescription>{screenshotError}</AlertDescription>
@@ -145,6 +156,17 @@ function ReportCard({
           </Alert>
         )}
 
+        {rejecting && (
+          <div className="flex flex-col gap-2">
+            <Textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder={t('rejectionReasonPlaceholder')}
+              disabled={isPending}
+            />
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           {report.screenshot_path && (
             <Button type="button" variant="outline" size="sm" disabled={screenshotLoading} onClick={handleViewScreenshot}>
@@ -152,13 +174,32 @@ function ReportCard({
               {t('viewScreenshot')}
             </Button>
           )}
-          {report.status === 'pending' && (
+          {report.status === 'pending' && !rejecting && (
             <>
               <Button type="button" size="sm" disabled={isPending} onClick={handleConfirm}>
                 {t('confirm')}
               </Button>
-              <Button type="button" variant="destructive" size="sm" disabled={isPending} onClick={handleReject}>
+              <Button type="button" variant="destructive" size="sm" disabled={isPending} onClick={() => setRejecting(true)}>
                 {t('reject')}
+              </Button>
+            </>
+          )}
+          {report.status === 'pending' && rejecting && (
+            <>
+              <Button type="button" variant="destructive" size="sm" disabled={isPending} onClick={handleReject}>
+                {t('confirmReject')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isPending}
+                onClick={() => {
+                  setRejecting(false);
+                  setRejectReason('');
+                }}
+              >
+                {t('cancel')}
               </Button>
             </>
           )}

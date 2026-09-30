@@ -10,7 +10,7 @@
 // decimal(12,2) in the DB — this module works in integer cents internally
 // (same rounding-safety rationale as lib/cuotas/generate.ts's splitAmount)
 // so allocations never drift by a fraction of a cent.
-import { parseISO } from 'date-fns';
+import { parseISO, addDays } from 'date-fns';
 import { convertAmount, rateTypeForCurrency, isRateFresh, type Currency, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 
 /** Which of a currency pair (at most one is non-USD in this app's model) is missing a usable rate as of `referenceDate`, or null if both are fine. */
@@ -68,6 +68,28 @@ export type AllocationResult =
       /** Funds left over (in the PAYMENT's own currency) after every installment passed in was fully paid — becomes saldo a favor (credit). */
       leftoverCents: number;
     };
+
+/**
+ * A Bs payment's own-day exchange rate only covers cuotas already vencidas
+ * (no cap looking backward) plus cuotas due up to 30 calendar days AHEAD of
+ * the payment date -- anything further out is excluded here and falls
+ * through to leftoverCents (saldo a favor), to be converted later at
+ * whatever rate is in effect the day it's actually drawn on
+ * (lib/payments/walletAllocation.ts / creditSweep.ts), never at the
+ * original deposit's rate. USD and USDT payments are unrestricted -- a
+ * resident paying in either can prepay as far ahead as they like at face
+ * value, so this filter is a no-op for them. (2026-09-29 business rule from
+ * Josi, relayed via voice notes.)
+ */
+export function filterEligibleForConversionWindow<T extends { due_date: string }>(
+  installments: T[],
+  paymentCurrency: Currency,
+  paymentDate: Date,
+): T[] {
+  if (paymentCurrency !== 'Bs') return installments;
+  const cutoff = addDays(paymentDate, 30);
+  return installments.filter((inst) => parseISO(inst.due_date).getTime() <= cutoff.getTime());
+}
 
 /** Oldest due_date first; installment_number as a stable tiebreaker for same-day due dates. */
 export function sortOldestFirst<T extends { due_date: string; installment_number: number }>(installments: T[]): T[] {

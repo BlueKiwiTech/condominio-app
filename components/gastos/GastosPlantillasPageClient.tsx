@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { useSortableTable, SortableTableHead } from '@/components/ui/sortable-table';
 import { setExpenseTemplateActive, deleteExpenseTemplate } from '@/lib/actions/gastos';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
@@ -19,6 +20,8 @@ const ACTIVE_CLASSES: Record<'active' | 'inactive', string> = {
   inactive: 'bg-muted text-muted-foreground',
 };
 
+type SortColumn = 'name' | 'category' | 'provider' | 'amount' | 'start_date' | 'active';
+
 export function GastosPlantillasPageClient({ fixedTemplates }: { fixedTemplates: FixedTemplateRow[] }) {
   const t = useTranslations('gastos');
   const locale = useLocale();
@@ -26,6 +29,28 @@ export function GastosPlantillasPageClient({ fixedTemplates }: { fixedTemplates:
   const [isTogglingActive, startToggleTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
+
+  const { sorted: sortedTemplates, sort, handleSort } = useSortableTable<FixedTemplateRow, SortColumn>(
+    fixedTemplates,
+    (tpl, column) => {
+      switch (column) {
+        case 'name':
+          return tpl.name;
+        case 'category':
+          return tpl.condo_expense_categories?.name ?? '';
+        case 'provider':
+          return tpl.provider ?? '';
+        case 'amount':
+          return tpl.default_amount;
+        case 'start_date':
+          return tpl.start_date;
+        case 'active':
+          return tpl.active ? 1 : 0;
+      }
+    },
+    { column: 'name', direction: 'asc' },
+    locale,
+  );
 
   const toggleActive = (templateId: string, active: boolean) => {
     setServerError(null);
@@ -64,29 +89,29 @@ export function GastosPlantillasPageClient({ fixedTemplates }: { fixedTemplates:
         </Button>
       </div>
 
-      <div className="w-full overflow-hidden rounded-[var(--radius)] border shadow-sm">
+      <div className="w-full overflow-hidden rounded-[var(--radius)] border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('templates.table.name')}</TableHead>
-              <TableHead>{t('table.category')}</TableHead>
-              <TableHead>{t('table.provider')}</TableHead>
-              <TableHead className="text-right">{t('table.amount')}</TableHead>
+              <SortableTableHead column="name" label={t('templates.table.name')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="category" label={t('table.category')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="provider" label={t('table.provider')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="amount" label={t('table.amount')} sort={sort} onSort={handleSort} align="right" />
               <TableHead>{t('form.cadence')}</TableHead>
-              <TableHead>{t('fields.startDate')}</TableHead>
-              <TableHead>{t('table.status')}</TableHead>
+              <SortableTableHead column="start_date" label={t('fields.startDate')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="active" label={t('table.status')} sort={sort} onSort={handleSort} />
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {fixedTemplates.length === 0 ? (
+            {sortedTemplates.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   {t('templates.empty')}
                 </TableCell>
               </TableRow>
             ) : (
-              fixedTemplates.map((tpl) => (
+              sortedTemplates.map((tpl) => (
                 <TableRow key={tpl.id} className="h-11">
                   <TableCell className="whitespace-normal font-medium">{tpl.name}</TableCell>
                   <TableCell className="whitespace-normal">{tpl.condo_expense_categories?.name ?? '—'}</TableCell>

@@ -578,7 +578,8 @@
         "total": "Total recibido",
         "creditUsed": "Saldo a favor aplicado",
         "resultingCredit": "Queda un saldo a favor de {amount} {currency} para la próxima cuota.",
-        "upToDate": "Con este pago, la casa queda al día."
+        "upToDate": "Con este pago, la casa queda al día.",
+        "deferredByWindow": "{count, plural, one {Queda # cuota fuera del rango de conversión de este pago (vencidas + 30 días adelante)} other {Quedan # cuotas fuera del rango de conversión de este pago (vencidas + 30 días adelante)}} — se cubrirán con el saldo en cartera, convertido a la tasa del día en que se apliquen."
       },
       "ocr": {
         "scanButton": "Adjuntar captura",
@@ -615,7 +616,11 @@
       "rejected": "Rechazado"
     },
     "statusWithReceipt": "{status} · {receipt}",
-    "noReceiptHint": "Sin cuotas seleccionadas — regístralo manualmente en Pagos."
+    "noReceiptHint": "Sin cuotas seleccionadas — regístralo manualmente en Pagos.",
+    "confirmReject": "Confirmar rechazo",
+    "cancel": "Cancelar",
+    "rejectionReason": "Motivo del rechazo",
+    "rejectionReasonPlaceholder": "Explica por qué se rechaza este pago (el vecino lo verá en Mi Cartera)"
   },
   "residentAuth": {
     "heading": "Entra con tu casa y PIN",
@@ -724,7 +729,8 @@
       "ocrStepHint": "Adjunta tu comprobante de pago para completar los datos automáticamente.",
       "manualEntry": "Ingresar manualmente",
       "prefilled": "Datos completados desde la captura — revísalos antes de enviar.",
-      "changeScreenshot": "Adjuntar otra captura"
+      "changeScreenshot": "Adjuntar otra captura",
+      "deferredByWindow": "{count, plural, one {Este abono en Bs no alcanza a cubrir # cuota (solo cubre las vencidas y hasta 30 días adelante a la tasa de hoy)} other {Este abono en Bs no alcanza a cubrir # cuotas (solo cubre las vencidas y hasta 30 días adelante a la tasa de hoy)}} — el resto quedará como saldo a favor, convertido a la tasa del día en que se use."
     }
   },
   "residentPerfil": {
@@ -773,6 +779,7 @@
     "pendingBalance": "Pendiente por confirmar",
     "noBalance": "Sin saldo",
     "lastReportRejected": "Tu último abono a la cartera fue rechazado. Revisa los detalles o comunícate con la junta.",
+    "lastReportRejectedWithReason": "Tu último abono a la cartera fue rechazado: {reason}",
     "abonosHeading": "Abonos a tu cartera",
     "abonosEmpty": "Aún no has reportado ningún abono.",
     "reportStatus": {

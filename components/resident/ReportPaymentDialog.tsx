@@ -21,7 +21,9 @@ import { DateInput } from '@/components/ui/date-input';
 import { MoneyInput } from '@/components/ui/money-input';
 import { reportPayment } from '@/lib/actions/residentPayments';
 import { extractResidentPaymentFromScreenshot } from '@/lib/actions/residentPaymentOcr';
+import { getExchangeRatesAsOfForResident } from '@/lib/actions/exchangeRate';
 import { toDateOnly } from '@/lib/cuotas/generate';
+import { sortOldestFirst, filterEligibleForConversionWindow } from '@/lib/payments/allocate';
 import { CURRENCY_SELECT_OPTIONS, formatAmount, formatMoney } from '@/lib/currency';
 import { referenceUsdAmount, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 import { isOverdue } from '@/lib/cuotas/status';
@@ -65,6 +67,20 @@ export function ReportPaymentDialog({
   const [screenshotPreviewUrl, setScreenshotPreviewUrl] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Rates as of the selected "Fecha de abono", not today's -- the USD
+  // reference hint below must reflect the same day whose rate
+  // confirmPaymentReport will actually use (2026-09-29 user correction).
+  const [dateRates, setDateRates] = useState(exchangeRates);
+  useEffect(() => {
+    let cancelled = false;
+    getExchangeRatesAsOfForResident(toDateOnly(paymentDate)).then((rates) => {
+      if (!cancelled && rates) setDateRates(rates);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [paymentDate]);
 
   // OCR-first flow (user-requested, 2026-09-13): the amount/currency/date/
   // reference/notes fields stay hidden until the resident either attaches a
@@ -168,12 +184,30 @@ export function ReportPaymentDialog({
   }, [pendingInstallments, graceDays]);
 
   // Reference only (PLAN.md's "cada quien saca la cuenta" decision) -- never
-  // sent to the server. Null (renders nothing) for USD, or whenever the
+  // sent to the server. Uses dateRates (the selected "Fecha de abono"'s
+  // rate), not today's. Null (renders nothing) for USD, or whenever the
   // matching rate is missing/stale.
   const usdReference = useMemo(
-    () => (amount === '' ? null : referenceUsdAmount(amount, currency, exchangeRates)),
-    [amount, currency, exchangeRates],
+    () => (amount === '' ? null : referenceUsdAmount(amount, currency, dateRates, paymentDate)),
+    [amount, currency, dateRates, paymentDate],
   );
+
+  // A Bs report's own-day rate only reaches vencidas + up to 30 days ahead
+  // when the admin confirms it -- cuotas further out stay pending and the
+  // rest becomes saldo a favor, converted later at whatever rate is in
+  // effect the day it's actually used (2026-09-29 business rule from Josi).
+  // USD/USDT are unrestricted. Shown here as a heads-up before submitting,
+  // computed the same way confirmPaymentReport will actually allocate it
+  // (lib/payments/allocate.ts) -- existing wallet credit isn't factored in
+  // here (this dialog doesn't have it), so it's a conservative preview, not
+  // the exact final result.
+  const deferredByWindow = useMemo(() => {
+    if (currency !== 'Bs') return [];
+    const sorted = sortOldestFirst(pendingInstallments);
+    const eligible = filterEligibleForConversionWindow(sorted, currency, paymentDate);
+    const eligibleIds = new Set(eligible.map((i) => i.id));
+    return sorted.filter((i) => !eligibleIds.has(i.id));
+  }, [pendingInstallments, currency, paymentDate]);
 
   const canSubmit = amount !== '' && amount > 0 && paymentDate;
 
@@ -323,6 +357,14 @@ export function ReportPaymentDialog({
                   </div>
                 )}
 
+                <DateInput
+                  id="payment_date"
+                  label={t('fields.paymentDate')}
+                  value={paymentDate}
+                  onChange={(date) => setPaymentDate(date)}
+                  maxDate={new Date()}
+                />
+
                 <div className="flex flex-wrap gap-4">
                   <div className="flex min-w-[8rem] flex-1 flex-col gap-2">
                     <Label htmlFor="amount">{t('fields.amount')}</Label>
@@ -355,13 +397,6 @@ export function ReportPaymentDialog({
                 )}
                 <p className="text-xs text-muted-foreground">{t('currencyFreeHint')}</p>
 
-                <DateInput
-                  id="payment_date"
-                  label={t('fields.paymentDate')}
-                  value={paymentDate}
-                  onChange={(date) => setPaymentDate(date)}
-                  maxDate={new Date()}
-                />
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="reference">{t('fields.reference')}</Label>
                   <Input id="reference" value={reference} onChange={(e) => setReference(e.target.value)} />
@@ -370,6 +405,14 @@ export function ReportPaymentDialog({
                   <Label htmlFor="notes">{t('fields.notes')}</Label>
                   <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
                 </div>
+
+                {deferredByWindow.length > 0 && (
+                  <Alert className="border-warning/30 bg-warning/10">
+                    <AlertDescription className="text-warning">
+                      {t('deferredByWindow', { count: deferredByWindow.length })}
+                    </AlertDescription>
+                  </Alert>
+                )}
               </>
             )}
           </div>

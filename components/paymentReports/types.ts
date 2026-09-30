@@ -19,6 +19,7 @@ export type PaymentReportRow = {
   // cuotas (nothing to allocate against, falls back to a plain status flag).
   resulting_payment_batch_id: string | null;
   resulting_receipt_number: number | null;
+  rejection_reason: string | null;
   condo_houses: { house_number: string; house_name: string | null } | null;
 };
 

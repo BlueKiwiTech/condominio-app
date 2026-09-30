@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useTranslations, useLocale } from 'next-intl';
@@ -11,13 +11,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DateInput } from '@/components/ui/date-input';
 import { MoneyInput } from '@/components/ui/money-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { registerPayment } from '@/lib/actions/payments';
 import { extractPaymentFromScreenshot } from '@/lib/actions/paymentOcr';
-import { allocateFunds, sortOldestFirst } from '@/lib/payments/allocate';
+import { getExchangeRatesAsOf } from '@/lib/actions/exchangeRate';
+import { allocateFunds, sortOldestFirst, filterEligibleForConversionWindow } from '@/lib/payments/allocate';
 import { toDateOnly } from '@/lib/cuotas/generate';
 import { currencyLabel, formatAmount, formatMoney, CURRENCY_SELECT_OPTIONS } from '@/lib/currency';
 import { referenceUsdAmount, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
@@ -51,6 +53,24 @@ export function PaymentFormClient({
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Rates as of the selected "Fecha de abono", not today's -- both the USD
+  // reference hint and the allocation preview below must match what
+  // applyPaymentAllocation actually uses server-side (getExchangeRatesAsOf),
+  // otherwise a backdated entry shows a preview computed at the wrong rate
+  // (2026-09-29 user correction). Starts from the server-provided
+  // `exchangeRates` (today's, matching the default paymentDate) so there's
+  // no flash of "no rate" before the first effect run.
+  const [dateRates, setDateRates] = useState(exchangeRates);
+  useEffect(() => {
+    let cancelled = false;
+    getExchangeRatesAsOf(toDateOnly(paymentDate)).then((rates) => {
+      if (!cancelled) setDateRates(rates);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [paymentDate]);
 
   // OCR-prefill from a receipt screenshot (user-requested, 2026-09-13) --
   // purely a convenience: it only fills the fields above, it never submits
@@ -100,17 +120,31 @@ export function PaymentFormClient({
   // Not filtered by currency -- a payment can be received in any currency
   // regardless of what currency the house's pending cuotas are denominated
   // in (user decision, 2026-09-08); registerPayment now converts at the
-  // current exchange rate for any cuota whose currency differs from the
-  // payment's (2026-09-29 fix, lib/payments/allocate.ts). Every
-  // pending/partial installment for the house ALREADY VENCIDA is allocated
-  // against automatically, oldest-first (2026-09-24 decision -- the admin no
-  // longer hand-picks which cuotas a payment covers). `pendingInstallments`
-  // itself is already pre-filtered to due_date <= today by the server
-  // (pagos/nuevo/page.tsx, 2026-09-27 fix) -- this form never sees, and can
-  // never auto-allocate into, a future month's installment.
+  // rate in effect on the payment's own date for any cuota whose currency
+  // differs from the payment's. Every pending/partial installment for the
+  // house is allocated against automatically, oldest-first (2026-09-24
+  // decision -- the admin no longer hand-picks which cuotas a payment
+  // covers), past AND future -- which of those actually get paid is capped
+  // below by eligibleInstallments, currency-aware.
   const houseInstallments = useMemo(
     () => sortOldestFirst(pendingInstallments.filter((i) => i.house_id === houseId)),
     [pendingInstallments, houseId],
+  );
+
+  // A Bs payment's own-day rate only reaches vencidas + up to 30 days ahead
+  // -- anything further stays pending here and falls to saldo a favor,
+  // converted later at the rate in effect the day it's actually used
+  // (2026-09-29 business rule from Josi). USD/USDT are unrestricted, so this
+  // is a no-op for them -- a resident paying in either can prepay as far
+  // ahead as they like at face value.
+  const eligibleInstallments = useMemo(
+    () => (currency ? filterEligibleForConversionWindow(houseInstallments, currency, paymentDate) : houseInstallments),
+    [houseInstallments, currency, paymentDate],
+  );
+
+  const deferredByWindow = useMemo(
+    () => houseInstallments.filter((i) => !eligibleInstallments.some((e) => e.id === i.id)),
+    [houseInstallments, eligibleInstallments],
   );
 
   const existingCredit = useMemo(
@@ -146,17 +180,19 @@ export function PaymentFormClient({
   );
 
   const preview = useMemo(() => {
-    if (houseInstallments.length === 0 || !currency) return null;
-    const result = allocateFunds(houseInstallments, fundsAvailable, currency, exchangeRates, paymentDate);
+    if (eligibleInstallments.length === 0 || !currency) return null;
+    const result = allocateFunds(eligibleInstallments, fundsAvailable, currency, dateRates, paymentDate);
     return result.blocked ? null : result;
-  }, [houseInstallments, fundsAvailable, currency, exchangeRates, paymentDate]);
+  }, [eligibleInstallments, fundsAvailable, currency, dateRates, paymentDate]);
 
   // Reference only (PLAN.md's "cada quien saca la cuenta" decision) -- never
-  // sent to the server, never affects the allocation above. Null (renders
+  // sent to the server, never affects the allocation above. Uses dateRates
+  // (the selected "Fecha de abono"'s rate), not today's, so it matches what
+  // the actual allocation above (and the server) will use. Null (renders
   // nothing) for USD, or whenever the matching rate is missing/stale.
   const usdReference = useMemo(
-    () => (currency ? referenceUsdAmount(amountReceived, currency, exchangeRates) : null),
-    [amountReceived, currency, exchangeRates],
+    () => (currency ? referenceUsdAmount(amountReceived, currency, dateRates, paymentDate) : null),
+    [amountReceived, currency, dateRates, paymentDate],
   );
 
   // House change is handled imperatively, not via useEffect + setState — the
@@ -341,6 +377,8 @@ export function PaymentFormClient({
                   </Button>
                 </div>
 
+                <DateInput id="payment_date" label={t('fields.paymentDate')} value={paymentDate} onChange={(date) => setPaymentDate(date)} />
+
                 <div className="flex flex-wrap gap-4">
                   <div className="grid min-w-[180px] flex-1 gap-2">
                     <Label htmlFor="amount">{t('fields.amountReceived')}</Label>
@@ -373,7 +411,6 @@ export function PaymentFormClient({
                 )}
                 <p className="text-xs text-muted-foreground">{t('currencyFreeHint')}</p>
 
-                <DateInput id="payment_date" label={t('fields.paymentDate')} value={paymentDate} onChange={(date) => setPaymentDate(date)} />
                 <div className="grid gap-2">
                   <Label htmlFor="reference">{t('fields.reference')}</Label>
                   <Input id="reference" value={reference} onChange={(e) => setReference(e.target.value)} />
@@ -398,13 +435,13 @@ export function PaymentFormClient({
         )}
       </div>
 
-      {/* <div className="flex h-fit min-w-[280px] flex-1 flex-col gap-3 rounded-[var(--radius)] bg-muted p-6">
+      <div className="flex h-fit min-w-[280px] flex-1 flex-col gap-3 rounded-[var(--radius)] bg-muted p-6">
         <h3 className="text-base font-semibold">{t('summary.heading')}</h3>
         {!preview && <p className="text-sm text-muted-foreground">{t('summary.empty')}</p>}
         {preview && (
           <div className="flex flex-col gap-3">
             {preview.allocations.map((a) => {
-              const inst = selectedInstallments.find((i) => i.id === a.installment_id)!;
+              const inst = eligibleInstallments.find((i) => i.id === a.installment_id)!;
               return (
                 <div key={a.installment_id} className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-sm">{inst.name}</span>
@@ -443,14 +480,21 @@ export function PaymentFormClient({
                 </AlertDescription>
               </Alert>
             )}
-            {preview.leftoverCents === 0 && preview.allocations.every((a) => a.newStatus === 'paid') && (
+            {preview.leftoverCents === 0 && preview.allocations.every((a) => a.newStatus === 'paid') && deferredByWindow.length === 0 && (
               <Alert className="border-success/30 bg-success/10">
                 <AlertDescription className="text-success">{t('summary.upToDate')}</AlertDescription>
               </Alert>
             )}
           </div>
         )}
-      </div> */}
+        {currency === 'Bs' && deferredByWindow.length > 0 && (
+          <Alert className="border-warning/30 bg-warning/10">
+            <AlertDescription className="text-warning">
+              {t('summary.deferredByWindow', { count: deferredByWindow.length })}
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
     </div>
   );
 }

@@ -72,6 +72,10 @@ export type ResidentPaymentReport = {
   // receipt number of its own even though it has no resulting batch/cuota
   // allocation, so residents still see a numbered confirmation.
   resulting_receipt_number: number | null;
+  // Admin's note on a rejected report (see lib/actions/paymentReports.ts's
+  // rejectPaymentReport) -- null while pending/confirmed, or if the admin
+  // left it blank.
+  rejection_reason: string | null;
   created_at: string;
 };
 
@@ -138,7 +142,7 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
       supabase
         .from('condo_payment_reports')
         .select(
-          'id, amount, currency, payment_date, reference, installment_ids, status, resulting_payment_batch_id, resulting_receipt_number, created_at',
+          'id, amount, currency, payment_date, reference, installment_ids, status, resulting_payment_batch_id, resulting_receipt_number, rejection_reason, created_at',
         )
         .eq('house_id', houseId)
         .order('created_at', { ascending: false }),
@@ -175,6 +179,28 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
       binance: (binanceRate as ExchangeRateRow | null) ?? null,
     },
   };
+}
+
+/**
+ * A single payment batch's rows, scoped to `houseId` -- backs
+ * /mi-cartera/[batchId] (RSDT-03's "ver detalles" link on a confirmed abono).
+ * Same service-role client + manual house_id scoping as
+ * getResidentPortalData (Pattern A): a resident session carries no Supabase
+ * Auth, and a batchId alone isn't enough -- always filter by the caller's own
+ * house so one resident can't view another house's payment detail by
+ * guessing/changing the URL.
+ */
+export async function getResidentPaymentBatch(houseId: string, batchId: string): Promise<PaymentRow[]> {
+  const supabase = createServiceClient();
+  const { data } = await supabase
+    .from('condo_payments')
+    .select(
+      'id, house_id, installment_id, payment_batch_id, amount_paid, currency, payment_date, reference, notes, receipt_number, created_at, funding_breakdown, condo_houses(house_number, house_name), condo_installments(name, due_date)',
+    )
+    .eq('house_id', houseId)
+    .eq('payment_batch_id', batchId);
+
+  return (data as unknown as PaymentRow[] | null) ?? [];
 }
 
 // Superset of ExpenseForReport -- adds `id` + the expense's template name so

@@ -578,7 +578,8 @@
         "total": "Total received",
         "creditUsed": "Credit applied",
         "resultingCredit": "A credit balance of {amount} {currency} remains for the next cuota.",
-        "upToDate": "With this payment, the house is up to date."
+        "upToDate": "With this payment, the house is up to date.",
+        "deferredByWindow": "{count, plural, one {# cuota is outside this payment's conversion window (vencidas + 30 days ahead)} other {# cuotas are outside this payment's conversion window (vencidas + 30 days ahead)}} — they'll be covered from wallet credit, converted at the rate in effect when applied."
       },
       "ocr": {
         "scanButton": "Scan receipt",
@@ -615,7 +616,11 @@
       "rejected": "Rejected"
     },
     "statusWithReceipt": "{status} · {receipt}",
-    "noReceiptHint": "No cuotas selected — register it manually in Payments."
+    "noReceiptHint": "No cuotas selected — register it manually in Payments.",
+    "confirmReject": "Confirm rejection",
+    "cancel": "Cancel",
+    "rejectionReason": "Rejection reason",
+    "rejectionReasonPlaceholder": "Explain why this payment is being rejected (the resident will see this in Mi Cartera)"
   },
   "residentAuth": {
     "heading": "Log in with your house and PIN",
@@ -724,7 +729,8 @@
       "ocrStepHint": "Attach your payment receipt to auto-fill the details.",
       "manualEntry": "I don't have a screenshot",
       "prefilled": "Fields filled in from the screenshot — please review them before sending.",
-      "changeScreenshot": "Attach a different screenshot"
+      "changeScreenshot": "Attach a different screenshot",
+      "deferredByWindow": "{count, plural, one {This Bs payment won't reach # cuota (it only covers vencidas and up to 30 days ahead at today's rate)} other {This Bs payment won't reach # cuotas (it only covers vencidas and up to 30 days ahead at today's rate)}} — the rest will sit as wallet credit, converted at the rate in effect when it's used."
     }
   },
   "residentPerfil": {
@@ -773,6 +779,7 @@
     "pendingBalance": "Pending confirmation",
     "noBalance": "No balance",
     "lastReportRejected": "Your last payment report was rejected. Check the details or contact the board.",
+    "lastReportRejectedWithReason": "Your last payment report was rejected: {reason}",
     "abonosHeading": "Wallet contributions",
     "abonosEmpty": "You haven't reported any contributions yet.",
     "reportStatus": {

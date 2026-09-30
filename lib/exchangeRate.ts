@@ -36,18 +36,24 @@ export function rateTypeForCurrency(currency: string): ExchangeRateType | null {
  * Reference-only USD equivalent for a Bs/USDT amount (PLAN.md's "cada quien
  * saca la cuenta" decision -- never auto-converts or gets stored, purely a
  * display hint while entering a payment). Null whenever there's nothing
- * trustworthy to show: no rate row yet, the rate is stale (isRateFresh),
- * or the amount itself isn't a usable positive number.
+ * trustworthy to show: no rate row yet, the rate is stale (isRateFresh), or
+ * the amount itself isn't a usable positive number. `referenceDate`
+ * defaults to "now", but a caller showing this hint next to a payment's own
+ * "Fecha de abono" should pass that date instead (and `rates` should
+ * already be that date's rates, e.g. via getExchangeRatesAsOf) -- otherwise
+ * a backdated entry's hint is judged fresh/stale against today, not the day
+ * the money was actually received (2026-09-29 user correction).
  */
 export function referenceUsdAmount(
   amount: number,
   currency: string,
   rates: Record<ExchangeRateType, ExchangeRateRow | null>,
+  referenceDate: Date = new Date(),
 ): number | null {
   const rateType = rateTypeForCurrency(currency);
   if (!rateType) return null;
   const row = rates[rateType];
-  if (!row || !isRateFresh(row.updated_at)) return null;
+  if (!row || !isRateFresh(row.updated_at, referenceDate)) return null;
   if (!Number.isFinite(amount) || amount <= 0) return null;
   return amount / row.rate;
 }

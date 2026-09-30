@@ -10,10 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { useSortableTable, SortableTableHead } from '@/components/ui/sortable-table';
 import { cn } from 'cn';
-import { groupPaymentsByBatch, type PaymentRow, type HouseOption } from './types';
+import { groupPaymentsByBatch, type PaymentRow, type HouseOption, type PaymentBatch } from './types';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
+
+type SortColumn = 'date' | 'receipt' | 'house' | 'cuotas' | 'amount' | 'reference';
 
 function capitalize(s: string): string {
   return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
@@ -112,6 +115,28 @@ export function PaymentsPageClient({
     );
   }, [scopedBatches, search]);
 
+  const { sorted: sortedBatches, sort, handleSort } = useSortableTable<PaymentBatch, SortColumn>(
+    visibleBatches,
+    (batch, column) => {
+      switch (column) {
+        case 'date':
+          return batch.paymentDate;
+        case 'receipt':
+          return batch.receiptNumber ?? 0;
+        case 'house':
+          return batch.houseLabel;
+        case 'cuotas':
+          return batch.installmentNames.length;
+        case 'amount':
+          return Object.values(batch.receivedByCurrency).reduce((sum: number, v) => sum + (v ?? 0), 0);
+        case 'reference':
+          return batch.reference ?? '';
+      }
+    },
+    { column: 'date', direction: 'desc' },
+    locale,
+  );
+
   return (
     <div className="flex w-full flex-col gap-4">
       {/* <div className="flex w-full justify-end">
@@ -185,28 +210,28 @@ export function PaymentsPageClient({
         <FilterChip label={t('allYear')} selected={wholeYear} onClick={() => setWholeYear((w) => !w)} />
       </div>
 
-      <div className="w-full overflow-hidden rounded-[var(--radius)] border shadow-sm">
+      <div className="w-full overflow-hidden rounded-[var(--radius)] border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('table.date')}</TableHead>
-              <TableHead>{t('table.receipt')}</TableHead>
-              <TableHead>{t('table.house')}</TableHead>
-              <TableHead>{t('table.cuotas')}</TableHead>
-              <TableHead className="text-right">{t('table.amount')}</TableHead>
-              <TableHead>{t('table.reference')}</TableHead>
+              <SortableTableHead column="date" label={t('table.date')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="receipt" label={t('table.receipt')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="house" label={t('table.house')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="cuotas" label={t('table.cuotas')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="amount" label={t('table.amount')} sort={sort} onSort={handleSort} align="right" />
+              <SortableTableHead column="reference" label={t('table.reference')} sort={sort} onSort={handleSort} />
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visibleBatches.length === 0 ? (
+            {sortedBatches.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   {t('empty')}
                 </TableCell>
               </TableRow>
             ) : (
-              visibleBatches.map((batch) => (
+              sortedBatches.map((batch) => (
                 <TableRow key={batch.batchId} className="h-11">
                   <TableCell>{formatShortDate(batch.paymentDate, locale)}</TableCell>
                   <TableCell>{batch.receiptNumber ? `#${String(batch.receiptNumber).padStart(4, '0')}` : '—'}</TableCell>
