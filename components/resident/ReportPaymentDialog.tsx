@@ -293,7 +293,6 @@ export function ReportPaymentDialog({
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              capture="environment"
               className="hidden"
               onChange={handleFileChange}
             />
