@@ -10,7 +10,10 @@ import { formatMoney } from "@/lib/currency"
  * not live-reformatting-while-typing, to avoid cursor-position bugs. While
  * focused the field shows a plain editable numeric string using "." as the
  * decimal point; on blur it reformats and the caller's value always holds
- * the raw number, never a formatted string.
+ * the raw number, never a formatted string. The caller's `onChange` fires
+ * on every keystroke too (parsed from the same unformatted text), so a
+ * preview driven by `value` updates live while typing -- only the
+ * DISPLAYED text's reformatting waits for blur, not the propagated value.
  */
 export function MoneyInput({
   id,
@@ -89,6 +92,10 @@ export function MoneyInput({
           }
         }
         setText(out)
+
+        const normalized = out.replace(",", ".").trim()
+        const parsed = normalized === "" ? null : Number(normalized)
+        onChange(parsed !== null && Number.isFinite(parsed) ? parsed : null)
       }}
       onBlur={() => {
         setIsFocused(false)

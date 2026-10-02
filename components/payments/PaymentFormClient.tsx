@@ -457,7 +457,7 @@ export function PaymentFormClient({
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('summary.total')}</span>
               <span className="text-sm font-semibold">
-                {formatMoney(amountReceived)} {currency ? currencyLabel(currency) : ''}
+                {formatMoney(Number.isNaN(amountReceived) ? 0 : amountReceived)} {currency ? currencyLabel(currency) : ''}
               </span>
             </div>
             {existingCredit > 0 && (
