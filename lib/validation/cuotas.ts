@@ -5,6 +5,13 @@ import { z } from 'zod';
 type Translator = (key: string) => string;
 
 export const currencySchema = z.enum(['USD', 'Bs', 'USDT']);
+// New cuotas are USD-only (user decision, 2026-10-02 -- reverses the earlier
+// "stays selectable" note). Scoped to CREATION only: currencySchema above is
+// still used as-is by updateTemplateSchema (so an existing Bs/USDT template
+// can still be edited without forcing a currency change) and by
+// lib/payments/screenshotExtraction.ts (a payment can still be received in
+// any currency regardless of what currency the cuota it pays is in).
+export const cuotaCreateCurrencySchema = z.literal('USD');
 export const cadenceSchema = z.enum(['weekly', 'biweekly', 'monthly', 'quarterly', 'annual']);
 export type Currency = z.infer<typeof currencySchema>;
 export type Cadence = z.infer<typeof cadenceSchema>;
@@ -17,7 +24,7 @@ function sharedFields(t: Translator) {
   return {
     name: z.string().trim().min(1, t('nameRequired')),
     description: z.string().trim().optional(),
-    currency: currencySchema,
+    currency: cuotaCreateCurrencySchema,
     // decimal(12,2) in the DB — validated as a positive number here, rounded
     // to cents at generation time (lib/cuotas/generate.ts's splitAmount et al.).
     amount: z.coerce.number().positive(t('amountPositive')),

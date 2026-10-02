@@ -18,14 +18,14 @@ import { useSplitAmounts, SplitAmountsFields } from '@/components/shared/SplitAm
 import { createTemplateSchema, type CreateTemplateInput, type Cadence } from '@/lib/validation/cuotas';
 import { createInstallmentTemplate } from '@/lib/actions/cuotas';
 import { buildPreview, toDateOnly, type DueDateMode } from '@/lib/cuotas/generate';
-import { CURRENCY_SELECT_OPTIONS, formatAmount, formatMoney } from '@/lib/currency';
+import { DOLLAR_SELECT_OPTIONS, formatAmount, formatMoney } from '@/lib/currency';
 import type { HouseOption } from './types';
 
 type FormValues = {
   installment_type: 'recurring' | 'special';
   name: string;
   description: string;
-  currency: 'USD' | 'Bs' | 'USDT';
+  currency: 'USD';
   amount: number;
   start_date: Date;
   cadence: Cadence;
@@ -239,12 +239,12 @@ export function CuotaFormClient({ houses }: { houses: HouseOption[] }) {
             render={({ field }) => (
               <div className="grid flex-1 gap-1.5">
                 <Label htmlFor="currency">{t('fields.currency')}</Label>
-                <Select value={field.value} onValueChange={field.onChange} items={CURRENCY_SELECT_OPTIONS}>
+                <Select value={field.value} onValueChange={field.onChange} items={DOLLAR_SELECT_OPTIONS}>
                   <SelectTrigger id="currency" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CURRENCY_SELECT_OPTIONS.map((option) => (
+                    {DOLLAR_SELECT_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
