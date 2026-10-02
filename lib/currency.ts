@@ -7,6 +7,10 @@
 // (cash dollars, bolívares, USDT sent via Binance).
 type CurrencyCode = 'USD' | 'Bs' | 'USDT';
 
+export const DOLLAR_LABEL: Record<'USD', string> = {
+  USD: '$ Efectivo',
+};
+
 export const CURRENCY_LABELS: Record<CurrencyCode, string> = {
   USD: '$ Efectivo',
   Bs: 'Bs.',
@@ -32,3 +36,7 @@ export function formatAmount(amount: number, currency: string): string {
 export const CURRENCY_SELECT_OPTIONS: { label: string; value: CurrencyCode }[] = (
   Object.keys(CURRENCY_LABELS) as CurrencyCode[]
 ).map((value) => ({ label: CURRENCY_LABELS[value], value }));
+
+export const DOLLAR_SELECT_OPTIONS: { label: string; value: 'USD' }[] = (
+  Object.keys(DOLLAR_LABEL) as 'USD'[]
+).map((value) => ({ label: DOLLAR_LABEL[value], value }));
