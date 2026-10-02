@@ -125,21 +125,19 @@ export function PaymentFormClient({
   // house is allocated against automatically, oldest-first (2026-09-24
   // decision -- the admin no longer hand-picks which cuotas a payment
   // covers), past AND future -- which of those actually get paid is capped
-  // below by eligibleInstallments, currency-aware.
+  // below by eligibleInstallments (the 30-day conversion window).
   const houseInstallments = useMemo(
     () => sortOldestFirst(pendingInstallments.filter((i) => i.house_id === houseId)),
     [pendingInstallments, houseId],
   );
 
-  // A Bs payment's own-day rate only reaches vencidas + up to 30 days ahead
-  // -- anything further stays pending here and falls to saldo a favor,
+  // A payment's own-day rate only reaches vencidas + up to 30 days ahead --
+  // anything further stays pending here and falls to saldo a favor,
   // converted later at the rate in effect the day it's actually used
-  // (2026-09-29 business rule from Josi). USD/USDT are unrestricted, so this
-  // is a no-op for them -- a resident paying in either can prepay as far
-  // ahead as they like at face value.
+  // (2026-09-29 business rule from Josi; applies to Bs, USD, and USDT alike).
   const eligibleInstallments = useMemo(
-    () => (currency ? filterEligibleForConversionWindow(houseInstallments, currency, paymentDate) : houseInstallments),
-    [houseInstallments, currency, paymentDate],
+    () => filterEligibleForConversionWindow(houseInstallments, paymentDate),
+    [houseInstallments, paymentDate],
   );
 
   const deferredByWindow = useMemo(

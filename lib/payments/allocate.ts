@@ -70,23 +70,20 @@ export type AllocationResult =
     };
 
 /**
- * A Bs payment's own-day exchange rate only covers cuotas already vencidas
- * (no cap looking backward) plus cuotas due up to 30 calendar days AHEAD of
- * the payment date -- anything further out is excluded here and falls
- * through to leftoverCents (saldo a favor), to be converted later at
- * whatever rate is in effect the day it's actually drawn on
- * (lib/payments/walletAllocation.ts / creditSweep.ts), never at the
- * original deposit's rate. USD and USDT payments are unrestricted -- a
- * resident paying in either can prepay as far ahead as they like at face
- * value, so this filter is a no-op for them. (2026-09-29 business rule from
- * Josi, relayed via voice notes.)
+ * A payment's own-day exchange rate (or face value, for same-currency
+ * installments) only covers cuotas already vencidas (no cap looking
+ * backward) plus cuotas due up to 30 calendar days AHEAD of the payment
+ * date -- anything further out is excluded here and falls through to
+ * leftoverCents (saldo a favor), to be applied later at whatever rate is in
+ * effect the day it's actually drawn on (lib/payments/walletAllocation.ts /
+ * creditSweep.ts), never at the original deposit's rate. Applies uniformly
+ * to Bs, USD, and USDT (2026-09-29 business rule from Josi, relayed via
+ * voice notes; extended from Bs-only to all currencies 2026-10-01).
  */
 export function filterEligibleForConversionWindow<T extends { due_date: string }>(
   installments: T[],
-  paymentCurrency: Currency,
   paymentDate: Date,
 ): T[] {
-  if (paymentCurrency !== 'Bs') return installments;
   const cutoff = addDays(paymentDate, 30);
   return installments.filter((inst) => parseISO(inst.due_date).getTime() <= cutoff.getTime());
 }

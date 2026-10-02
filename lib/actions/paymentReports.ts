@@ -68,12 +68,12 @@ export async function rejectPaymentReport(reportId: string, locale: string, reas
  * Reuses the exact same allocation "Registrar pago" performs
  * (lib/payments/applyAllocation.ts's applyPaymentAllocation): oldest-cuota-
  * first, full-or-nothing, converting at the rate in effect on the report's
- * own "Fecha de abono" -- and, for a Bs report, capped to vencidas plus
- * cuotas due within 30 days ahead (lib/payments/allocate.ts's
- * filterEligibleForConversionWindow; USD/USDT are unrestricted). Whatever
- * doesn't get applied becomes saldo a favor, to be converted later at
- * whatever rate is in effect the day it's actually drawn on
- * (2026-09-29 business rule from Josi).
+ * own "Fecha de abono" -- and capped to vencidas plus cuotas due within 30
+ * days ahead, regardless of currency (lib/payments/allocate.ts's
+ * filterEligibleForConversionWindow). Whatever doesn't get applied becomes
+ * saldo a favor, to be converted later at whatever rate is in effect the
+ * day it's actually drawn on (2026-09-29 business rule from Josi, extended
+ * from Bs-only to all currencies 2026-10-01).
  *
  * If the report is TAGGED to specific cuotas (installment_ids non-empty --
  * legacy path, the resident-facing dialog stopped letting residents tag

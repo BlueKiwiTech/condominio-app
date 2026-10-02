@@ -192,22 +192,21 @@ export function ReportPaymentDialog({
     [amount, currency, dateRates, paymentDate],
   );
 
-  // A Bs report's own-day rate only reaches vencidas + up to 30 days ahead
-  // when the admin confirms it -- cuotas further out stay pending and the
-  // rest becomes saldo a favor, converted later at whatever rate is in
-  // effect the day it's actually used (2026-09-29 business rule from Josi).
-  // USD/USDT are unrestricted. Shown here as a heads-up before submitting,
+  // A report's own-day rate only reaches vencidas + up to 30 days ahead when
+  // the admin confirms it -- cuotas further out stay pending and the rest
+  // becomes saldo a favor, converted later at whatever rate is in effect the
+  // day it's actually used (2026-09-29 business rule from Josi; applies to
+  // Bs, USD, and USDT alike). Shown here as a heads-up before submitting,
   // computed the same way confirmPaymentReport will actually allocate it
   // (lib/payments/allocate.ts) -- existing wallet credit isn't factored in
   // here (this dialog doesn't have it), so it's a conservative preview, not
   // the exact final result.
   const deferredByWindow = useMemo(() => {
-    if (currency !== 'Bs') return [];
     const sorted = sortOldestFirst(pendingInstallments);
-    const eligible = filterEligibleForConversionWindow(sorted, currency, paymentDate);
+    const eligible = filterEligibleForConversionWindow(sorted, paymentDate);
     const eligibleIds = new Set(eligible.map((i) => i.id));
     return sorted.filter((i) => !eligibleIds.has(i.id));
-  }, [pendingInstallments, currency, paymentDate]);
+  }, [pendingInstallments, paymentDate]);
 
   const canSubmit = amount !== '' && amount > 0 && paymentDate;
 

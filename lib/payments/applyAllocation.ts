@@ -68,11 +68,11 @@ export async function applyPaymentAllocation(
   const fundsAvailable = params.amount_received + existingCredit;
 
   const paymentDateParsed = parseISO(params.payment_date);
-  // A Bs payment only reaches vencidas + up to 30 days ahead at its own-day
+  // A payment only reaches vencidas + up to 30 days ahead at its own-day
   // rate -- cuotas further out are left untouched here (still 'pending')
   // rather than pre-paid, so any leftover money becomes saldo a favor and
   // gets converted later at the rate in effect when it's actually drawn on.
-  const eligible = filterEligibleForConversionWindow(installments as AllocatableInstallment[], params.currency, paymentDateParsed);
+  const eligible = filterEligibleForConversionWindow(installments as AllocatableInstallment[], paymentDateParsed);
   const sorted = sortOldestFirst(eligible);
   // Rates as of the payment's own "Fecha de abono", not "now" -- a backdated
   // entry converts at the rate that was actually in effect that day (see

@@ -18,15 +18,15 @@ export default async function NuevoPagoPage() {
       .is('deleted_at', null)
       // Every pending/partial cuota, past AND future — a payment here
       // auto-allocates across all of them (2026-09-24 decision, no admin
-      // checklist), but which ones actually get paid is now capped
-      // currency-aware in lib/payments/allocate.ts's
-      // filterEligibleForConversionWindow (Bs: vencidas + up to 30 days
-      // ahead; USD/USDT: unrestricted, a resident can prepay as far ahead as
-      // they like at face value — 2026-09-29 business rule from Josi). This
-      // used to be hard-filtered to due_date <= today (2026-09-27 fix, to
-      // stop a Bs payment from silently prepaying every future
-      // horizon-generated month at that day's rate) — that protection now
-      // lives in the allocator itself instead of being a blanket ban here.
+      // checklist), but which ones actually get paid is now capped to
+      // vencidas + up to 30 days ahead, regardless of currency, in
+      // lib/payments/allocate.ts's filterEligibleForConversionWindow
+      // (2026-09-29 business rule from Josi, extended from Bs-only to all
+      // currencies 2026-10-01). This used to be hard-filtered to
+      // due_date <= today (2026-09-27 fix, to stop a Bs payment from
+      // silently prepaying every future horizon-generated month at that
+      // day's rate) — that protection now lives in the allocator itself
+      // instead of being a blanket ban here.
       .order('due_date'),
     supabase.from('condo_house_credits').select('house_id, currency, balance').gt('balance', 0),
     resolveAdminGracePeriodDays(supabase),
