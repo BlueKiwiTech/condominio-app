@@ -83,16 +83,13 @@ export async function applyPaymentAllocation(
   if (allocationResult.blocked) return { error: errors.staleExchangeRate };
   const { allocations, leftoverCents } = allocationResult;
 
-  // A house with nothing currently selected/due (or, for a Bs payment,
-  // nothing within the 30-day conversion window) can still bank a deposit --
-  // the whole amount simply becomes (or tops up) saldo a favor, same as
-  // residents' own "Abonar a cartera" already allows. Only a real shortfall
-  // against ELIGIBLE cuotas (there WERE eligible installments but funds
-  // didn't cover any of them), or literally nothing received, is an error.
-  if (eligible.length > 0 && allocations.length === 0) {
-    return { error: errors.insufficientAmount };
-  }
-  if (installments.length === 0 && params.amount_received <= 0) {
+  // A deposit that doesn't fully cover ANY eligible cuota (full-or-nothing,
+  // e.g. $100 against an oldest cuota of $224) is never rejected
+  // (2026-10-06 user decision): the whole amount is banked as saldo a favor
+  // and gets applied automatically once enough accumulates. Same goes for a
+  // house with nothing currently selected/due or nothing inside the 30-day
+  // window. Only literally nothing received is an error.
+  if (params.amount_received <= 0) {
     return { error: errors.insufficientAmount };
   }
 

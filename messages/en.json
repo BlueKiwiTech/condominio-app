@@ -523,7 +523,7 @@
       "installmentsGone": "One or more selected cuotas no longer exist.",
       "mixedHouses": "All cuotas must belong to the same house.",
       "alreadyPaid": "One of the selected cuotas is already paid.",
-      "insufficientAmount": "The amount received doesn't cover any selected cuota.",
+      "insufficientAmount": "Enter an amount received greater than 0.",
       "staleExchangeRate": "The exchange rate needed to convert the wallet balance isn't up to date (or doesn't exist). Refresh the rate before confirming this report."
     },
     "table": {

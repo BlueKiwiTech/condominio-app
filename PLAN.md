@@ -492,7 +492,7 @@ Phase 1's migration put `pin_hash` on `condo_house_residents` (per-resident PIN)
 - **Exchange-rate cron** moved to 06:00 VET (`vercel.json`: `0 10 * * *`) so the day's BCV value is picked up in the morning instead of showing the previous night's.
 - **Friendly errors**: `lib/errors.ts`'s `friendlyError()` replaces every raw `error.message` returned from Server Actions / lib helpers (maps Postgres codes, logs the raw error server-side; Spanish fallback outside a request, e.g. cron).
 - **Edit cuota → start date** (`changeTemplateStartDate` in `lib/actions/cuotas.ts`): editable only while no payment exists; open-ended recurring templates are wiped + regenerated, everything else re-dated in place.
-- **OPEN (awaiting user validation):** a payment that covers NO eligible cuota (e.g. $100 vs a $224 oldest cuota, full-or-nothing) errors with "El monto recibido no cubre ninguna cuota" in `lib/payments/applyAllocation.ts` instead of banking the money as saldo a favor.
+- **Abono que no cubre ninguna cuota** (2026-10-06): ya no se rechaza; `applyPaymentAllocation` lo guarda completo como saldo a favor (recibo + fila de historial) y se aplica solo cuando alcance. Solo un monto <= 0 sigue siendo error.
 
 ---
 

@@ -523,7 +523,7 @@
       "installmentsGone": "Una o más cuotas seleccionadas ya no existen.",
       "mixedHouses": "Todas las cuotas deben pertenecer a la misma casa.",
       "alreadyPaid": "Una de las cuotas seleccionadas ya está pagada.",
-      "insufficientAmount": "El monto recibido no cubre ninguna cuota seleccionada.",
+      "insufficientAmount": "Ingresa un monto recibido mayor a 0.",
       "staleExchangeRate": "La tasa de cambio necesaria para convertir el saldo de la cartera no está actualizada (o no existe). Actualiza la tasa antes de confirmar este reporte."
     },
     "table": {
