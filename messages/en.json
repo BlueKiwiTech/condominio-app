@@ -179,7 +179,7 @@
         "title": "Pending expenses in {month}",
         "empty": "No pending expenses this month."
       },
-      "scope": "Overdue and current-month cuotas"
+      "scope": "Overdue and due through {date}"
     },
     "chart": {
       "heading": "Income — last 6 months",
