@@ -82,7 +82,7 @@ export function DashboardPageClient({
 
   const collectedThisMonth = useMemo(() => collectedInMonth(payments, today), [payments, today]);
   const collectedLastMonth = useMemo(() => collectedInMonth(payments, subMonths(today, 1)), [payments, today]);
-  const outstanding = useMemo(() => outstandingByCurrency(installments), [installments]);
+  const outstanding = useMemo(() => outstandingByCurrency(installments, today), [installments, today]);
   const pendingExpenses = useMemo(() => pendingExpensesInMonth(expenses, today), [expenses, today]);
 
   const morosos = useMemo(

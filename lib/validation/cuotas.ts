@@ -102,8 +102,9 @@ export type CreateTemplateInput = z.infer<ReturnType<typeof createTemplateSchema
 
 // Edit is intentionally narrow (PLAN.md Phase 4 decision: editing a template
 // "updates all unpaid future installments"; structural fields — cadence,
-// start date, installment count, house targeting — are NOT editable after
-// creation to avoid re-deriving/reconciling already-generated rows. Deleting
+// installment count, house targeting — are NOT editable after creation. The
+// start date IS editable as of 2026-10-06, but only while no payment exists
+// against the cuota to avoid re-deriving/reconciling already-generated rows. Deleting
 // and recreating covers that case, same as the locked "new houses joining"
 // decision already treats re-creation as the answer).
 //
@@ -122,6 +123,10 @@ export function updateTemplateSchema(t: Translator) {
     currency: currencySchema,
     amount: z.coerce.number().positive(t('amountPositive')),
     effective_from: z.union([isoDate(t), z.literal('')]).optional(),
+    // Optional new start date -- only honored while the cuota has no payments
+    // at all (lib/actions/cuotas.ts's updateInstallmentTemplate re-checks
+    // server-side); due dates get recomputed from it.
+    start_date: z.union([isoDate(t), z.literal('')]).optional(),
   });
 }
 export type UpdateTemplateInput = z.infer<ReturnType<typeof updateTemplateSchema>>;

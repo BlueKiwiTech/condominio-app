@@ -44,7 +44,7 @@ export default async function CuotasPage() {
           "there's nothing to show". */}
       {templatesError && (
         <Alert variant="destructive">
-          <AlertDescription>Error al cargar las cuotas: {templatesError.message}</AlertDescription>
+          <AlertDescription>Error al cargar las cuotas. Intenta recargar la página; si persiste, contacta al administrador.</AlertDescription>
         </Alert>
       )}
       <CuotasPageClient initialTemplates={visibleTemplates} gracePeriodDays={gracePeriodDays} />

@@ -14,6 +14,7 @@
 // special template are structurally invisible to this path -- callers only
 // ever pass a template whose number_of_installments is NULL (enforced by
 // both call sites' own queries), never reinterpreted here.
+import { friendlyError } from '@/lib/errors';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   computeNextRecurringDueDate,
@@ -67,7 +68,7 @@ export async function generateRecurringCuotaInstallments(
     .order('installment_number', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (lastError) return { error: lastError.message, generatedCount: 0, lastDueDate: null, sweepErrors: [] };
+  if (lastError) return { error: await friendlyError(lastError), generatedCount: 0, lastDueDate: null, sweepErrors: [] };
 
   let startingInstallmentNumber: number;
   let dueDates: Date[];
@@ -113,7 +114,7 @@ export async function generateRecurringCuotaInstallments(
     .from('condo_installments')
     .upsert(rows, { onConflict: 'template_id,house_id,installment_number', ignoreDuplicates: true })
     .select('id, house_id, installment_number, due_date, amount');
-  if (insertError) return { error: insertError.message, generatedCount: 0, lastDueDate: null, sweepErrors: [] };
+  if (insertError) return { error: await friendlyError(insertError), generatedCount: 0, lastDueDate: null, sweepErrors: [] };
 
   // PLAN.md Phase 5 decision ("saldo a favor is auto-applied to the next
   // cuota that becomes due") applies identically whether this top-up ran at

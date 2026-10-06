@@ -2,7 +2,15 @@
   "common": {
     "sessionExpired": "Your session expired. Log in again.",
     "invalidData": "Invalid data.",
-    "communityNotFound": "Community not found. Contact support."
+    "communityNotFound": "Community not found. Contact support.",
+    "dbErrors": {
+      "duplicate": "A record with those details already exists.",
+      "inUse": "This can't be completed because the record is linked to other data.",
+      "invalidData": "Some of the data entered isn't valid. Please check it and try again.",
+      "forbidden": "You don't have permission to do this.",
+      "tooManyRequests": "Too many attempts. Wait a moment and try again.",
+      "generic": "Something went wrong. Please try again; if it keeps happening, contact the administrator."
+    }
   },
   "validation": {
     "auth": {
@@ -303,7 +311,8 @@
       "currency": "Currency",
       "amount": "Amount",
       "effectiveFrom": "Apply starting from (optional)",
-      "effectiveFromPlaceholder": "All pending installments"
+      "effectiveFromPlaceholder": "All pending installments",
+      "startDate": "Start date"
     },
     "new": {
       "heading": "New cuota"
@@ -355,8 +364,11 @@
       "noHousesAvailable": "No houses registered to assign this cuota to.",
       "createFailed": "Couldn't create the cuota.",
       "notFound": "Cuota not found.",
-      "hasPayments": "Can't delete: this cuota already has payments registered."
-    }
+      "hasPayments": "Can't delete: this cuota already has payments registered.",
+      "startDateHasPayments": "Can't change the start date: this cuota already has payments registered."
+    },
+    "startDateHelp": "Changing it recalculates the due dates of every generated installment.",
+    "startDateLocked": "The start date can't be changed because this cuota already has payments registered."
   },
   "gastos": {
     "heading": "Expenses",
@@ -708,7 +720,7 @@
       "heading": "Report a payment",
       "intro": "Let the board know you already made a payment. This doesn't mark your cuota as paid instantly — the board reviews and confirms it.",
       "whichCuotas": "Your pending cuotas",
-  "totalOverdue": "Total overdue payments",
+      "totalOverdue": "Total overdue payments",
       "fields": {
         "currency": "Currency",
         "amount": "Amount",

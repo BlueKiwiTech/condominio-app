@@ -9,6 +9,7 @@
 // computed," same rationale the original cron's own code comment already
 // established. Only the stop condition changed: `nextPeriodDate <= today`
 // (catch up to now) became `nextPeriodDate <= horizonEnd` (generate ahead).
+import { friendlyError } from '@/lib/errors';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { computeNextPeriodDate, toDateOnly, type Cadence, type Currency } from './generate';
 
@@ -38,7 +39,7 @@ export async function topUpFixedExpense(
     .order('period_date', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (lastError) return { error: lastError.message, generatedCount: 0, lastPeriodDate: null };
+  if (lastError) return { error: await friendlyError(lastError), generatedCount: 0, lastPeriodDate: null };
 
   let nextPeriodDate = lastExpense
     ? computeNextPeriodDate(template.cadence, new Date(`${lastExpense.period_date}T00:00:00`))
@@ -68,7 +69,7 @@ export async function topUpFixedExpense(
   const { error: insertError } = await supabase
     .from('condo_expenses')
     .upsert(rows, { onConflict: 'template_id,period_date', ignoreDuplicates: true });
-  if (insertError) return { error: insertError.message, generatedCount: 0, lastPeriodDate: null };
+  if (insertError) return { error: await friendlyError(insertError), generatedCount: 0, lastPeriodDate: null };
 
   return { error: null, generatedCount: periodDates.length, lastPeriodDate: periodDates[periodDates.length - 1] };
 }

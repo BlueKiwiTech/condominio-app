@@ -1,5 +1,6 @@
 'use server';
 
+import { friendlyError } from '@/lib/errors';
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
@@ -75,7 +76,7 @@ export async function createExpenseTemplate(
     .select('id')
     .single();
 
-  if (templateError || !template) return { error: templateError?.message ?? tg('errors.createFailed') };
+  if (templateError || !template) return { error: (templateError ? await friendlyError(templateError) : tg('errors.createFailed')) };
 
   // Fixed templates now generate immediately through the rolling horizon
   // (Recurring Horizon Generation design) -- the admin sees a populated
@@ -143,7 +144,7 @@ export async function createExpenseTemplate(
 
   if (expensesError) {
     await supabase.from('condo_expense_templates').delete().eq('id', template.id);
-    return { error: expensesError.message };
+    return { error: await friendlyError(expensesError) };
   }
 
   revalidatePath('/gastos');
@@ -196,7 +197,7 @@ export async function deleteExpenseCategory(categoryId: string, locale: string):
   const { error } = await supabase.from('condo_expense_categories').delete().eq('id', categoryId);
   if (error) {
     if (error.code === '23503') return { error: tg('categories.errors.inUse') };
-    return { error: error.message };
+    return { error: await friendlyError(error) };
   }
 
   revalidatePath('/gastos');
@@ -226,7 +227,7 @@ export async function markExpensePaid(
     .select('id, status')
     .eq('id', expenseId)
     .maybeSingle();
-  if (fetchError) return { error: fetchError.message };
+  if (fetchError) return { error: await friendlyError(fetchError) };
   if (!expense) return { error: tg('errors.notFound') };
   if (expense.status === 'paid') return { error: tg('errors.alreadyPaid') };
 
@@ -239,7 +240,7 @@ export async function markExpensePaid(
       status: 'paid',
     })
     .eq('id', expenseId);
-  if (updateError) return { error: updateError.message };
+  if (updateError) return { error: await friendlyError(updateError) };
 
   await logAudit(supabase, {
     userId,
@@ -262,7 +263,7 @@ export async function setExpenseTemplateActive(
   if (authError || !supabase) return { error: authError! };
 
   const { error } = await supabase.from('condo_expense_templates').update({ active }).eq('id', templateId);
-  if (error) return { error: error.message };
+  if (error) return { error: await friendlyError(error) };
 
   // Same "void still-pending instances" behavior as cuotas'
   // setInstallmentTemplateActive -- deactivating hides every not-yet-paid
@@ -275,7 +276,7 @@ export async function setExpenseTemplateActive(
       .eq('template_id', templateId)
       .eq('status', 'pending')
       .is('deleted_at', null);
-    if (voidError) return { error: voidError.message };
+    if (voidError) return { error: await friendlyError(voidError) };
   }
 
   revalidatePath('/gastos');
@@ -297,7 +298,7 @@ export async function deleteExpense(expenseId: string, locale: string): Promise<
     .select('id, status')
     .eq('id', expenseId)
     .maybeSingle();
-  if (fetchError) return { error: fetchError.message };
+  if (fetchError) return { error: await friendlyError(fetchError) };
   if (!expense) return { error: tg('errors.notFound') };
   if (expense.status === 'paid') return { error: tg('errors.cannotDeletePaid') };
 
@@ -305,7 +306,7 @@ export async function deleteExpense(expenseId: string, locale: string): Promise<
     .from('condo_expenses')
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', expenseId);
-  if (error) return { error: error.message };
+  if (error) return { error: await friendlyError(error) };
 
   revalidatePath('/gastos');
   revalidatePath('/dashboard');
@@ -331,7 +332,7 @@ export async function deleteExpenseTemplate(templateId: string, locale: string):
     .select('id', { count: 'exact', head: true })
     .eq('template_id', templateId)
     .eq('status', 'paid');
-  if (paidError) return { error: paidError.message };
+  if (paidError) return { error: await friendlyError(paidError) };
   if (paidCount && paidCount > 0) return { error: tg('errors.hasPayments') };
 
   const now = new Date().toISOString();
@@ -341,13 +342,13 @@ export async function deleteExpenseTemplate(templateId: string, locale: string):
     .update({ deleted_at: now })
     .eq('template_id', templateId)
     .eq('status', 'pending');
-  if (expensesError) return { error: expensesError.message };
+  if (expensesError) return { error: await friendlyError(expensesError) };
 
   const { error: templateError } = await supabase
     .from('condo_expense_templates')
     .update({ deleted_at: now })
     .eq('id', templateId);
-  if (templateError) return { error: templateError.message };
+  if (templateError) return { error: await friendlyError(templateError) };
 
   revalidatePath('/gastos');
   revalidatePath('/dashboard');

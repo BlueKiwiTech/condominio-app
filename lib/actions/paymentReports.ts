@@ -1,5 +1,6 @@
 'use server';
 
+import { friendlyError } from '@/lib/errors';
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
@@ -48,7 +49,7 @@ export async function rejectPaymentReport(reportId: string, locale: string, reas
     .from('condo_payment_reports')
     .update({ status: 'rejected', rejection_reason: reason?.trim() || null })
     .eq('id', reportId);
-  if (error) return { error: error.message };
+  if (error) return { error: await friendlyError(error) };
 
   await logAudit(supabase, {
     userId,
@@ -99,7 +100,7 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
     .select('house_id, amount, currency, payment_date, reference, notes, installment_ids, status')
     .eq('id', reportId)
     .maybeSingle();
-  if (fetchError) return { error: fetchError.message };
+  if (fetchError) return { error: await friendlyError(fetchError) };
   const report = reportData as ReportForConfirm | null;
   if (!report) return { error: tc('invalidData') };
   if (report.status !== 'pending') return { error: tc('invalidData') };
@@ -112,7 +113,7 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
       .eq('house_id', report.house_id)
       .neq('status', 'paid')
       .is('deleted_at', null);
-    if (pendingFetchError) return { error: pendingFetchError.message };
+    if (pendingFetchError) return { error: await friendlyError(pendingFetchError) };
     installmentIds = (pendingRows ?? []).map((r) => r.id as string);
   }
 
@@ -146,7 +147,7 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
       resulting_receipt_number: result.receiptNumber,
     })
     .eq('id', reportId);
-  if (updateError) return { error: updateError.message };
+  if (updateError) return { error: await friendlyError(updateError) };
 
   await logAudit(supabase, {
     userId,
@@ -178,6 +179,6 @@ export async function getReportScreenshotUrl(
 
   const service = createServiceClient();
   const { data, error } = await service.storage.from('payment-report-screenshots').createSignedUrl(path, 60 * 5);
-  if (error || !data) return { error: error?.message ?? tc('invalidData') };
+  if (error || !data) return { error: (error ? await friendlyError(error) : tc('invalidData')) };
   return { success: true, url: data.signedUrl };
 }

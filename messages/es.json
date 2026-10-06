@@ -2,7 +2,15 @@
   "common": {
     "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
     "invalidData": "Datos inválidos.",
-    "communityNotFound": "No se encontró la comunidad. Contacta soporte."
+    "communityNotFound": "No se encontró la comunidad. Contacta soporte.",
+    "dbErrors": {
+      "duplicate": "Ya existe un registro con esos datos.",
+      "inUse": "No se puede completar porque este registro está relacionado con otros datos.",
+      "invalidData": "Alguno de los datos ingresados no es válido. Revísalos e intenta de nuevo.",
+      "forbidden": "No tienes permiso para realizar esta acción.",
+      "tooManyRequests": "Demasiados intentos. Espera un momento e intenta de nuevo.",
+      "generic": "Ocurrió un error inesperado. Intenta de nuevo; si persiste, contacta al administrador."
+    }
   },
   "validation": {
     "auth": {
@@ -303,7 +311,8 @@
       "currency": "Moneda",
       "amount": "Monto",
       "effectiveFrom": "Aplicar desde (opcional)",
-      "effectiveFromPlaceholder": "Todas las pendientes"
+      "effectiveFromPlaceholder": "Todas las pendientes",
+      "startDate": "Fecha de inicio"
     },
     "new": {
       "heading": "Nueva cuota"
@@ -355,8 +364,11 @@
       "noHousesAvailable": "No hay casas registradas para asignar esta cuota.",
       "createFailed": "No se pudo crear la cuota.",
       "notFound": "Cuota no encontrada.",
-      "hasPayments": "No se puede eliminar: esta cuota ya tiene pagos registrados."
-    }
+      "hasPayments": "No se puede eliminar: esta cuota ya tiene pagos registrados.",
+      "startDateHasPayments": "No se puede cambiar la fecha de inicio: esta cuota ya tiene pagos registrados."
+    },
+    "startDateHelp": "Al cambiarla, se recalculan las fechas de vencimiento de todas las cuotas generadas.",
+    "startDateLocked": "La fecha de inicio no se puede cambiar porque esta cuota ya tiene pagos registrados."
   },
   "gastos": {
     "heading": "Gastos",
@@ -708,7 +720,7 @@
       "heading": "Abonar a mi cartera",
       "intro": "Cuéntale a la junta que ya hiciste un abono a tu cartera. Esto no marca tu cuota como pagada al instante — la junta lo revisa y lo confirma.",
       "whichCuotas": "Tus cuotas pendientes",
-  "totalOverdue": "Total vencido",
+      "totalOverdue": "Total vencido",
       "fields": {
         "currency": "Moneda",
         "amount": "Monto",

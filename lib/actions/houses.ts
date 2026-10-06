@@ -1,5 +1,6 @@
 'use server';
 
+import { friendlyError } from '@/lib/errors';
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
@@ -71,7 +72,7 @@ export async function createHouse(input: CreateHouseInput, locale: string): Prom
     .single();
   if (error) {
     if (error.code === '23505') return { error: th('errors.duplicateHouseNumber') };
-    return { error: error.message };
+    return { error: await friendlyError(error) };
   }
 
   // Best-effort, same non-transactional convention as the rest of this file
@@ -81,7 +82,7 @@ export async function createHouse(input: CreateHouseInput, locale: string): Prom
     const { error: phonesError } = await supabase
       .from('condo_house_phones')
       .insert(extraPhones.map((p) => ({ house_id: newHouse.id, phone: p.phone })));
-    if (phonesError) return { error: phonesError.message };
+    if (phonesError) return { error: await friendlyError(phonesError) };
   }
 
   revalidatePath('/houses');
@@ -127,7 +128,7 @@ export async function updateHouse(
   const { error } = await supabase.from('condo_houses').update(patch).eq('id', houseId);
   if (error) {
     if (error.code === '23505') return { error: th('errors.duplicateHouseNumber') };
-    return { error: error.message };
+    return { error: await friendlyError(error) };
   }
 
   // Wholesale replace: simplest correct approach for a small form-scoped
@@ -141,7 +142,7 @@ export async function updateHouse(
     .from('condo_house_phones')
     .select('id')
     .eq('house_id', houseId);
-  if (oldPhonesError) return { error: oldPhonesError.message };
+  if (oldPhonesError) return { error: await friendlyError(oldPhonesError) };
   const oldPhoneIds = (oldPhoneRows ?? []).map((r) => r.id as string);
 
   const extraPhones = parsed.data.extra_phones ?? [];
@@ -149,11 +150,11 @@ export async function updateHouse(
     const { error: phonesError } = await supabase
       .from('condo_house_phones')
       .insert(extraPhones.map((p) => ({ house_id: houseId, phone: p.phone })));
-    if (phonesError) return { error: phonesError.message };
+    if (phonesError) return { error: await friendlyError(phonesError) };
   }
   if (oldPhoneIds.length > 0) {
     const { error: deleteOldPhonesError } = await supabase.from('condo_house_phones').delete().in('id', oldPhoneIds);
-    if (deleteOldPhonesError) return { error: deleteOldPhonesError.message };
+    if (deleteOldPhonesError) return { error: await friendlyError(deleteOldPhonesError) };
   }
 
   revalidatePath('/houses');
@@ -175,7 +176,7 @@ export async function deleteHouse(houseId: string, locale: string): Promise<Acti
     if (error.code === '23503') {
       return { error: th('errors.hasReferences') };
     }
-    return { error: error.message };
+    return { error: await friendlyError(error) };
   }
 
   revalidatePath('/houses');
@@ -198,7 +199,7 @@ export async function addResident(houseId: string, input: ResidentInput, locale:
     resident_name: parsed.data.resident_name,
     resident_phone: normalizeOptional(parsed.data.resident_phone),
   });
-  if (error) return { error: error.message };
+  if (error) return { error: await friendlyError(error) };
 
   revalidatePath('/houses');
   return { success: true };
@@ -210,7 +211,7 @@ export async function deleteResident(residentId: string, locale: string): Promis
   if (authError || !supabase) return { error: authError! };
 
   const { error } = await supabase.from('condo_house_residents').delete().eq('id', residentId);
-  if (error) return { error: error.message };
+  if (error) return { error: await friendlyError(error) };
 
   revalidatePath('/houses');
   return { success: true };

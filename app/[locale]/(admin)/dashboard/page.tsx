@@ -47,7 +47,7 @@ export default async function DashboardPage() {
       {queryError && (
         <div className="p-4 md:p-8">
           <Alert variant="destructive">
-            <AlertDescription>Error al cargar el dashboard: {queryError.message}</AlertDescription>
+            <AlertDescription>Error al cargar el dashboard. Intenta recargar la página; si persiste, contacta al administrador.</AlertDescription>
           </Alert>
         </div>
       )}

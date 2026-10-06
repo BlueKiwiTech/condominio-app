@@ -34,6 +34,7 @@
 // created for an unrelated cuota would silently hide real morosos, which
 // PLAN.md's core value (accurate morosos/saldo tracking) explicitly cares
 // about getting right over convenience.
+import { friendlyError } from '@/lib/errors';
 import { randomUUID } from 'crypto';
 import type { createClient } from '@/lib/supabase/server';
 import { allocateFundsFullOrNothing, sortOldestFirst, type AllocatableInstallment } from './allocate';
@@ -74,7 +75,7 @@ export async function setHouseCredit(
       { house_id: houseId, currency, balance, updated_at: new Date().toISOString() },
       { onConflict: 'house_id,currency' },
     );
-  return { error: error?.message ?? null };
+  return { error: error ? await friendlyError(error) : null };
 }
 
 /**
@@ -121,8 +122,8 @@ export async function sweepStaleCreditsAgainstVencidaInstallments(
       .is('deleted_at', null)
       .lte('due_date', today),
   ]);
-  if (creditError) return { error: creditError.message, sweepErrors: [] };
-  if (instError) return { error: instError.message, sweepErrors: [] };
+  if (creditError) return { error: await friendlyError(creditError), sweepErrors: [] };
+  if (instError) return { error: await friendlyError(instError), sweepErrors: [] };
 
   type InstallmentRow = AllocatableInstallment & { house_id: string; currency: Currency };
   const byHouseCurrency = new Map<string, AllocatableInstallment[]>();
@@ -192,7 +193,7 @@ export async function sweepCreditForNewInstallments(
   if (allocations.length === 0) return { error: null };
 
   const { data: receiptData, error: receiptError } = await supabase.rpc('condo_next_receipt_number');
-  if (receiptError) return { error: receiptError.message };
+  if (receiptError) return { error: await friendlyError(receiptError) };
   const receiptNumber = receiptData as number;
   const batchId = randomUUID();
 
@@ -210,14 +211,14 @@ export async function sweepCreditForNewInstallments(
   }));
 
   const { error: paymentsError } = await supabase.from('condo_payments').insert(paymentRows);
-  if (paymentsError) return { error: paymentsError.message };
+  if (paymentsError) return { error: await friendlyError(paymentsError) };
 
   for (const a of allocations) {
     const { error: updateError } = await supabase
       .from('condo_installments')
       .update({ amount_paid: a.newAmountPaid, status: a.newStatus })
       .eq('id', a.installment_id);
-    if (updateError) return { error: updateError.message };
+    if (updateError) return { error: await friendlyError(updateError) };
   }
 
   const { error: creditError } = await setHouseCredit(supabase, houseId, currency, leftoverCents / 100);
