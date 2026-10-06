@@ -265,6 +265,42 @@ export async function updateInstallmentTemplate(
   if (fetchError) return { error: await friendlyError(fetchError) };
   if (!template) return { error: tq('errors.notFound') };
 
+  // Once ANY payment exists against ANY of this cuota's installments, only the
+  // description is editable (2026-10-06 user decision) -- name, amount,
+  // currency and start date are locked. The dialog sends the untouched
+  // original values for locked fields, so a mismatch here means a stale/forged
+  // submit and is rejected rather than silently ignored.
+  const { data: templateInstallmentRows, error: installmentIdsError } = await supabase
+    .from('condo_installments')
+    .select('id')
+    .eq('template_id', templateId);
+  if (installmentIdsError) return { error: await friendlyError(installmentIdsError) };
+  const templateInstallmentIds = (templateInstallmentRows ?? []).map((r) => r.id as string);
+  let hasPayments = false;
+  if (templateInstallmentIds.length > 0) {
+    const { count, error: paymentsCountError } = await supabase
+      .from('condo_payments')
+      .select('id', { count: 'exact', head: true })
+      .in('installment_id', templateInstallmentIds);
+    if (paymentsCountError) return { error: await friendlyError(paymentsCountError) };
+    hasPayments = !!count && count > 0;
+  }
+  if (hasPayments) {
+    const changesLockedField =
+      data.name !== template.name ||
+      data.currency !== template.currency ||
+      (!template.is_divided && data.amount !== template.amount) ||
+      (!!data.start_date && data.start_date !== template.start_date);
+    if (changesLockedField) return { error: tq('errors.lockedByPayments') };
+    const { error: descriptionError } = await supabase
+      .from('condo_installment_templates')
+      .update({ description: normalizeOptional(data.description) })
+      .eq('id', templateId);
+    if (descriptionError) return { error: await friendlyError(descriptionError) };
+    revalidatePath('/cuotas');
+    return { success: true };
+  }
+
   // Divided special cuotas have per-installment fractional amounts (see
   // lib/validation/cuotas.ts's updateTemplateSchema comment) — re-splitting
   // an edited total safely would need to reconcile already-generated rows,

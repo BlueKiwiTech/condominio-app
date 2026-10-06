@@ -178,7 +178,8 @@
       "pendingExpenses": {
         "title": "Pending expenses in {month}",
         "empty": "No pending expenses this month."
-      }
+      },
+      "scope": "Overdue and current-month cuotas"
     },
     "chart": {
       "heading": "Income — last 6 months",
@@ -365,10 +366,12 @@
       "createFailed": "Couldn't create the cuota.",
       "notFound": "Cuota not found.",
       "hasPayments": "Can't delete: this cuota already has payments registered.",
-      "startDateHasPayments": "Can't change the start date: this cuota already has payments registered."
+      "startDateHasPayments": "Can't change the start date: this cuota already has payments registered.",
+      "lockedByPayments": "This cuota already has payments: only the description can be edited."
     },
     "startDateHelp": "Changing it recalculates the due dates of every generated installment.",
-    "startDateLocked": "The start date can't be changed because this cuota already has payments registered."
+    "startDateLocked": "The start date can't be changed because this cuota already has payments registered.",
+    "editLockedByPayments": "This cuota already has payments, so only the description can be edited."
   },
   "gastos": {
     "heading": "Expenses",

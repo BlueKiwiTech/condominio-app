@@ -178,7 +178,8 @@
       "pendingExpenses": {
         "title": "Gastos pendientes en {month}",
         "empty": "Sin gastos pendientes este mes."
-      }
+      },
+      "scope": "Cuotas vencidas y del mes en curso"
     },
     "chart": {
       "heading": "Ingresos — últimos 6 meses",
@@ -365,10 +366,12 @@
       "createFailed": "No se pudo crear la cuota.",
       "notFound": "Cuota no encontrada.",
       "hasPayments": "No se puede eliminar: esta cuota ya tiene pagos registrados.",
-      "startDateHasPayments": "No se puede cambiar la fecha de inicio: esta cuota ya tiene pagos registrados."
+      "startDateHasPayments": "No se puede cambiar la fecha de inicio: esta cuota ya tiene pagos registrados.",
+      "lockedByPayments": "Esta cuota ya tiene pagos registrados: solo se puede editar la descripción."
     },
     "startDateHelp": "Al cambiarla, se recalculan las fechas de vencimiento de todas las cuotas generadas.",
-    "startDateLocked": "La fecha de inicio no se puede cambiar porque esta cuota ya tiene pagos registrados."
+    "startDateLocked": "La fecha de inicio no se puede cambiar porque esta cuota ya tiene pagos registrados.",
+    "editLockedByPayments": "Esta cuota ya tiene pagos registrados, por lo que solo se puede editar la descripción."
   },
   "gastos": {
     "heading": "Gastos",

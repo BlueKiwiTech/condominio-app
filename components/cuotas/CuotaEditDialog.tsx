@@ -70,9 +70,11 @@ export function CuotaEditDialog({
   const [effectiveFrom, setEffectiveFrom] = useState<Date | undefined>(
     undefined,
   );
-  // Start date is only editable while nothing has been paid against this
-  // cuota (the server re-checks against condo_payments, the source of truth).
-  const startDateLocked = template.condo_installments.some(
+  // With any payment against this cuota, only the description is editable:
+  // name, currency, amount and start date lock (the server re-checks against
+  // condo_payments, the source of truth -- a paid/partial installment is just
+  // the client-side hint).
+  const fieldsLocked = template.condo_installments.some(
     (i) => i.status !== "pending",
   );
   const [startDate, setStartDate] = useState<Date>(() =>
@@ -117,7 +119,7 @@ export function CuotaEditDialog({
       const payload = {
         ...data,
         effective_from: effectiveFrom ? toDateOnly(effectiveFrom) : "",
-        start_date: startDateLocked ? "" : toDateOnly(startDate),
+        start_date: fieldsLocked ? "" : toDateOnly(startDate),
       };
       const result = await updateInstallmentTemplate(
         template.id,
@@ -147,6 +149,11 @@ export function CuotaEditDialog({
               <AlertDescription>{serverError}</AlertDescription>
             </Alert>
           )}
+          {fieldsLocked && (
+            <Alert>
+              <AlertDescription>{t("editLockedByPayments")}</AlertDescription>
+            </Alert>
+          )}
           {template.is_divided && (
             <Alert>
               <AlertDescription>
@@ -162,6 +169,7 @@ export function CuotaEditDialog({
                 <Label htmlFor="name">{t("fields.name")}</Label>
                 <Input
                   id="name"
+                  disabled={fieldsLocked}
                   value={field.value ?? ""}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
@@ -200,6 +208,7 @@ export function CuotaEditDialog({
                   value={field.value}
                   onValueChange={field.onChange}
                   items={CURRENCY_SELECT_OPTIONS}
+                  disabled={fieldsLocked}
                 >
                   <SelectTrigger id="currency" className="w-full">
                     <SelectValue />
@@ -229,7 +238,7 @@ export function CuotaEditDialog({
                 <Input
                   id="amount"
                   type="number"
-                  disabled={template.is_divided}
+                  disabled={template.is_divided || fieldsLocked}
                   value={field.value as number}
                   onChange={(e) => field.onChange(e.target.valueAsNumber)}
                   aria-invalid={!!errors.amount}
@@ -247,10 +256,10 @@ export function CuotaEditDialog({
             label={t("fields.startDate")}
             value={startDate}
             onChange={(date) => setStartDate(date)}
-            disabled={startDateLocked}
+            disabled={fieldsLocked}
           />
           <p className="text-xs text-muted-foreground">
-            {startDateLocked ? t("startDateLocked") : t("startDateHelp")}
+            {fieldsLocked ? t("startDateLocked") : t("startDateHelp")}
           </p>
           {SHOW_EFFECTIVE_FROM && !template.is_divided && (
             <>
