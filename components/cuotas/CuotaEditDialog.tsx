@@ -41,6 +41,12 @@ import { formatShortDate } from "@/lib/dateFormat";
 import { CURRENCY_SELECT_OPTIONS, formatAmount } from "@/lib/currency";
 import type { TemplateWithInstallments } from "./types";
 
+// "Aplicar desde (opcional)" is hidden for now (2026-10-06 user request: not
+// being used) -- the field, state and server support are all kept; flip this
+// to true to bring it back. Hidden, effectiveFrom stays undefined, so a price
+// change applies to every unpaid installment (the schema's default).
+const SHOW_EFFECTIVE_FROM = false;
+
 // Edit is intentionally narrow — see lib/validation/cuotas.ts's
 // updateTemplateSchema comment: structural fields (cadence, dates,
 // installment count, house targeting) aren't editable after creation.
@@ -246,7 +252,7 @@ export function CuotaEditDialog({
           <p className="text-xs text-muted-foreground">
             {startDateLocked ? t("startDateLocked") : t("startDateHelp")}
           </p>
-          {!template.is_divided && (
+          {SHOW_EFFECTIVE_FROM && !template.is_divided && (
             <>
               <DateInput
                 id="effective_from"
