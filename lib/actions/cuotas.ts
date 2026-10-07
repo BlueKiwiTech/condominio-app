@@ -1,6 +1,8 @@
 'use server';
 
+import { friendlyError } from '@/lib/errors';
 import { revalidatePath } from 'next/cache';
+import { addDays, differenceInCalendarDays } from 'date-fns';
 import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -16,6 +18,8 @@ import {
   parseDateOnly,
   splitAmount,
   toDateOnly,
+  type Cadence,
+  type Currency,
   type DueDateMode,
 } from '@/lib/cuotas/generate';
 import { generateRecurringCuotaInstallments, type OpenEndedRecurringTemplate } from '@/lib/cuotas/recurringGeneration';
@@ -73,7 +77,7 @@ export async function createInstallmentTemplate(input: CreateTemplateInput, loca
   let houseIds = data.applicable_houses;
   if (houseIds.length === 0) {
     const { data: allHouses, error: housesError } = await supabase.from('condo_houses').select('id');
-    if (housesError) return { error: housesError.message };
+    if (housesError) return { error: await friendlyError(housesError) };
     houseIds = (allHouses ?? []).map((h) => h.id as string);
   }
   if (houseIds.length === 0) return { error: tq('errors.noHousesAvailable') };
@@ -98,7 +102,7 @@ export async function createInstallmentTemplate(input: CreateTemplateInput, loca
       .select('id')
       .single();
 
-    if (templateError || !template) return { error: templateError?.message ?? tq('errors.createFailed') };
+    if (templateError || !template) return { error: (templateError ? await friendlyError(templateError) : tq('errors.createFailed')) };
 
     const openEndedTemplate: OpenEndedRecurringTemplate = {
       id: template.id as string,
@@ -171,7 +175,7 @@ export async function createInstallmentTemplate(input: CreateTemplateInput, loca
     .select('id')
     .single();
 
-  if (templateError || !template) return { error: templateError?.message ?? tq('errors.createFailed') };
+  if (templateError || !template) return { error: (templateError ? await friendlyError(templateError) : tq('errors.createFailed')) };
 
   const rows = buildInstallmentRows({
     name: data.name,
@@ -199,7 +203,7 @@ export async function createInstallmentTemplate(input: CreateTemplateInput, loca
 
   if (installmentsError) {
     await supabase.from('condo_installment_templates').delete().eq('id', template.id);
-    return { error: installmentsError.message };
+    return { error: await friendlyError(installmentsError) };
   }
 
   // PLAN.md Phase 5 decision: a house's saldo a favor (credit) is
@@ -255,11 +259,47 @@ export async function updateInstallmentTemplate(
 
   const { data: template, error: fetchError } = await supabase
     .from('condo_installment_templates')
-    .select('id, is_divided, amount')
+    .select('id, name, is_divided, amount, currency, installment_type, cadence, number_of_installments, start_date, applicable_houses, active')
     .eq('id', templateId)
     .maybeSingle();
-  if (fetchError) return { error: fetchError.message };
+  if (fetchError) return { error: await friendlyError(fetchError) };
   if (!template) return { error: tq('errors.notFound') };
+
+  // Once ANY payment exists against ANY of this cuota's installments, only the
+  // description is editable (2026-10-06 user decision) -- name, amount,
+  // currency and start date are locked. The dialog sends the untouched
+  // original values for locked fields, so a mismatch here means a stale/forged
+  // submit and is rejected rather than silently ignored.
+  const { data: templateInstallmentRows, error: installmentIdsError } = await supabase
+    .from('condo_installments')
+    .select('id')
+    .eq('template_id', templateId);
+  if (installmentIdsError) return { error: await friendlyError(installmentIdsError) };
+  const templateInstallmentIds = (templateInstallmentRows ?? []).map((r) => r.id as string);
+  let hasPayments = false;
+  if (templateInstallmentIds.length > 0) {
+    const { count, error: paymentsCountError } = await supabase
+      .from('condo_payments')
+      .select('id', { count: 'exact', head: true })
+      .in('installment_id', templateInstallmentIds);
+    if (paymentsCountError) return { error: await friendlyError(paymentsCountError) };
+    hasPayments = !!count && count > 0;
+  }
+  if (hasPayments) {
+    const changesLockedField =
+      data.name !== template.name ||
+      data.currency !== template.currency ||
+      (!template.is_divided && data.amount !== template.amount) ||
+      (!!data.start_date && data.start_date !== template.start_date);
+    if (changesLockedField) return { error: tq('errors.lockedByPayments') };
+    const { error: descriptionError } = await supabase
+      .from('condo_installment_templates')
+      .update({ description: normalizeOptional(data.description) })
+      .eq('id', templateId);
+    if (descriptionError) return { error: await friendlyError(descriptionError) };
+    revalidatePath('/cuotas');
+    return { success: true };
+  }
 
   // Divided special cuotas have per-installment fractional amounts (see
   // lib/validation/cuotas.ts's updateTemplateSchema comment) — re-splitting
@@ -281,7 +321,7 @@ export async function updateInstallmentTemplate(
     .from('condo_installment_templates')
     .update(templatePatch)
     .eq('id', templateId);
-  if (templateUpdateError) return { error: templateUpdateError.message };
+  if (templateUpdateError) return { error: await friendlyError(templateUpdateError) };
 
   // PLAN.md Phase 4 decision: editing a template "updates all unpaid future
   // installments already generated from it (paid installments are
@@ -298,7 +338,30 @@ export async function updateInstallmentTemplate(
     installmentsQuery = installmentsQuery.gte('due_date', data.effective_from);
   }
   const { error: installmentsUpdateError } = await installmentsQuery;
-  if (installmentsUpdateError) return { error: installmentsUpdateError.message };
+  if (installmentsUpdateError) return { error: await friendlyError(installmentsUpdateError) };
+
+  if (data.start_date && data.start_date !== template.start_date) {
+    const startDateError = await changeTemplateStartDate(
+      supabase,
+      {
+        id: templateId,
+        name: data.name,
+        installment_type: template.installment_type as 'recurring' | 'special',
+        cadence: template.cadence as Cadence | null,
+        amount: template.is_divided ? (template.amount as number) : data.amount,
+        currency: data.currency,
+        number_of_installments: template.number_of_installments as number | null,
+        is_divided: template.is_divided as boolean,
+        old_start_date: template.start_date as string,
+        applicable_houses: template.applicable_houses as string[],
+        active: template.active as boolean,
+        created_by: userId,
+      },
+      data.start_date,
+      tq('errors.startDateHasPayments'),
+    );
+    if (startDateError) return { error: startDateError };
+  }
 
   // Bitácora de cambios de precio: log every actual amount change instead of
   // silently overwriting it, so the admin can see when/why a cuota's price
@@ -316,6 +379,115 @@ export async function updateInstallmentTemplate(
 
   revalidatePath('/cuotas');
   return { success: true };
+}
+
+/**
+ * Moves a template's start date and recomputes every generated installment's
+ * due date from it (2026-10-06: the edit form used to have no way to correct
+ * a wrong start date). Only allowed while NO payment exists against any of the
+ * template's installments (same rule as deleting -- CUOT-06), which also
+ * guarantees no credit sweep touched them. Open-ended recurring templates are
+ * wiped and regenerated through the normal horizon generator (moving the
+ * start earlier can add periods, later can drop them); every other kind is
+ * re-dated in place so installment ids/numbers stay stable. Returns an error
+ * string, or null on success.
+ */
+async function changeTemplateStartDate(
+  supabase: SupabaseClient,
+  template: {
+    id: string;
+    name: string;
+    installment_type: 'recurring' | 'special';
+    cadence: Cadence | null;
+    amount: number;
+    currency: Currency;
+    number_of_installments: number | null;
+    is_divided: boolean;
+    old_start_date: string;
+    applicable_houses: string[];
+    active: boolean;
+    created_by: string | null;
+  },
+  newStartDate: string,
+  hasPaymentsMessage: string,
+): Promise<string | null> {
+  const { data: rows, error: rowsError } = await supabase
+    .from('condo_installments')
+    .select('id, installment_number, due_date')
+    .eq('template_id', template.id);
+  if (rowsError) return friendlyError(rowsError);
+  const ids = (rows ?? []).map((r) => r.id as string);
+
+  if (ids.length > 0) {
+    const { count, error: paymentsError } = await supabase
+      .from('condo_payments')
+      .select('id', { count: 'exact', head: true })
+      .in('installment_id', ids);
+    if (paymentsError) return friendlyError(paymentsError);
+    if (count && count > 0) return hasPaymentsMessage;
+  }
+
+  const newStart = parseDateOnly(newStartDate);
+  const isOpenEndedRecurring = template.installment_type === 'recurring' && template.number_of_installments === null;
+
+  if (isOpenEndedRecurring) {
+    const { error: deleteError } = await supabase.from('condo_installments').delete().eq('template_id', template.id);
+    if (deleteError) return friendlyError(deleteError);
+    const { error: startError } = await supabase
+      .from('condo_installment_templates')
+      .update({ start_date: newStartDate })
+      .eq('id', template.id);
+    if (startError) return friendlyError(startError);
+    // An inactive template stays empty; the generator picks it up from the new
+    // start date whenever it's reactivated.
+    if (!template.active) return null;
+    const { error: generationError } = await generateRecurringCuotaInstallments(
+      supabase,
+      {
+        id: template.id,
+        name: template.name,
+        cadence: template.cadence as Cadence,
+        amount: template.amount,
+        currency: template.currency,
+        start_date: newStartDate,
+        applicable_houses: template.applicable_houses,
+        created_by: template.created_by,
+      },
+      computeHorizonEnd(new Date()),
+    );
+    return generationError;
+  }
+
+  // In place: one UPDATE per distinct installment_number (a number is shared
+  // by every house's row), never one per row.
+  const byNumber = new Map<number, string>();
+  for (const r of rows ?? []) byNumber.set(r.installment_number as number, r.due_date as string);
+  const dayShift = differenceInCalendarDays(newStart, parseDateOnly(template.old_start_date));
+  const maxNumber = Math.max(0, ...byNumber.keys());
+  const recurringDates =
+    template.installment_type === 'recurring' && template.cadence
+      ? computeDueDates({ kind: 'recurring', cadence: template.cadence }, newStart, maxNumber)
+      : null;
+
+  for (const [installmentNumber, oldDue] of byNumber) {
+    let newDue: Date;
+    if (recurringDates) newDue = recurringDates[installmentNumber - 1];
+    else if (!template.is_divided) newDue = newStart; // special-single
+    else newDue = addDays(parseDateOnly(oldDue), dayShift); // special-divided keeps its admin-set spacing
+    const { error: updateError } = await supabase
+      .from('condo_installments')
+      .update({ due_date: toDateOnly(newDue) })
+      .eq('template_id', template.id)
+      .eq('installment_number', installmentNumber);
+    if (updateError) return friendlyError(updateError);
+  }
+
+  const { error: startError } = await supabase
+    .from('condo_installment_templates')
+    .update({ start_date: newStartDate })
+    .eq('id', template.id);
+  if (startError) return friendlyError(startError);
+  return null;
 }
 
 export type PriceHistoryEntry = {
@@ -340,7 +512,7 @@ export async function getPriceHistory(
     .select('id, old_amount, new_amount, effective_from, changed_at')
     .eq('template_id', templateId)
     .order('changed_at', { ascending: false });
-  if (error) return { error: error.message };
+  if (error) return { error: await friendlyError(error) };
 
   return { success: true, entries: (data ?? []) as PriceHistoryEntry[] };
 }
@@ -358,7 +530,7 @@ export async function deleteInstallmentTemplate(templateId: string, locale: stri
     .from('condo_installments')
     .select('id')
     .eq('template_id', templateId);
-  if (idsError) return { error: idsError.message };
+  if (idsError) return { error: await friendlyError(idsError) };
   const ids = (installmentRows ?? []).map((r) => r.id as string);
 
   if (ids.length > 0) {
@@ -366,7 +538,7 @@ export async function deleteInstallmentTemplate(templateId: string, locale: stri
       .from('condo_payments')
       .select('id', { count: 'exact', head: true })
       .in('installment_id', ids);
-    if (paymentsError) return { error: paymentsError.message };
+    if (paymentsError) return { error: await friendlyError(paymentsError) };
     if (count && count > 0) {
       return { error: tq('errors.hasPayments') };
     }
@@ -376,13 +548,13 @@ export async function deleteInstallmentTemplate(templateId: string, locale: stri
     .from('condo_installments')
     .delete()
     .eq('template_id', templateId);
-  if (deleteInstallmentsError) return { error: deleteInstallmentsError.message };
+  if (deleteInstallmentsError) return { error: await friendlyError(deleteInstallmentsError) };
 
   const { error: deleteTemplateError } = await supabase
     .from('condo_installment_templates')
     .delete()
     .eq('id', templateId);
-  if (deleteTemplateError) return { error: deleteTemplateError.message };
+  if (deleteTemplateError) return { error: await friendlyError(deleteTemplateError) };
 
   revalidatePath('/cuotas');
   return { success: true };
@@ -398,7 +570,7 @@ export async function setInstallmentTemplateActive(
   if (authError || !supabase) return { error: authError! };
 
   const { error } = await supabase.from('condo_installment_templates').update({ active }).eq('id', templateId);
-  if (error) return { error: error.message };
+  if (error) return { error: await friendlyError(error) };
 
   // Deactivating voids every still-pending (untouched, unpaid) installment
   // already generated for this template -- they disappear from every
@@ -413,7 +585,7 @@ export async function setInstallmentTemplateActive(
       .eq('template_id', templateId)
       .eq('status', 'pending')
       .is('deleted_at', null);
-    if (voidError) return { error: voidError.message };
+    if (voidError) return { error: await friendlyError(voidError) };
   }
 
   revalidatePath('/cuotas');

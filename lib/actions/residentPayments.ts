@@ -1,5 +1,6 @@
 'use server';
 
+import { friendlyError } from '@/lib/errors';
 import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
@@ -72,7 +73,7 @@ export async function reportPayment(
     const { error: uploadError } = await supabase.storage
       .from(SCREENSHOT_BUCKET)
       .upload(path, screenshot, { contentType: screenshot.type });
-    if (uploadError) return { error: uploadError.message };
+    if (uploadError) return { error: await friendlyError(uploadError) };
     screenshotPath = path;
   }
 
@@ -86,7 +87,7 @@ export async function reportPayment(
     installment_ids: verifiedInstallmentIds,
     screenshot_path: screenshotPath,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: await friendlyError(error) };
 
   revalidatePath('/mi-hogar');
   revalidatePath('/mi-cartera');

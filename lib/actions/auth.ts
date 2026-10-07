@@ -1,5 +1,6 @@
 'use server';
 
+import { friendlyError } from '@/lib/errors';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
@@ -83,7 +84,7 @@ export async function signup(input: SignupInput, locale: string): Promise<Action
     email,
     password: parsed.data.password,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: await friendlyError(error) };
   if (!data.user) return { error: ta('errors.signupFailed') };
 
   await linkAdminToCommunity(data.user.id);
@@ -132,7 +133,7 @@ export async function resendVerificationEmail(email: string, locale: string): Pr
   if (!email) return { error: ta('errors.missingEmail') };
   const supabase = await createClient();
   const { error } = await supabase.auth.resend({ type: 'signup', email });
-  if (error) return { error: error.message };
+  if (error) return { error: await friendlyError(error) };
 }
 
 export async function forgotPassword(input: ForgotPasswordInput, locale: string): Promise<ActionResult> {
@@ -174,7 +175,7 @@ export async function resetPassword(input: ResetPasswordInput, locale: string): 
   }
 
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
-  if (error) return { error: error.message };
+  if (error) return { error: await friendlyError(error) };
 
   await supabase.auth.signOut();
   redirect('/login?resetSuccess=1');

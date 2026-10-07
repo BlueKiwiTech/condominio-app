@@ -1,5 +1,6 @@
 'use server';
 
+import { friendlyError } from '@/lib/errors';
 import { revalidatePath } from 'next/cache';
 import { subMonths } from 'date-fns';
 import { getTranslations } from 'next-intl/server';
@@ -138,7 +139,7 @@ export async function setExchangeRate(rateType: ExchangeRateType, rate: number, 
   const { error } = await supabase
     .from('condo_exchange_rates')
     .insert({ rate_type: rateType, rate, source: 'admin', updated_by: userId });
-  if (error) return { error: error.message };
+  if (error) return { error: await friendlyError(error) };
 
   revalidatePath('/dashboard');
   return { success: true };

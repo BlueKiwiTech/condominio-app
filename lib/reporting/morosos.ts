@@ -41,19 +41,31 @@ export type MorosoRow = {
   daysOverdue: number;
 };
 
+/**
+ * `dueBy` (optional): switches the inclusion rule from "overdue by more than
+ * the grace period" to "due on or before `dueBy`" (grace period ignored) --
+ * used by the admin dashboard (2026-10-06 user decision) so "Morosos" and
+ * "Saldo pendiente" share the same scope: everything already due plus
+ * whatever else falls due before the end of the current month. Omitted (the
+ * resident's Mi hogar), the original grace-period rule applies unchanged.
+ */
 export function computeMorosos(
   installments: InstallmentForMorosos[],
   houses: HouseInfo[],
   gracePeriodDays: number,
   today: Date = new Date(),
+  dueBy?: Date,
 ): MorosoRow[] {
   const houseById = new Map(houses.map((h) => [h.id, h]));
   const groups = new Map<string, { houseId: string; currency: Currency; owed: number; earliestDue: string }>();
 
   for (const inst of installments) {
     if (inst.status === 'paid') continue;
-    const daysPastDue = differenceInCalendarDays(today, parseISO(inst.due_date));
-    if (daysPastDue <= gracePeriodDays) continue;
+    if (dueBy) {
+      if (parseISO(inst.due_date).getTime() > dueBy.getTime()) continue;
+    } else if (differenceInCalendarDays(today, parseISO(inst.due_date)) <= gracePeriodDays) {
+      continue;
+    }
 
     const owedAmount = inst.amount - inst.amount_paid;
     if (owedAmount <= 0) continue;
@@ -79,7 +91,7 @@ export function computeMorosos(
       currency: g.currency,
       owed: g.owed,
       owedSince: g.earliestDue,
-      daysOverdue: differenceInCalendarDays(today, parseISO(g.earliestDue)),
+      daysOverdue: Math.max(0, differenceInCalendarDays(today, parseISO(g.earliestDue))),
     });
   }
   return rows.sort((a, b) => b.daysOverdue - a.daysOverdue);

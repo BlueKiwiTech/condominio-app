@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { format, subMonths } from 'date-fns';
+import { endOfMonth, format, subMonths } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import { CartesianGrid, Line, LineChart as RechartsLineChart, XAxis } from 'recharts';
 import { Link } from '@/i18n/navigation';
@@ -82,11 +82,11 @@ export function DashboardPageClient({
 
   const collectedThisMonth = useMemo(() => collectedInMonth(payments, today), [payments, today]);
   const collectedLastMonth = useMemo(() => collectedInMonth(payments, subMonths(today, 1)), [payments, today]);
-  const outstanding = useMemo(() => outstandingByCurrency(installments), [installments]);
+  const outstanding = useMemo(() => outstandingByCurrency(installments, today), [installments, today]);
   const pendingExpenses = useMemo(() => pendingExpensesInMonth(expenses, today), [expenses, today]);
 
   const morosos = useMemo(
-    () => computeMorosos(installments, houses, gracePeriodDays, today),
+    () => computeMorosos(installments, houses, gracePeriodDays, today, endOfMonth(today)),
     [installments, houses, gracePeriodDays, today],
   );
   const morososHouseCount = useMemo(() => countDelinquentHouses(morosos), [morosos]);
@@ -138,6 +138,7 @@ export function DashboardPageClient({
             <span className="text-xs font-medium text-muted-foreground">{t('kpis.morosos.title')}</span>
             <span className="text-2xl font-bold">{t('kpis.morosos.count', { count: morososHouseCount })}</span>
             <span className="text-xs text-muted-foreground">{t('kpis.morosos.of', { total: houses.length })}</span>
+            <span className="text-xs text-muted-foreground">{t('kpis.scope')}</span>
           </div>
         </StatCard>
 
@@ -145,6 +146,7 @@ export function DashboardPageClient({
           <div className="flex flex-col gap-2">
             <span className="text-xs font-medium text-muted-foreground">{t('kpis.outstanding.title')}</span>
             <CurrencyAmountList amounts={outstanding} emptyLabel={t('kpis.outstanding.empty')} />
+            <span className="text-xs text-muted-foreground">{t('kpis.scope')}</span>
           </div>
         </StatCard>
 

@@ -10,6 +10,7 @@
 // validation -- this function trusts installment_ids enough to re-fetch
 // them fresh from the DB (never trusts amounts), same as registerPayment
 // always did.
+import { friendlyError } from '@/lib/errors';
 import { randomUUID } from 'crypto';
 import { parseISO } from 'date-fns';
 import type { createClient } from '@/lib/supabase/server';
@@ -50,7 +51,7 @@ export async function applyPaymentAllocation(
     .select('id, house_id, currency, status, amount, amount_paid, due_date, installment_number')
     .in('id', params.installment_ids)
     .is('deleted_at', null);
-  if (fetchError) return { error: fetchError.message };
+  if (fetchError) return { error: await friendlyError(fetchError) };
 
   const installments = rawInstallments ?? [];
   // A shorter result than requested means some id is gone or was voided
@@ -82,21 +83,18 @@ export async function applyPaymentAllocation(
   if (allocationResult.blocked) return { error: errors.staleExchangeRate };
   const { allocations, leftoverCents } = allocationResult;
 
-  // A house with nothing currently selected/due (or, for a Bs payment,
-  // nothing within the 30-day conversion window) can still bank a deposit --
-  // the whole amount simply becomes (or tops up) saldo a favor, same as
-  // residents' own "Abonar a cartera" already allows. Only a real shortfall
-  // against ELIGIBLE cuotas (there WERE eligible installments but funds
-  // didn't cover any of them), or literally nothing received, is an error.
-  if (eligible.length > 0 && allocations.length === 0) {
-    return { error: errors.insufficientAmount };
-  }
-  if (installments.length === 0 && params.amount_received <= 0) {
+  // A deposit that doesn't fully cover ANY eligible cuota (full-or-nothing,
+  // e.g. $100 against an oldest cuota of $224) is never rejected
+  // (2026-10-06 user decision): the whole amount is banked as saldo a favor
+  // and gets applied automatically once enough accumulates. Same goes for a
+  // house with nothing currently selected/due or nothing inside the 30-day
+  // window. Only literally nothing received is an error.
+  if (params.amount_received <= 0) {
     return { error: errors.insufficientAmount };
   }
 
   const { data: receiptData, error: receiptError } = await supabase.rpc('condo_next_receipt_number');
-  if (receiptError) return { error: receiptError.message };
+  if (receiptError) return { error: await friendlyError(receiptError) };
   const receiptNumber = receiptData as number;
   const batchId = randomUUID();
 
@@ -165,14 +163,14 @@ export async function applyPaymentAllocation(
         [walletTopUpRow(params.amount_received)];
 
   const { error: paymentsError } = await supabase.from('condo_payments').insert(paymentRows);
-  if (paymentsError) return { error: paymentsError.message };
+  if (paymentsError) return { error: await friendlyError(paymentsError) };
 
   for (const a of allocations) {
     const { error: updateError } = await supabase
       .from('condo_installments')
       .update({ amount_paid: a.newAmountPaid, status: a.newStatus })
       .eq('id', a.installment_id);
-    if (updateError) return { error: updateError.message };
+    if (updateError) return { error: await friendlyError(updateError) };
   }
 
   const { error: creditError } = await setHouseCredit(supabase, params.house_id, params.currency, leftoverCents / 100);

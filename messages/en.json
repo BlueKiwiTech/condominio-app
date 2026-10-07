@@ -2,7 +2,15 @@
   "common": {
     "sessionExpired": "Your session expired. Log in again.",
     "invalidData": "Invalid data.",
-    "communityNotFound": "Community not found. Contact support."
+    "communityNotFound": "Community not found. Contact support.",
+    "dbErrors": {
+      "duplicate": "A record with those details already exists.",
+      "inUse": "This can't be completed because the record is linked to other data.",
+      "invalidData": "Some of the data entered isn't valid. Please check it and try again.",
+      "forbidden": "You don't have permission to do this.",
+      "tooManyRequests": "Too many attempts. Wait a moment and try again.",
+      "generic": "Something went wrong. Please try again; if it keeps happening, contact the administrator."
+    }
   },
   "validation": {
     "auth": {
@@ -170,7 +178,8 @@
       "pendingExpenses": {
         "title": "Pending expenses in {month}",
         "empty": "No pending expenses this month."
-      }
+      },
+      "scope": "Overdue and current-month cuotas"
     },
     "chart": {
       "heading": "Income — last 6 months",
@@ -303,7 +312,8 @@
       "currency": "Currency",
       "amount": "Amount",
       "effectiveFrom": "Apply starting from (optional)",
-      "effectiveFromPlaceholder": "All pending installments"
+      "effectiveFromPlaceholder": "All pending installments",
+      "startDate": "Start date"
     },
     "new": {
       "heading": "New cuota"
@@ -355,8 +365,13 @@
       "noHousesAvailable": "No houses registered to assign this cuota to.",
       "createFailed": "Couldn't create the cuota.",
       "notFound": "Cuota not found.",
-      "hasPayments": "Can't delete: this cuota already has payments registered."
-    }
+      "hasPayments": "Can't delete: this cuota already has payments registered.",
+      "startDateHasPayments": "Can't change the start date: this cuota already has payments registered.",
+      "lockedByPayments": "This cuota already has payments: only the description can be edited."
+    },
+    "startDateHelp": "Changing it recalculates the due dates of every generated installment.",
+    "startDateLocked": "The start date can't be changed because this cuota already has payments registered.",
+    "editLockedByPayments": "This cuota already has payments, so only the description can be edited."
   },
   "gastos": {
     "heading": "Expenses",
@@ -511,7 +526,7 @@
       "installmentsGone": "One or more selected cuotas no longer exist.",
       "mixedHouses": "All cuotas must belong to the same house.",
       "alreadyPaid": "One of the selected cuotas is already paid.",
-      "insufficientAmount": "The amount received doesn't cover any selected cuota.",
+      "insufficientAmount": "Enter an amount received greater than 0.",
       "staleExchangeRate": "The exchange rate needed to convert the wallet balance isn't up to date (or doesn't exist). Refresh the rate before confirming this report."
     },
     "table": {
@@ -708,7 +723,7 @@
       "heading": "Report a payment",
       "intro": "Let the board know you already made a payment. This doesn't mark your cuota as paid instantly — the board reviews and confirms it.",
       "whichCuotas": "Your pending cuotas",
-  "totalOverdue": "Total overdue payments",
+      "totalOverdue": "Total overdue payments",
       "fields": {
         "currency": "Currency",
         "amount": "Amount",

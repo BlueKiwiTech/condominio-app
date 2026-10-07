@@ -486,6 +486,16 @@ Phase 1's migration put `pin_hash` on `condo_house_residents` (per-resident PIN)
 
 ---
 
+## 2026-10-06 fixes (Josi's incident list)
+
+- **Saldo pendiente** (`outstandingByCurrency`, admin dashboard + Mi comunidad): only counts non-paid cuotas due by the END of the current month — future cuotas from the recurring horizon no longer inflate it.
+- **Exchange-rate cron** moved to 06:00 VET (`vercel.json`: `0 10 * * *`) so the day's BCV value is picked up in the morning instead of showing the previous night's.
+- **Friendly errors**: `lib/errors.ts`'s `friendlyError()` replaces every raw `error.message` returned from Server Actions / lib helpers (maps Postgres codes, logs the raw error server-side; Spanish fallback outside a request, e.g. cron).
+- **Edit cuota → start date** (`changeTemplateStartDate` in `lib/actions/cuotas.ts`): editable only while no payment exists; open-ended recurring templates are wiped + regenerated, everything else re-dated in place.
+- **Abono que no cubre ninguna cuota** (2026-10-06): ya no se rechaza; `applyPaymentAllocation` lo guarda completo como saldo a favor (recibo + fila de historial) y se aplica solo cuando alcance. Solo un monto <= 0 sigue siendo error.
+
+---
+
 ## Next Step
 
 Finish Phase 8 (Internationalization & Polish) — the last remaining phase. I18N-01 and I18N-02 are functionally done (full key-parity verified, locale switcher live on every top-level shell including the new admin sidebar), and the general polish pass is now mostly done too: mobile-responsive admin nav (`components/admin/AdminSidebar.tsx` + its `Dialog`-based mobile drawer), a shared loading-skeleton pattern (`components/shared/PageSkeleton.tsx` + a `loading.tsx` per data-fetching admin/resident route), and a global toast confirmation on payment save (`components/GlobalToaster.tsx`, wired into `PaymentFormClient.tsx`) all shipped this session. What's left:

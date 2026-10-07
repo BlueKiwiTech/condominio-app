@@ -1,7 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service';
 import type { ExchangeRateType } from '@/lib/exchangeRate';
 
-// Vercel Cron hits this once a day at 23:00 VET (vercel.json: "0 3 * * *",
+// Vercel Cron hits this once a day at 06:00 VET (vercel.json: "0 10 * * *",
 // UTC -- Venezuela has no DST, always UTC-4). Sources both reference rates
 // from cotizave.com's aggregator API in one call, chosen over scraping
 // bcv.org.ve and Binance's own P2P endpoint directly: BCV's page is stable

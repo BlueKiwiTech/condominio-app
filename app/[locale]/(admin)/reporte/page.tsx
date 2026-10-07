@@ -30,7 +30,7 @@ export default async function ReportePage() {
       {installmentsError && (
         <div className="p-4 md:p-8">
           <Alert variant="destructive">
-            <AlertDescription>Error al cargar el reporte: {installmentsError.message}</AlertDescription>
+            <AlertDescription>Error al cargar el reporte. Intenta recargar la página; si persiste, contacta al administrador.</AlertDescription>
           </Alert>
         </div>
       )}

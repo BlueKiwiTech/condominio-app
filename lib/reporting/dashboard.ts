@@ -16,6 +16,7 @@ export type PaymentForReport = {
 
 export type InstallmentForOutstanding = {
   status: InstallmentStatus;
+  due_date: string;
   amount: number;
   amount_paid: number;
   currency: Currency;
@@ -51,12 +52,15 @@ export function percentChange(current: number, previous: number): number | null 
   return ((current - previous) / previous) * 100;
 }
 
-// "Saldo pendiente": every non-paid installment's remaining balance
-// (amount - amount_paid), regardless of whether it's overdue yet — this is
-// the total still owed, distinct from the morosos-only (grace-period-gated)
-// figure in lib/reporting/morosos.ts.
-export function outstandingByCurrency(installments: InstallmentForOutstanding[]): CurrencyAmountMap {
-  const unpaid = installments.filter((i) => i.status !== 'paid');
+// "Saldo pendiente": remaining balance (amount - amount_paid) of every
+// non-paid installment due by the END OF THE CURRENT MONTH (2026-10-06 user
+// decision) — cuotas generated ahead by the recurring horizon
+// (lib/cuotas/recurringGeneration.ts) for later months are not "owed" yet and
+// must not inflate this figure. Distinct from the morosos-only
+// (grace-period-gated) figure in lib/reporting/morosos.ts.
+export function outstandingByCurrency(installments: InstallmentForOutstanding[], today: Date = new Date()): CurrencyAmountMap {
+  const cutoff = endOfMonth(today);
+  const unpaid = installments.filter((i) => i.status !== 'paid' && parseISO(i.due_date).getTime() <= cutoff.getTime());
   return sumByCurrency(unpaid, (i) => i.amount - i.amount_paid);
 }
 

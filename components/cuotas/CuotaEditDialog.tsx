@@ -1,25 +1,51 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useTransition } from 'react';
-import { z } from 'zod';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations, useLocale } from 'next-intl';
-import { Loader2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DateInput } from '@/components/ui/date-input';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { updateTemplateSchema, type UpdateTemplateInput } from '@/lib/validation/cuotas';
-import { updateInstallmentTemplate, getPriceHistory, type PriceHistoryEntry } from '@/lib/actions/cuotas';
-import { toDateOnly } from '@/lib/cuotas/generate';
-import { formatShortDate } from '@/lib/dateFormat';
-import { CURRENCY_SELECT_OPTIONS, formatAmount } from '@/lib/currency';
-import type { TemplateWithInstallments } from './types';
+import { useEffect, useState, useTransition } from "react";
+import { z } from "zod";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslations, useLocale } from "next-intl";
+import { Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DateInput } from "@/components/ui/date-input";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  updateTemplateSchema,
+  type UpdateTemplateInput,
+} from "@/lib/validation/cuotas";
+import {
+  updateInstallmentTemplate,
+  getPriceHistory,
+  type PriceHistoryEntry,
+} from "@/lib/actions/cuotas";
+import { parseISO } from "date-fns";
+import { toDateOnly } from "@/lib/cuotas/generate";
+import { formatShortDate } from "@/lib/dateFormat";
+import { CURRENCY_SELECT_OPTIONS, formatAmount } from "@/lib/currency";
+import type { TemplateWithInstallments } from "./types";
+
+// "Aplicar desde (opcional)" is hidden for now (2026-10-06 user request: not
+// being used) -- the field, state and server support are all kept; flip this
+// to true to bring it back. Hidden, effectiveFrom stays undefined, so a price
+// change applies to every unpaid installment (the schema's default).
+const SHOW_EFFECTIVE_FROM = false;
 
 // Edit is intentionally narrow — see lib/validation/cuotas.ts's
 // updateTemplateSchema comment: structural fields (cadence, dates,
@@ -33,22 +59,36 @@ export function CuotaEditDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const t = useTranslations('cuotas');
-  const tv = useTranslations('validation.cuotas');
+  const t = useTranslations("cuotas");
+  const tv = useTranslations("validation.cuotas");
   const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   // Not a form field (DateInput works with Date, the schema field is a
   // string) -- kept separate and merged in at submit time, same pattern
   // PaymentFormClient uses for its own date input.
-  const [effectiveFrom, setEffectiveFrom] = useState<Date | undefined>(undefined);
-  const [priceHistory, setPriceHistory] = useState<PriceHistoryEntry[] | null>(null);
+  const [effectiveFrom, setEffectiveFrom] = useState<Date | undefined>(
+    undefined,
+  );
+  // With any payment against this cuota, only the description is editable:
+  // name, currency, amount and start date lock (the server re-checks against
+  // condo_payments, the source of truth -- a paid/partial installment is just
+  // the client-side hint).
+  const fieldsLocked = template.condo_installments.some(
+    (i) => i.status !== "pending",
+  );
+  const [startDate, setStartDate] = useState<Date>(() =>
+    parseISO(template.start_date),
+  );
+  const [priceHistory, setPriceHistory] = useState<PriceHistoryEntry[] | null>(
+    null,
+  );
 
   useEffect(() => {
     if (template.is_divided) return;
     let cancelled = false;
     getPriceHistory(template.id, locale).then((result) => {
-      if (!cancelled && 'entries' in result) setPriceHistory(result.entries);
+      if (!cancelled && "entries" in result) setPriceHistory(result.entries);
     });
     return () => {
       cancelled = true;
@@ -59,11 +99,15 @@ export function CuotaEditDialog({
     handleSubmit,
     control,
     formState: { errors },
-  } = useForm<z.input<ReturnType<typeof updateTemplateSchema>>, unknown, UpdateTemplateInput>({
+  } = useForm<
+    z.input<ReturnType<typeof updateTemplateSchema>>,
+    unknown,
+    UpdateTemplateInput
+  >({
     resolver: zodResolver(updateTemplateSchema(tv)),
     defaultValues: {
       name: template.name,
-      description: template.description ?? '',
+      description: template.description ?? "",
       currency: template.currency,
       amount: template.amount,
     },
@@ -72,9 +116,17 @@ export function CuotaEditDialog({
   const onSubmit = (data: UpdateTemplateInput) => {
     setServerError(null);
     startTransition(async () => {
-      const payload = { ...data, effective_from: effectiveFrom ? toDateOnly(effectiveFrom) : '' };
-      const result = await updateInstallmentTemplate(template.id, payload, locale);
-      if ('error' in result) {
+      const payload = {
+        ...data,
+        effective_from: effectiveFrom ? toDateOnly(effectiveFrom) : "",
+        start_date: fieldsLocked ? "" : toDateOnly(startDate),
+      };
+      const result = await updateInstallmentTemplate(
+        template.id,
+        payload,
+        locale,
+      );
+      if ("error" in result) {
         setServerError(result.error);
         return;
       }
@@ -86,17 +138,27 @@ export function CuotaEditDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t('editCuota')}</DialogTitle>
+          <DialogTitle>{t("editCuota")}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto"
+        >
           {serverError && (
             <Alert variant="destructive">
               <AlertDescription>{serverError}</AlertDescription>
             </Alert>
           )}
+          {fieldsLocked && (
+            <Alert>
+              <AlertDescription>{t("editLockedByPayments")}</AlertDescription>
+            </Alert>
+          )}
           {template.is_divided && (
             <Alert>
-              <AlertDescription>{t('editDividedAmountLocked')}</AlertDescription>
+              <AlertDescription>
+                {t("editDividedAmountLocked")}
+              </AlertDescription>
             </Alert>
           )}
           <Controller
@@ -104,15 +166,20 @@ export function CuotaEditDialog({
             name="name"
             render={({ field }) => (
               <div className="grid gap-1.5">
-                <Label htmlFor="name">{t('fields.name')}</Label>
+                <Label htmlFor="name">{t("fields.name")}</Label>
                 <Input
                   id="name"
-                  value={field.value ?? ''}
+                  disabled={fieldsLocked}
+                  value={field.value ?? ""}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
                   aria-invalid={!!errors.name}
                 />
-                {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+                {errors.name && (
+                  <p className="text-sm text-destructive">
+                    {errors.name.message}
+                  </p>
+                )}
               </div>
             )}
           />
@@ -121,8 +188,13 @@ export function CuotaEditDialog({
             name="description"
             render={({ field }) => (
               <div className="grid gap-1.5">
-                <Label htmlFor="description">{t('fields.description')}</Label>
-                <Textarea id="description" value={field.value ?? ''} onChange={field.onChange} onBlur={field.onBlur} />
+                <Label htmlFor="description">{t("fields.description")}</Label>
+                <Textarea
+                  id="description"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
               </div>
             )}
           />
@@ -131,8 +203,13 @@ export function CuotaEditDialog({
             name="currency"
             render={({ field }) => (
               <div className="grid gap-1.5">
-                <Label htmlFor="currency">{t('fields.currency')}</Label>
-                <Select value={field.value} onValueChange={field.onChange} items={CURRENCY_SELECT_OPTIONS}>
+                <Label htmlFor="currency">{t("fields.currency")}</Label>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  items={CURRENCY_SELECT_OPTIONS}
+                  disabled={fieldsLocked}
+                >
                   <SelectTrigger id="currency" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -144,7 +221,11 @@ export function CuotaEditDialog({
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.currency && <p className="text-sm text-destructive">{errors.currency.message}</p>}
+                {errors.currency && (
+                  <p className="text-sm text-destructive">
+                    {errors.currency.message}
+                  </p>
+                )}
               </div>
             )}
           />
@@ -153,51 +234,80 @@ export function CuotaEditDialog({
             name="amount"
             render={({ field }) => (
               <div className="grid gap-1.5">
-                <Label htmlFor="amount">{t('fields.amount')}</Label>
+                <Label htmlFor="amount">{t("fields.amount")}</Label>
                 <Input
                   id="amount"
                   type="number"
-                  disabled={template.is_divided}
+                  disabled={template.is_divided || fieldsLocked}
                   value={field.value as number}
                   onChange={(e) => field.onChange(e.target.valueAsNumber)}
                   aria-invalid={!!errors.amount}
                 />
-                {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
+                {errors.amount && (
+                  <p className="text-sm text-destructive">
+                    {errors.amount.message}
+                  </p>
+                )}
               </div>
             )}
           />
-          {!template.is_divided && (
+          <DateInput
+            id="start_date"
+            label={t("fields.startDate")}
+            value={startDate}
+            onChange={(date) => setStartDate(date)}
+            disabled={fieldsLocked}
+          />
+          <p className="text-xs text-muted-foreground">
+            {fieldsLocked ? t("startDateLocked") : t("startDateHelp")}
+          </p>
+          {SHOW_EFFECTIVE_FROM && !template.is_divided && (
             <>
               <DateInput
                 id="effective_from"
-                label={t('fields.effectiveFrom')}
-                placeholder={t('fields.effectiveFromPlaceholder')}
+                label={t("fields.effectiveFrom")}
+                placeholder={t("fields.effectiveFromPlaceholder")}
                 value={effectiveFrom}
                 onChange={(date) => setEffectiveFrom(date)}
               />
-              <p className="text-xs text-muted-foreground">{t('effectiveFromHelp')}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("effectiveFromHelp")}
+              </p>
             </>
           )}
-          <p className="text-xs text-muted-foreground">{t('editCascadeNote')}</p>
+          <p className="text-xs text-muted-foreground">
+            {t("editCascadeNote")}
+          </p>
           {!template.is_divided && priceHistory && priceHistory.length > 0 && (
             <div className="flex flex-col gap-2 border-t pt-2">
-              <span className="text-sm font-semibold">{t('priceHistory.heading')}</span>
+              <span className="text-sm font-semibold">
+                {t("priceHistory.heading")}
+              </span>
               <div className="flex max-h-36 flex-col gap-2 overflow-y-auto">
                 {priceHistory.map((entry) => (
-                  <div key={entry.id} className="flex items-center justify-between gap-2">
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between gap-2"
+                  >
                     <div className="flex flex-col gap-0.5">
                       <span className="text-sm">
-                        {formatAmount(entry.old_amount, template.currency)} → {formatAmount(entry.new_amount, template.currency)}
+                        {formatAmount(entry.old_amount, template.currency)} →{" "}
+                        {formatAmount(entry.new_amount, template.currency)}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {entry.effective_from
-                          ? t('priceHistory.effectiveFrom', {
-                              date: formatShortDate(new Date(entry.effective_from), locale),
+                          ? t("priceHistory.effectiveFrom", {
+                              date: formatShortDate(
+                                new Date(entry.effective_from),
+                                locale,
+                              ),
                             })
-                          : t('priceHistory.effectiveFromAll')}
+                          : t("priceHistory.effectiveFromAll")}
                       </span>
                     </div>
-                    <span className="text-xs text-muted-foreground">{formatShortDate(new Date(entry.changed_at), locale)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatShortDate(new Date(entry.changed_at), locale)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -206,11 +316,15 @@ export function CuotaEditDialog({
         </form>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} type="button">
-            {t('cancel')}
+            {t("cancel")}
           </Button>
-          <Button disabled={isPending} onClick={handleSubmit(onSubmit)} type="button">
+          <Button
+            disabled={isPending}
+            onClick={handleSubmit(onSubmit)}
+            type="button"
+          >
             {isPending && <Loader2 className="size-4 animate-spin" />}
-            {t('save')}
+            {t("save")}
           </Button>
         </DialogFooter>
       </DialogContent>

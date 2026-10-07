@@ -16,7 +16,7 @@ export default async function DashboardPage() {
 
   const [
     { data: installments, error: installmentsError },
-    { data: houses },
+    { data: houses, error: housesError },
     { data: expenses, error: expensesError },
     { data: payments },
     gracePeriodDays,
@@ -38,7 +38,7 @@ export default async function DashboardPage() {
     getLatestExchangeRates(),
   ]);
 
-  const queryError = installmentsError ?? expensesError;
+  const queryError = installmentsError ?? housesError ?? expensesError;
 
   return (
     <>
@@ -47,7 +47,7 @@ export default async function DashboardPage() {
       {queryError && (
         <div className="p-4 md:p-8">
           <Alert variant="destructive">
-            <AlertDescription>Error al cargar el dashboard: {queryError.message}</AlertDescription>
+            <AlertDescription>Error al cargar el dashboard. Intenta recargar la página; si persiste, contacta al administrador.</AlertDescription>
           </Alert>
         </div>
       )}

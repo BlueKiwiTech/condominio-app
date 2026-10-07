@@ -67,9 +67,10 @@ export function MiComunidadClient({
 
   // All-time, not month-scoped: every house's positive credit balance
   // (saldo disponible) and every non-paid installment's remaining balance
-  // (saldo pendiente), regardless of due date -- not just the current month.
+  // (saldo pendiente) due by the end of the current month -- cuotas generated
+  // ahead for later months aren't counted yet (2026-10-06).
   const available = useMemo(() => creditsByCurrency(communityBalance.credits), [communityBalance.credits]);
-  const pending = useMemo(() => outstandingByCurrency(communityBalance.installments), [communityBalance.installments]);
+  const pending = useMemo(() => outstandingByCurrency(communityBalance.installments, today), [communityBalance.installments, today]);
 
   const availableYears = useMemo(() => {
     const years = new Set<number>([getYear(today)]);
