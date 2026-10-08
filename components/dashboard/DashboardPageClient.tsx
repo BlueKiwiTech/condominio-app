@@ -78,6 +78,11 @@ export function DashboardPageClient({
 
   const today = useMemo(() => new Date(), []);
   const monthLabel = useMemo(() => format(today, 'MMMM yyyy', { locale: dateLocale }), [today, dateLocale]);
+  const lastDayOfMonth = useMemo(() => endOfMonth(today), [today]);
+  const lastDayOfMonthLabel = useMemo(
+    () => format(lastDayOfMonth, locale === 'en' ? 'MMMM dd, yyyy' : "dd 'de' MMMM yyyy", { locale: dateLocale }),
+    [lastDayOfMonth, locale, dateLocale],
+  );
   const daysLeft = useMemo(() => daysToCloseOfMonth(today), [today]);
 
   const collectedThisMonth = useMemo(() => collectedInMonth(payments, today), [payments, today]);
@@ -86,8 +91,8 @@ export function DashboardPageClient({
   const pendingExpenses = useMemo(() => pendingExpensesInMonth(expenses, today), [expenses, today]);
 
   const morosos = useMemo(
-    () => computeMorosos(installments, houses, gracePeriodDays, today, endOfMonth(today)),
-    [installments, houses, gracePeriodDays, today],
+    () => computeMorosos(installments, houses, gracePeriodDays, today, lastDayOfMonth),
+    [installments, houses, gracePeriodDays, today, lastDayOfMonth],
   );
   const morososHouseCount = useMemo(() => countDelinquentHouses(morosos), [morosos]);
 
@@ -135,18 +140,17 @@ export function DashboardPageClient({
 
         <StatCard stripeColor="destructive">
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium text-muted-foreground">{t('kpis.morosos.title')}</span>
+            <span className="text-xs font-medium text-muted-foreground">{t('kpis.morosos.title', { date: lastDayOfMonthLabel })}</span>
             <span className="text-2xl font-bold">{t('kpis.morosos.count', { count: morososHouseCount })}</span>
             <span className="text-xs text-muted-foreground">{t('kpis.morosos.of', { total: houses.length })}</span>
-            <span className="text-xs text-muted-foreground">{t('kpis.scope')}</span>
+            <span className="text-xs text-muted-foreground">{t('kpis.scope', { date: lastDayOfMonthLabel })}</span>
           </div>
         </StatCard>
 
         <StatCard stripeColor="primary">
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium text-muted-foreground">{t('kpis.outstanding.title')}</span>
+            <span className="text-xs font-medium text-muted-foreground">{t('kpis.outstanding.title', { month: lastDayOfMonthLabel })}</span>
             <CurrencyAmountList amounts={outstanding} emptyLabel={t('kpis.outstanding.empty')} />
-            <span className="text-xs text-muted-foreground">{t('kpis.scope')}</span>
           </div>
         </StatCard>
 

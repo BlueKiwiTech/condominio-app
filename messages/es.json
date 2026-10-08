@@ -167,19 +167,19 @@
         "noPrior": "Sin datos del mes anterior ({currency})"
       },
       "morosos": {
-        "title": "Morosos",
+        "title": "Morosos al {date}",
         "count": "{count, plural, =0 {0 casas} =1 {1 casa} other {# casas}}",
         "of": "de {total} casas"
       },
       "outstanding": {
-        "title": "Saldo pendiente",
+        "title": "Saldo pendiente al {month}",
         "empty": "Sin saldo pendiente."
       },
       "pendingExpenses": {
         "title": "Gastos pendientes en {month}",
         "empty": "Sin gastos pendientes este mes."
       },
-      "scope": "Cuotas vencidas y del mes en curso"
+      "scope": "Cuotas vencidas y hasta el {date}"
     },
     "chart": {
       "heading": "Ingresos — últimos 6 meses",
