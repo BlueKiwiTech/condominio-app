@@ -5,7 +5,7 @@ A payment-management web app for ASOBARCELONA, a closed community (calle cerrada
 
 **Core value:** The admin can always answer "who owes what, since when" — accurate morosos (delinquent accounts) and saldo (balance) tracking is the thing that must work, before anything else.
 
-Full context: `.planning/PROJECT.md`. Original handoff spec preserved at `docs/handoff-prompt.md` (schema/folder-structure proposals there were corrected during research — see Architecture section below).
+Comportamiento y alcance vigentes: `openspec/specs/` (ver Project Workflow). Contexto histórico archivado en `docs/archive/` (no vigente): `docs/archive/planning/PROJECT.md` y el handoff original `docs/archive/handoff-prompt.md` (sus propuestas de esquema/carpetas fueron corregidas durante la investigación — ver Architecture abajo).
 <!-- GSD:project-end -->
 
 <!-- GSD:stack-start source:STACK.md -->
@@ -21,9 +21,9 @@ Full context: `.planning/PROJECT.md`. Original handoff spec preserved at `docs/h
 - **jose** for signing the resident's app-level session cookie (see Dual-Auth pattern below)
 - Vercel for hosting
 
-**Dual-auth pattern (the trickiest piece of this app):** Admins use standard Supabase Auth (`@supabase/ssr`, `getUser()`/`getClaims()`, RLS keyed off `auth.uid()`). Residents never get a Supabase Auth session — a Route Handler verifies `{house_id, pin}` server-side via the service-role client (PIN hash comparison via `pgcrypto`), then mints its own short-lived signed httpOnly cookie (via `jose`) carrying `{house_id, resident_id, role: 'resident'}`. All resident reads go through a shared `getResidentScopedClient(houseId)` helper using the service-role client, always filtered by `house_id`. RLS stays enabled everywhere as a backstop even though resident-path enforcement lives in server code, not in a Postgres policy. Full rationale + the RLS-native alternative (Pattern B): `.planning/research/STACK.md`.
+**Dual-auth pattern (the trickiest piece of this app):** Admins use standard Supabase Auth (`@supabase/ssr`, `getUser()`/`getClaims()`, RLS keyed off `auth.uid()`). Residents never get a Supabase Auth session — a Route Handler verifies `{house_id, pin}` server-side via the service-role client (PIN hash comparison via `pgcrypto`), then mints its own short-lived signed httpOnly cookie (via `jose`) carrying `{house_id, resident_id, role: 'resident'}`. All resident reads go through a shared `getResidentScopedClient(houseId)` helper using the service-role client, always filtered by `house_id`. RLS stays enabled everywhere as a backstop even though resident-path enforcement lives in server code, not in a Postgres policy. Full rationale + the RLS-native alternative (Pattern B): `docs/archive/planning/research/STACK.md`.
 
-Full detail, versions, and what-not-to-use table: `.planning/research/STACK.md`.
+Full detail, versions, and what-not-to-use table: `docs/archive/planning/research/STACK.md`.
 <!-- GSD:stack-end -->
 
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
@@ -41,9 +41,9 @@ Two corrections to the original handoff spec's schema, confirmed during research
 
 Prefer Server Actions over a full `app/api/*` REST tree for same-origin admin/resident CRUD — Next.js App Router doesn't need that boilerplate.
 
-**Build order** (dependency-driven, matches `.planning/ROADMAP.md` phase order): scaffold + corrected schema + RLS → admin auth → houses & resident access (resident auth is the highest-risk piece — treat as a spike if the dual-auth pattern above needs revisiting) → cuota engine (recurring + divisible, transactional + idempotent) → payments → reporting/morosos (must be per-currency, never summed across USD/Bs/USDT — the one deliberate exception is "Mi Cartera"'s wallet allocation, which converts between currencies at the live daily rate when applying wallet funds to a due; see PLAN.md) → resident portal (needs both resident auth and reporting done) → i18n/polish.
+**Build order** (dependency-driven, historical phase order, see `docs/archive/planning/ROADMAP.md`): scaffold + corrected schema + RLS → admin auth → houses & resident access (resident auth is the highest-risk piece — treat as a spike if the dual-auth pattern above needs revisiting) → cuota engine (recurring + divisible, transactional + idempotent) → payments → reporting/morosos (must be per-currency, never summed across USD/Bs/USDT — the one deliberate exception is "Mi Cartera"'s wallet allocation, which converts between currencies at the live daily rate when applying wallet funds to a due; see `openspec/specs/mi-cartera/spec.md`) → resident portal (needs both resident auth and reporting done) → i18n/polish.
 
-Full detail: `.planning/research/ARCHITECTURE.md` and `.planning/research/PITFALLS.md` (financial-calc bugs, RLS-for-non-Auth-residents, cuota-generation idempotency, PIN brute-force, date/timezone traps — read before touching auth or the cuota/payment/reporting logic).
+Full detail: `docs/archive/planning/research/ARCHITECTURE.md` and `docs/archive/planning/research/PITFALLS.md` (financial-calc bugs, RLS-for-non-Auth-residents, cuota-generation idempotency, PIN brute-force, date/timezone traps — read before touching auth or the cuota/payment/reporting logic).
 <!-- GSD:architecture-end -->
 
 <!-- GSD:skills-start source:skills/ -->
@@ -54,9 +54,16 @@ No project skills found. Add skills to any of: `.claude/skills/`, `.agents/skill
 
 ## Project Workflow
 
-This project no longer uses GSD (`/gsd-*`) commands for day-to-day work — the user explicitly opted out (2026-09-06). Do not route file edits through GSD commands or require planning artifacts before making changes.
+This project no longer uses GSD (`/gsd-*`) commands for day-to-day work — the user explicitly opted out (2026-09-06). Do not route file edits through GSD commands.
 
-**Source of truth for scope, decisions, and phase status:** `PLAN.md` at the repo root. Read it before starting work and update the relevant phase's status/decisions there as work completes — it replaces `.planning/ROADMAP.md`/`STATE.md`/`REQUIREMENTS.md` for tracking purposes. The `.planning/` directory still holds historical detail (past phase plans, verification reports) if deeper context on already-completed work is ever needed, but nothing there requires updating going forward.
+**Single source of truth: OpenSpec (`openspec/`).**
+- `openspec/specs/<capability>/spec.md` = comportamiento vigente del sistema. Léelo antes de tocar una capacidad.
+- `openspec/changes/<id>/` = cambios en curso (proposal, design, tasks, delta specs). Flujo: `/opsx:propose` → `/opsx:apply` → `/opsx:archive` (el archivado fusiona los deltas en `specs/`).
+- Todo cambio de comportamiento o alcance pasa por un change de OpenSpec; si el código y un spec discrepan, se resuelve en el spec (vía change), no dejando ambos.
+- Contexto transversal y reglas del proyecto: `openspec/config.yaml`.
+- Validar con `npx @fission-ai/openspec validate --all --strict`.
+
+**Archivo histórico (no vigente, no se actualiza):** `docs/archive/` — `PLAN.md`, `.planning/` (GSD), `docs/superpowers/` (specs/plans previos) y el handoff original. Útil solo para entender el razonamiento de decisiones pasadas; si contradice a `openspec/`, gana `openspec/`.
 
 <!-- GSD:profile-start -->
 ## Developer Profile

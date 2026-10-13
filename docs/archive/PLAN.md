@@ -1,3 +1,5 @@
+> **ARCHIVADO — no vigente.** Congelado como referencia histórica. La fuente de verdad es `openspec/` (ver `docs/archive/README.md`).
+
 # Condominio App — ASOBARCELONA — Project Plan & Status
 
 **Last updated:** 2026-09-26 (Recurring Horizon Generation feature added — see that section below. Everything from the 2026-09-14 note below it is still true and still unconfirmed live.)

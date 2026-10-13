@@ -1,0 +1,49 @@
+schema: spec-driven
+
+context: |
+  Idioma de los artefactos de OpenSpec (proposal, design, tasks, specs): español.
+  Mantener en inglés los encabezados estructurales de OpenSpec y las palabras SHALL/MUST.
+  Identificadores de código, SQL y nombres de archivo van en inglés; los textos de usuario van en messages/*.json (es/en).
+
+  Proyecto: app de gestión de pagos para ASOBARCELONA (condominio cerrado).
+  Next.js 16 (App Router) + Supabase (Postgres/Auth) + Tailwind v4/shadcn (Base UI) + next-intl.
+  Fuente de verdad única: openspec/ (specs/ = estado actual, changes/ = cambios en curso).
+  Contexto de stack/arquitectura: CLAUDE.md y AGENTS.md.
+  docs/archive/ (PLAN.md, planning/, superpowers/) es histórico congelado: no se actualiza ni se usa como fuente.
+  Lectura obligatoria antes de tocar auth o cuotas/pagos/reportes: docs/archive/planning/research/PITFALLS.md.
+
+  Reglas transversales (aplican a todo cambio):
+  - Nunca sumar montos entre monedas (USD/Bs/USDT). Excepción única: asignación de wallet en "Mi Cartera".
+  - Fechas: solo funciones seguras por día calendario (date-fns), nunca split UTC de strings.
+  - Generación de cuotas/gastos: transaccional e idempotente (unique constraint + upsert ignoreDuplicates).
+  - Admin = Supabase Auth + RLS; residentes = cookie firmada (jose) + cliente service-role filtrado por house_id.
+  - RLS habilitado en todas las tablas como respaldo.
+  - Server Actions sobre árbol REST; validación con zod.
+  - Las migraciones se escriben en supabase/migrations/ pero las aplica el usuario manualmente.
+  - No hay suite de tests automatizados: la verificación es manual/conductual + `npm run build` + `npx eslint .`.
+
+rules:
+  proposal:
+    - Declarar explícitamente qué queda fuera de alcance.
+  specs:
+    - Cada requisito lleva al menos un escenario WHEN/THEN.
+    - Describir el comportamiento observable actual; si el código y un spec discrepan, el change debe resolverlo.
+  design:
+    - Si el change toca pagos, cuotas, gastos o reportes, declarar el impacto en monedas (nunca sumar entre USD/Bs/USDT), idempotencia y fechas calendario.
+    - Si el change toca tablas o consultas, declarar el impacto en RLS por community_id y en el acceso del residente (service-role filtrado por house_id).
+  tasks:
+    - Incluir siempre una tarea final de verificación con `npm run build` y `npx eslint .`.
+    - Si hay SQL, incluir una tarea "migración lista para que el usuario la aplique" (nombre con timestamp posterior al último en supabase/migrations/).
+    - Antes de archivar, ejecutar el agente spec-auditor sobre las capacidades afectadas.
+
+operations:
+  apply:
+    guidance:
+      - Nunca ejecutar `git push`, `supabase db push`/`link` ni comandos de la CLI de Vercel; eso lo hace el usuario.
+      - Nunca editar migraciones ya aplicadas; corregir hacia adelante con una migración nueva.
+      - Toda tabla, trigger o función SQL lleva prefijo `condo_` (el término "cuota" es `installment` solo en identificadores SQL).
+      - Textos de usuario en messages/es.json y messages/en.json (next-intl), nunca hardcodeados.
+      - UI con shadcn sobre Base UI (prop `render`, no `asChild`); leer design-system/asobarcelona/MASTER.md antes de tocar UI.
+  archive:
+    guidance:
+      - Confirmar que openspec/specs/ quedó fusionado con los deltas y que no queda documentación paralela (PLAN.md está archivado; no se actualiza).
