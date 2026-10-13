@@ -65,6 +65,13 @@ This project no longer uses GSD (`/gsd-*`) commands for day-to-day work — the 
 
 **Archivo histórico (no vigente, no se actualiza):** `docs/archive/` — `PLAN.md`, `.planning/` (GSD), `docs/superpowers/` (specs/plans previos) y el handoff original. Útil solo para entender el razonamiento de decisiones pasadas; si contradice a `openspec/`, gana `openspec/`.
 
+## Reglas de proceso
+- Antes de tocar código: crear una rama nueva **desde `main` actualizado** (`git checkout main && git pull && git checkout -b <tipo>/<slug>`). Confirmar la rama con `git branch --show-current`. Nunca commitear directo en `main`.
+- Cambios de comportamiento o alcance: primero un change de OpenSpec (`/opsx:propose`), luego `/opsx:apply`.
+- Al cerrar la tarea: `/commit` (estilo del repo: español, descriptivo, sin prefijos) y luego `/pr`, que corre build/eslint, lanza `adversarial-reviewer` sobre el diff y muestra en el chat el título y la descripción del PR (según `.github/pull_request_template.md`). **Nunca usar `git push` ni `gh`**: el usuario publica la rama y crea el PR con GitHub Desktop pegando esa descripción.
+- Antes de archivar un change: ejecutar `spec-auditor` sobre las capacidades afectadas.
+- No repetir en el chat el resumen del PR: vive en su descripción.
+
 <!-- GSD:profile-start -->
 ## Developer Profile
 
