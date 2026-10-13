@@ -172,7 +172,7 @@
         "of": "de {total} casas"
       },
       "outstanding": {
-        "title": "Saldo pendiente al {month}",
+        "title": "Saldo de cuotas pendientes al {month}",
         "empty": "Sin saldo pendiente."
       },
       "pendingExpenses": {
@@ -696,7 +696,7 @@
       "heading": "Balance de la comunidad",
       "available": "Saldo disponible",
       "availableCaption": "Monto acumulado por la comunidad",
-      "pending": "Saldo pendiente",
+      "pending": "Saldo de cuotas pendiente",
       "pendingCaption": "Monto total que queda por pagar",
       "expensesHeading": "Gastos",
       "expensesOfMonth": "Gastos de {period}",
