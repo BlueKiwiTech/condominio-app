@@ -152,14 +152,14 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
       supabase.from('condo_communities').select('name, phone').limit(1).maybeSingle(),
       supabase
         .from('condo_exchange_rates')
-        .select('rate_type, rate, source, updated_at')
+        .select('rate_type, rate, source, updated_at, effective_date, source_updated_at')
         .eq('rate_type', 'bcv')
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
       supabase
         .from('condo_exchange_rates')
-        .select('rate_type, rate, source, updated_at')
+        .select('rate_type, rate, source, updated_at, effective_date, source_updated_at')
         .eq('rate_type', 'binance')
         .order('updated_at', { ascending: false })
         .limit(1)
@@ -176,6 +176,7 @@ export async function getResidentPortalData(houseId: string): Promise<ResidentPo
     community: (community as ResidentCommunity | null) ?? null,
     exchangeRates: {
       bcv: (bcvRate as ExchangeRateRow | null) ?? null,
+      eur: null, // the resident portal never converts or shows euro
       binance: (binanceRate as ExchangeRateRow | null) ?? null,
     },
   };

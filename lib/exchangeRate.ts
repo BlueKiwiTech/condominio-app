@@ -2,7 +2,7 @@
 // Pure, no Supabase import — safe to use from both the cron Route Handler
 // and admin Server Components/Actions.
 
-export type ExchangeRateType = 'bcv' | 'binance';
+export type ExchangeRateType = 'bcv' | 'eur' | 'binance';
 export type ExchangeRateSource = 'cron' | 'admin';
 export type Currency = 'USD' | 'Bs' | 'USDT';
 
@@ -11,6 +11,11 @@ export type ExchangeRateRow = {
   rate: number;
   source: ExchangeRateSource;
   updated_at: string;
+  // Audit-only (change tasa-bcv-calendario): the provider's own validity date
+  // (`YYYY-MM-DD`, null when it gives none) and timestamp. Freshness keeps
+  // using `updated_at`, never these.
+  effective_date: string | null;
+  source_updated_at: string | null;
 };
 
 // User decision (2026-09-08): once a rate is more than 24h old, treat it as

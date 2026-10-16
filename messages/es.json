@@ -837,12 +837,14 @@
       },
       "table": {
         "date": "Fecha",
+        "effectiveDate": "Vigencia",
         "type": "Tipo",
         "rate": "Tasa",
         "source": "Origen"
       },
       "type": {
         "bcv": "BCV",
+        "eur": "EUR (BCV)",
         "binance": "Binance"
       },
       "source": {

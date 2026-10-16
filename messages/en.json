@@ -837,12 +837,14 @@
       },
       "table": {
         "date": "Date",
+        "effectiveDate": "Effective date",
         "type": "Type",
         "rate": "Rate",
         "source": "Source"
       },
       "type": {
         "bcv": "BCV",
+        "eur": "EUR (BCV)",
         "binance": "Binance"
       },
       "source": {
