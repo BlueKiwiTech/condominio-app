@@ -6,6 +6,13 @@ Hoy `condo_exchange_rates` es un historial append-only (`rate_type` bcv|binance,
 
 La frescura actual (`isRateFresh`: `ahora/fecha_de_pago - updated_at < 24 h`, en `lib/exchangeRate.ts`) y el corte "a una fecha" (`updated_at <= D T23:59:59.999Z`, en `lib/actions/exchangeRate.ts`) se mantienen. Decisión del usuario: la operación garantiza que la tasa nunca tenga más de 24 h desde el pull; si la tasa es más vieja, no se registra el pago.
 
+**Observaciones sobre las fuentes (anotadas el 2026-10-16, solo para referencia futura):**
+- Ninguna de las dos fuentes observadas publica tasa BCV los sábados, domingos ni feriados. Es una observación, no una garantía de los proveedores.
+- `rates.dolarvzla.com/bcv/current.json` responde `{ current: { date, usd, eur }, previous: { date, usd, eur }, changePercentage: { usd, eur } }`. Su lista anual solo trae días hábiles: `2026-10-08`, `2026-10-09`, `2026-10-13` y `2026-10-14`. No hay filas para el sábado 10, el domingo 11 ni el lunes 12 (feriado).
+- Cotizave tampoco mostró la tasa del lunes durante los fines de semana del 4-5 y del 9-12 de octubre. No se ha observado su comportamiento en un feriado.
+- No está claro si el `date` de dolarvzla es la fecha de publicación o la de vigencia (del viernes 9 salta al martes 13, y el lunes 12 fue feriado). Confirmarlo antes de usarlo como `effective_date`.
+- Consecuencia para este change: como la frescura es de 24 h sobre `updated_at` y el cron corre todos los días, el fin de semana y los feriados se cubren repitiendo la última tasa publicada; `effective_date` conserva la fecha real de la fuente y permite ver cuál es.
+
 ## Goals / Non-Goals
 
 **Goals:**
