@@ -15,7 +15,7 @@ import { exchangeRateRowsForMonth, exchangeRateSeriesForMonth } from '@/lib/repo
 import type { ExchangeRateRow, ExchangeRateSource } from '@/lib/exchangeRate';
 import { formatShortDateTime } from '@/lib/dateFormat';
 
-type SortColumn = 'date' | 'type' | 'rate' | 'source';
+type SortColumn = 'date' | 'effectiveDate' | 'type' | 'rate' | 'source';
 
 const SOURCE_CLASSES: Record<ExchangeRateSource, string> = {
   cron: 'bg-muted text-muted-foreground',
@@ -63,6 +63,9 @@ export function ExchangeRateReportClient({ rates }: { rates: ExchangeRateRow[] }
       switch (column) {
         case 'date':
           return row.updated_at;
+        case 'effectiveDate':
+          // Rows without a provider date sort as '' -- grouped together (first ascending, last descending).
+          return row.effective_date ?? '';
         case 'type':
           return row.rate_type;
         case 'rate':
@@ -127,6 +130,7 @@ export function ExchangeRateReportClient({ rates }: { rates: ExchangeRateRow[] }
           <TableHeader>
             <TableRow>
               <SortableTableHead column="date" label={t('table.date')} sort={sort} onSort={handleSort} />
+              <SortableTableHead column="effectiveDate" label={t('table.effectiveDate')} sort={sort} onSort={handleSort} />
               <SortableTableHead column="type" label={t('table.type')} sort={sort} onSort={handleSort} />
               <SortableTableHead column="rate" label={t('table.rate')} sort={sort} onSort={handleSort} align="right" />
               <SortableTableHead column="source" label={t('table.source')} sort={sort} onSort={handleSort} />
@@ -135,7 +139,7 @@ export function ExchangeRateReportClient({ rates }: { rates: ExchangeRateRow[] }
           <TableBody>
             {sortedRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                   {t('empty')}
                 </TableCell>
               </TableRow>
@@ -143,6 +147,8 @@ export function ExchangeRateReportClient({ rates }: { rates: ExchangeRateRow[] }
               sortedRows.map((row, i) => (
                 <TableRow key={`${row.rate_type}-${row.updated_at}-${i}`} className="h-11">
                   <TableCell>{formatShortDateTime(new Date(row.updated_at), locale)}</TableCell>
+                  {/* Calendar date as plain text: new Date('YYYY-MM-DD') would parse as UTC and can show the previous day. */}
+                  <TableCell className="tabular-nums">{row.effective_date ?? '—'}</TableCell>
                   <TableCell>{t(`type.${row.rate_type}`)}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {row.rate.toLocaleString('es-VE', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
