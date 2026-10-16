@@ -43,7 +43,9 @@
       "minInstallments": "Debe haber al menos 1 cuota.",
       "maxInstallments": "Número de cuotas demasiado alto.",
       "amountsSumMismatch": "La suma de las cuotas no coincide con el monto total.",
-      "duplicateDates": "Las fechas de las cuotas no pueden repetirse."
+      "duplicateDates": "Las fechas de las cuotas no pueden repetirse.",
+      "customRatePositive": "La tasa personalizada debe ser mayor a 0.",
+      "customRateRequired": "Ingresa la tasa personalizada."
     },
     "payments": {
       "invalidDate": "Fecha inválida.",
@@ -464,6 +466,19 @@
       "amount": "Monto final",
       "paidDate": "Fecha de pago",
       "notes": "Notas (opcional)",
+      "original": "Monto original del gasto: {value}",
+      "rateLabel": "Tasa de cambio",
+      "rateValue": "{rate} Bs.",
+      "rateUnavailable": "no disponible",
+      "customRate": "Tasa personalizada (Bs. por USD)",
+      "rateStale": "La tasa elegida no está disponible o no está actualizada para la fecha de pago. Elige otra tasa o usa una personalizada.",
+      "equivalent": "Equivalente: {amount} {currency}",
+      "rateTypes": {
+        "bcv": "BCV (USD)",
+        "eur": "BCV (EUR)",
+        "binance": "Binance (USDT)",
+        "custom": "Personalizada"
+      },
       "confirm": "Registrar pago"
     },
     "templates": {
@@ -484,7 +499,9 @@
       "notFound": "Gasto no encontrado.",
       "alreadyPaid": "Este gasto ya fue marcado como pagado.",
       "hasPayments": "No se puede eliminar: ya hay cuotas pagadas de este gasto.",
-      "cannotDeletePaid": "No se puede eliminar un gasto ya pagado."
+      "cannotDeletePaid": "No se puede eliminar un gasto ya pagado.",
+      "rateTypeRequired": "Elige la tasa con la que se paga este gasto.",
+      "staleExchangeRate": "La tasa elegida no está disponible o no está actualizada para la fecha de pago. Elige otra tasa o usa una personalizada."
     }
   },
   "gastosPagados": {
@@ -495,8 +512,16 @@
       "category": "Categoría",
       "provider": "Persona/Empresa",
       "amount": "Monto",
+      "rate": "Tasa",
+      "reference": "Equivalente",
       "paidDate": "Fecha de pago",
       "notes": "Notas"
+    },
+    "rateTypes": {
+      "bcv": "BCV USD",
+      "eur": "BCV EUR",
+      "binance": "Binance",
+      "custom": "Personalizada"
     },
     "filters": {
       "category": "Categoría",

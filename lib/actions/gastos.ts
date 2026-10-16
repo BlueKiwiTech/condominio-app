@@ -15,6 +15,9 @@ import {
 } from '@/lib/validation/gastos';
 import { computeVariablePeriodDates, parseDateOnly, toDateOnly, computeHorizonEnd } from '@/lib/gastos/generate';
 import { topUpFixedExpense } from '@/lib/gastos/topUp';
+import { referenceAmount, referenceCurrencyFor } from '@/lib/gastos/paymentRate';
+import { isRateFresh } from '@/lib/exchangeRate';
+import { getExchangeRatesAsOf } from '@/lib/actions/exchangeRate';
 
 type ActionResult = { error: string } | { success: true };
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -224,23 +227,70 @@ export async function markExpensePaid(
 
   const { data: expense, error: fetchError } = await supabase
     .from('condo_expenses')
-    .select('id, status')
+    .select('id, status, currency')
     .eq('id', expenseId)
     .maybeSingle();
   if (fetchError) return { error: await friendlyError(fetchError) };
   if (!expense) return { error: tg('errors.notFound') };
   if (expense.status === 'paid') return { error: tg('errors.alreadyPaid') };
 
-  const { error: updateError } = await supabase
+  // Only expenses in Bs are valued with a rate (change gastos-pago-multimoneda):
+  // USD and USDT keep the plain flow and the four rate columns stay null.
+  let rateColumns: {
+    exchange_rate: number | null;
+    exchange_rate_type: string | null;
+    reference_amount: number | null;
+    reference_currency: string | null;
+  } = { exchange_rate: null, exchange_rate_type: null, reference_amount: null, reference_currency: null };
+
+  if (expense.currency === 'Bs') {
+    const rateType = data.exchange_rate_type;
+    if (!rateType) return { error: tg('errors.rateTypeRequired') };
+
+    let rate: number;
+    if (rateType === 'custom') {
+      // Typed by the admin for this one expense: no freshness rule. Rounded to
+      // the column's 4 decimals so the stored equivalent matches the stored rate.
+      rate = Math.round(data.custom_rate! * 10000) / 10000;
+    } else {
+      // bcv/eur/binance are never taken from the client: re-read here as of the
+      // payment's own date and held to the 24h freshness rule, same as the
+      // payments flow (lib/payments/applyAllocation.ts).
+      const rates = await getExchangeRatesAsOf(data.paid_date);
+      const row = rates[rateType];
+      if (!row || !isRateFresh(row.updated_at, parseDateOnly(data.paid_date))) {
+        return { error: tg('errors.staleExchangeRate') };
+      }
+      rate = row.rate;
+    }
+
+    const reference = referenceAmount(data.amount, rate);
+    if (reference === null) return { error: tc('invalidData') };
+    rateColumns = {
+      exchange_rate: rate,
+      exchange_rate_type: rateType,
+      reference_amount: reference,
+      reference_currency: referenceCurrencyFor(rateType),
+    };
+  }
+
+  // `.eq('status', 'pending')` + checking a row was touched closes the gap
+  // between the read above and this write: two simultaneous submits can't
+  // overwrite the rate of an expense that was just paid.
+  const { data: updated, error: updateError } = await supabase
     .from('condo_expenses')
     .update({
       amount: data.amount,
       paid_date: data.paid_date,
       notes: normalizeOptional(data.notes),
       status: 'paid',
+      ...rateColumns,
     })
-    .eq('id', expenseId);
+    .eq('id', expenseId)
+    .eq('status', 'pending')
+    .select('id');
   if (updateError) return { error: await friendlyError(updateError) };
+  if (!updated || updated.length === 0) return { error: tg('errors.alreadyPaid') };
 
   await logAudit(supabase, {
     userId,
