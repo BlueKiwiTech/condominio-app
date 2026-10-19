@@ -413,6 +413,7 @@
     },
     "status": {
       "pending": "Pending",
+      "on_hold": "Waiting for rate",
       "paid": "Paid"
     },
     "filters": {
@@ -470,11 +471,12 @@
       "paymentCurrency": "Payment currency",
       "paidAmount": "Amount paid in {currency}",
       "original": "Original expense amount: {value}",
+      "onHold": "Payment waiting for its rate: it will be recorded by itself when the BCV rate for that date arrives.",
       "rateLabel": "Exchange rate",
       "rateValue": "{rate} Bs.",
-      "rateUnavailable": "unavailable",
+      "rateUnavailable": "no rate — will wait",
       "customRate": "Custom rate (Bs. per USD)",
-      "rateStale": "The chosen rate is unavailable or out of date for the payment date. Pick another rate or use a custom one.",
+      "rateStale": "There is no fresh rate for the payment date: the payment will wait for its rate and complete by itself when it arrives. Enter the amount paid.",
       "equivalent": "Equivalent: {amount} {currency}",
       "rateTypes": {
         "bcv": "BCV (USD)",
@@ -504,7 +506,8 @@
       "cannotDeletePaid": "Can't delete an expense that's already paid.",
       "rateTypeRequired": "Choose the rate used to pay this expense.",
       "staleExchangeRate": "The chosen rate is unavailable or out of date for the payment date. Pick another rate or use a custom one.",
-      "paidAmountRequired": "Enter the amount paid in the payment currency."
+      "paidAmountRequired": "Enter the amount paid in the payment currency.",
+      "alreadyOnHold": "This expense is already waiting for its rate and will be paid by itself when it arrives."
     }
   },
   "gastosPagados": {
@@ -608,6 +611,7 @@
       "submit": "Send report",
       "cancel": "Cancel",
       "toastSuccess": "Payment registered successfully.",
+      "toastOnHold": "Payment recorded on hold: there is no BCV rate for that date yet. It will apply by itself when it arrives.",
       "overdueCard": {
         "heading": "Total overdue",
         "since": "Since {date}"
@@ -656,9 +660,12 @@
     "reject": "Reject",
     "status": {
       "pending": "Pending",
+      "on_hold": "Waiting for rate",
       "confirmed": "Confirmed",
       "rejected": "Rejected"
     },
+    "onHoldHint": "Waiting for the BCV rate of the payment date: it will be applied (or move to review) by itself when it arrives. It can't be confirmed meanwhile, but it can be rejected.",
+    "onHoldToast": "Report waiting for its rate: there is no BCV rate for that date yet. It will be processed by itself when it arrives.",
     "statusWithReceipt": "{status} · {receipt}",
     "noReceiptHint": "No cuotas selected — register it manually in Payments.",
     "confirmReject": "Confirm rejection",
@@ -738,6 +745,7 @@
       "empty": "No data.",
       "status": {
         "pending": "Pending",
+        "on_hold": "Waiting for rate",
         "paid": "Paid"
       }
     },
@@ -828,6 +836,7 @@
     "abonosEmpty": "You haven't reported any contributions yet.",
     "reportStatus": {
       "pending": "Under review",
+      "on_hold": "Waiting for rate",
       "confirmed": "Confirmed",
       "rejected": "Rejected"
     }

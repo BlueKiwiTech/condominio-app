@@ -208,11 +208,14 @@ export async function deleteExpenseCategory(categoryId: string, locale: string):
   return { success: true };
 }
 
+// `onHold`: bcv/eur has no fresh rate for the payment's date yet, so the expense
+// was parked as 'on_hold' instead of rejected (change pagos-en-espera-por-tasa);
+// lib/payments/releaseHeld.ts pays it by itself once the rate arrives.
 export async function markExpensePaid(
   expenseId: string,
   input: MarkExpensePaidInput,
   locale: string,
-): Promise<ActionResult> {
+): Promise<ActionResult | { success: true; onHold: true }> {
   const [tv, tc, tg] = await Promise.all([
     getTranslations({ locale, namespace: 'validation.gastos' }),
     getTranslations({ locale, namespace: 'common' }),
@@ -233,6 +236,8 @@ export async function markExpensePaid(
   if (fetchError) return { error: await friendlyError(fetchError) };
   if (!expense) return { error: tg('errors.notFound') };
   if (expense.status === 'paid') return { error: tg('errors.alreadyPaid') };
+  // Already marked as paid and only waiting for its rate: it releases by itself.
+  if (expense.status === 'on_hold') return { error: tg('errors.alreadyOnHold') };
 
   // Which currency the expense is paid in (change gastos-pago-multimoneda).
   // Default: its own. USDT expenses are always paid in USDT, untouched -- a
@@ -262,11 +267,13 @@ export async function markExpensePaid(
     paid_amount: null,
   };
 
+  let onHold = false;
   if (needsRate) {
     const rateType = data.exchange_rate_type;
     if (!rateType) return { error: tg('errors.rateTypeRequired') };
 
-    let rate: number;
+    // null = no fresh bcv/eur rate for the payment's date: the expense waits.
+    let rate: number | null;
     if (rateType === 'custom') {
       // Typed by the admin for this one expense: no freshness rule. Rounded to
       // the column's 4 decimals so what is stored matches the stored rate.
@@ -280,16 +287,16 @@ export async function markExpensePaid(
       // payments flow (lib/payments/applyAllocation.ts).
       const rates = await getExchangeRatesAsOf(data.paid_date);
       const row = rates[rateType];
-      if (!row || !isRateFresh(row.updated_at, parseDateOnly(data.paid_date))) {
-        return { error: tg('errors.staleExchangeRate') };
-      }
-      rate = row.rate;
+      rate = row && isRateFresh(row.updated_at, parseDateOnly(data.paid_date)) ? row.rate : null;
     }
+    onHold = rate === null;
 
     if (crossCurrency) {
       // The amount actually paid is what the admin confirmed in the dialog
       // (prefilled from the rate, editable), so it is not recomputed here.
       if (data.paid_amount === undefined) return { error: tg('errors.paidAmountRequired') };
+      // On hold the rate is still unknown: only the type is stored and the
+      // release fills `exchange_rate` in.
       rateColumns = {
         ...rateColumns,
         exchange_rate: rate,
@@ -297,6 +304,9 @@ export async function markExpensePaid(
         paid_currency: paymentCurrency,
         paid_amount: data.paid_amount,
       };
+    } else if (rate === null) {
+      // Bs paid in Bs, rate still unknown: the equivalent is computed on release.
+      rateColumns = { ...rateColumns, exchange_rate_type: rateType };
     } else {
       // Bs paid in Bs: nothing to convert, but keep the USD (or EUR) equivalent.
       const reference = referenceAmount(data.amount, rate);
@@ -324,7 +334,7 @@ export async function markExpensePaid(
       ...amountUpdate,
       paid_date: data.paid_date,
       notes: normalizeOptional(data.notes),
-      status: 'paid',
+      status: onHold ? 'on_hold' : 'paid',
       ...rateColumns,
     })
     .eq('id', expenseId)
@@ -341,7 +351,7 @@ export async function markExpensePaid(
   });
 
   revalidatePath('/gastos');
-  return { success: true };
+  return onHold ? { success: true, onHold: true } : { success: true };
 }
 
 export async function setExpenseTemplateActive(

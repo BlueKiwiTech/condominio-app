@@ -1,6 +1,6 @@
-import type { createClient } from '@/lib/supabase/server';
+import type { DbClient } from '@/lib/supabase/dbClient';
 
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+type SupabaseClient = DbClient;
 
 /**
  * Best-effort write to condo_audit_logs. Never throws -- a failed audit

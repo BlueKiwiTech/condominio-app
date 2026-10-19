@@ -73,12 +73,12 @@ export type ExpenseForReport = {
   currency: Currency;
   amount: number;
   period_date: string;
-  status: 'pending' | 'paid';
+  status: 'pending' | 'on_hold' | 'paid';
   paid_date: string | null;
 };
 
-// "Gastos pendientes del mes": pending condo_expenses whose period_date
-// falls in the given month — same cash/period-window shape as
+// "Gastos pendientes del mes": unpaid condo_expenses (pending, or on hold
+// waiting for an exchange rate) whose period_date falls in the given month — same cash/period-window shape as
 // collectedInMonth, kept as its own function since income and outgoing
 // expenses are conceptually different flows even though the per-currency
 // math is identical.
@@ -86,7 +86,7 @@ export function pendingExpensesInMonth(expenses: ExpenseForReport[], monthDate: 
   const start = startOfMonth(monthDate);
   const end = endOfMonth(monthDate);
   const pendingInMonth = expenses.filter(
-    (e) => e.status === 'pending' && isWithinInterval(parseISO(e.period_date), { start, end }),
+    (e) => (e.status === 'pending' || e.status === 'on_hold') && isWithinInterval(parseISO(e.period_date), { start, end }),
   );
   return sumByCurrency(pendingInMonth, (e) => e.amount);
 }

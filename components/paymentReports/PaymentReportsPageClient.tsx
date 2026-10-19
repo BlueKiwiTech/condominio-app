@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { useTranslations, useLocale } from 'next-intl';
 import { parseISO } from 'date-fns';
 import { FileText } from 'lucide-react';
@@ -20,6 +21,7 @@ const STATUS_CLASSES: Record<ReportStatus, string> = {
   confirmed: 'bg-success/10 text-success',
   rejected: 'bg-destructive/10 text-destructive',
   pending: 'bg-warning/10 text-warning',
+  on_hold: 'bg-primary/10 text-primary',
 };
 
 function ReportCard({
@@ -55,6 +57,8 @@ function ReportCard({
         setActionError(result.error);
         return;
       }
+      // The BCV rate for this report's date isn't there: it was parked instead of confirmed.
+      if ('onHold' in result) toast.info(t('onHoldToast'));
       router.refresh();
     });
   };
@@ -139,6 +143,11 @@ function ReportCard({
           </Alert>
         )}
 
+        {report.status === 'on_hold' && (
+          <p className="text-sm text-muted-foreground" data-testid="report-on-hold-hint">
+            {t('onHoldHint')}
+          </p>
+        )}
         {report.status === 'rejected' && report.rejection_reason && (
           <p className="text-sm">
             <span className="text-muted-foreground">{t('rejectionReason')}:</span> {report.rejection_reason}
@@ -174,17 +183,20 @@ function ReportCard({
               {t('viewScreenshot')}
             </Button>
           )}
-          {report.status === 'pending' && !rejecting && (
+          {(report.status === 'pending' || report.status === 'on_hold') && !rejecting && (
             <>
-              <Button type="button" size="sm" disabled={isPending} onClick={handleConfirm}>
-                {t('confirm')}
-              </Button>
+              {/* A report waiting for its exchange rate can't be confirmed (it releases by itself) but can still be rejected. */}
+              {report.status === 'pending' && (
+                <Button type="button" size="sm" disabled={isPending} onClick={handleConfirm}>
+                  {t('confirm')}
+                </Button>
+              )}
               <Button type="button" variant="destructive" size="sm" disabled={isPending} onClick={() => setRejecting(true)}>
                 {t('reject')}
               </Button>
             </>
           )}
-          {report.status === 'pending' && rejecting && (
+          {(report.status === 'pending' || report.status === 'on_hold') && rejecting && (
             <>
               <Button type="button" variant="destructive" size="sm" disabled={isPending} onClick={handleReject}>
                 {t('confirmReject')}
@@ -220,7 +232,7 @@ export function PaymentReportsPageClient({
   const [tab, setTab] = useState<'pending' | 'all'>('pending');
 
   const visibleReports = useMemo(
-    () => (tab === 'pending' ? reports.filter((r) => r.status === 'pending') : reports),
+    () => (tab === 'pending' ? reports.filter((r) => r.status === 'pending' || r.status === 'on_hold') : reports),
     [reports, tab],
   );
 
@@ -228,7 +240,7 @@ export function PaymentReportsPageClient({
     <div className="flex w-full flex-col gap-4">
       <Tabs value={tab} onValueChange={(v) => setTab(v as 'pending' | 'all')}>
         <TabsList>
-          <TabsTrigger value="pending">{t('tabs.pending', { count: reports.filter((r) => r.status === 'pending').length })}</TabsTrigger>
+          <TabsTrigger value="pending">{t('tabs.pending', { count: reports.filter((r) => r.status === 'pending' || r.status === 'on_hold').length })}</TabsTrigger>
           <TabsTrigger value="all">{t('tabs.all')}</TabsTrigger>
         </TabsList>
       </Tabs>

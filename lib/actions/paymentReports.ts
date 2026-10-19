@@ -8,7 +8,8 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { applyPaymentAllocation } from '@/lib/payments/applyAllocation';
 import { logAudit } from '@/lib/audit';
 
-type ActionResult = { error: string } | { success: true };
+// `onHold` (confirm only): the BCV rate for the report's date is missing, so the report was parked instead of confirmed.
+type ActionResult = { error: string } | { success: true } | { success: true; onHold: true };
 type Currency = 'USD' | 'Bs' | 'USDT';
 
 type ReportForConfirm = {
@@ -19,7 +20,7 @@ type ReportForConfirm = {
   reference: string | null;
   notes: string | null;
   installment_ids: string[];
-  status: 'pending' | 'confirmed' | 'rejected';
+  status: 'pending' | 'on_hold' | 'confirmed' | 'rejected';
 };
 
 /** Network-verified — never getSession() as an authorization gate (CLAUDE.md). */
@@ -45,11 +46,16 @@ export async function rejectPaymentReport(reportId: string, locale: string, reas
   const { error: authError, supabase, userId } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
-  const { error } = await supabase
+  // Only a report still waiting on the admin can be rejected: pending, or on
+  // hold for a missing rate. A confirmed one already registered a real payment.
+  const { data: rejected, error } = await supabase
     .from('condo_payment_reports')
     .update({ status: 'rejected', rejection_reason: reason?.trim() || null })
-    .eq('id', reportId);
+    .eq('id', reportId)
+    .in('status', ['pending', 'on_hold'])
+    .select('id');
   if (error) return { error: await friendlyError(error) };
+  if (!rejected || rejected.length === 0) return { error: tc('invalidData') };
 
   await logAudit(supabase, {
     userId,
@@ -138,6 +144,20 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
     },
   );
   if ('error' in result) return result;
+
+  if ('onHold' in result) {
+    // The BCV rate for this report's date isn't available (anymore): nothing was
+    // written, and the admin isn't blocked -- the report waits as 'on_hold' and is
+    // turned back into a normal 'pending' one when the rate arrives.
+    const { error: holdError } = await supabase
+      .from('condo_payment_reports')
+      .update({ status: 'on_hold' })
+      .eq('id', reportId)
+      .eq('status', 'pending');
+    if (holdError) return { error: await friendlyError(holdError) };
+    revalidatePath('/pagos-reportados');
+    return { success: true, onHold: true };
+  }
 
   const { error: updateError } = await supabase
     .from('condo_payment_reports')

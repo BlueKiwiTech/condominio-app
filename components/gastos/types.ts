@@ -3,7 +3,7 @@ import type { ExpensePaymentCurrency, ExpensePaymentRateType, ExpenseReferenceCu
 export type Currency = 'USD' | 'Bs' | 'USDT';
 export type ExpenseKind = 'fixed' | 'variable';
 export type ExpenseCadence = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'annual';
-export type ExpenseStatus = 'pending' | 'paid';
+export type ExpenseStatus = 'pending' | 'on_hold' | 'paid';
 
 export type CategoryOption = { id: string; name: string };
 

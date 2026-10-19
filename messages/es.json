@@ -413,6 +413,7 @@
     },
     "status": {
       "pending": "Pendiente",
+      "on_hold": "En espera de tasa",
       "paid": "Pagado"
     },
     "filters": {
@@ -470,11 +471,12 @@
       "paymentCurrency": "Moneda de pago",
       "paidAmount": "Monto pagado en {currency}",
       "original": "Monto original del gasto: {value}",
+      "onHold": "Pago en espera de tasa: se registrará solo cuando llegue la tasa BCV de esa fecha.",
       "rateLabel": "Tasa de cambio",
       "rateValue": "{rate} Bs.",
-      "rateUnavailable": "no disponible",
+      "rateUnavailable": "sin tasa — quedará en espera",
       "customRate": "Tasa personalizada (Bs. por USD)",
-      "rateStale": "La tasa elegida no está disponible o no está actualizada para la fecha de pago. Elige otra tasa o usa una personalizada.",
+      "rateStale": "No hay tasa fresca para la fecha de pago: el pago quedará en espera de tasa y se completará solo cuando llegue. Escribe el monto pagado.",
       "equivalent": "Equivalente: {amount} {currency}",
       "rateTypes": {
         "bcv": "BCV (USD)",
@@ -504,7 +506,8 @@
       "cannotDeletePaid": "No se puede eliminar un gasto ya pagado.",
       "rateTypeRequired": "Elige la tasa con la que se paga este gasto.",
       "staleExchangeRate": "La tasa elegida no está disponible o no está actualizada para la fecha de pago. Elige otra tasa o usa una personalizada.",
-      "paidAmountRequired": "Ingresa el monto pagado en la moneda de pago."
+      "paidAmountRequired": "Ingresa el monto pagado en la moneda de pago.",
+      "alreadyOnHold": "Este gasto ya está en espera de tasa y se pagará solo cuando llegue."
     }
   },
   "gastosPagados": {
@@ -608,6 +611,7 @@
       "submit": "Enviar reporte",
       "cancel": "Cancelar",
       "toastSuccess": "Abono registrado correctamente.",
+      "toastOnHold": "Pago registrado en espera: aún no hay tasa BCV para esa fecha. Se aplicará solo cuando llegue.",
       "overdueCard": {
         "heading": "Total vencido",
         "since": "Desde {date}"
@@ -656,9 +660,12 @@
     "reject": "Rechazar",
     "status": {
       "pending": "Pendiente",
+      "on_hold": "En espera de tasa",
       "confirmed": "Confirmado",
       "rejected": "Rechazado"
     },
+    "onHoldHint": "Esperando la tasa BCV de la fecha del pago: se aplicará (o pasará a por revisar) solo cuando llegue. Mientras tanto no se puede confirmar, pero sí rechazar.",
+    "onHoldToast": "Reporte en espera de tasa: aún no hay tasa BCV para esa fecha. Se procesará solo cuando llegue.",
     "statusWithReceipt": "{status} · {receipt}",
     "noReceiptHint": "Sin cuotas seleccionadas — regístralo manualmente en Pagos.",
     "confirmReject": "Confirmar rechazo",
@@ -738,6 +745,7 @@
       "empty": "Sin datos.",
       "status": {
         "pending": "Pendiente",
+        "on_hold": "En espera de tasa",
         "paid": "Pagado"
       }
     },
@@ -828,6 +836,7 @@
     "abonosEmpty": "Aún no has reportado ningún abono.",
     "reportStatus": {
       "pending": "Por revisar",
+      "on_hold": "En espera de tasa",
       "confirmed": "Confirmado",
       "rejected": "Rechazado"
     }

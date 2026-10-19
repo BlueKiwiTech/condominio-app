@@ -13,13 +13,19 @@
 import { friendlyError } from '@/lib/errors';
 import { randomUUID } from 'crypto';
 import { parseISO } from 'date-fns';
-import type { createClient } from '@/lib/supabase/server';
+import type { DbClient } from '@/lib/supabase/dbClient';
 import { logAudit } from '@/lib/audit';
-import { getExchangeRatesAsOf } from '@/lib/actions/exchangeRate';
-import { allocateFunds, sortOldestFirst, filterEligibleForConversionWindow, type AllocatableInstallment } from './allocate';
+import { fetchRatesAsOf } from '@/lib/rates/asOf';
+import {
+  allocateFunds,
+  sortOldestFirst,
+  filterEligibleForConversionWindow,
+  type AllocatableInstallment,
+  type Allocation,
+} from './allocate';
 import { getHouseCredit, setHouseCredit } from './creditSweep';
 
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+type SupabaseClient = DbClient;
 type Currency = 'USD' | 'Bs' | 'USDT';
 
 export type ApplyAllocationParams = {
@@ -41,28 +47,51 @@ export type ApplyAllocationErrors = {
   staleExchangeRate: string;
 };
 
-export async function applyPaymentAllocation(
+type EvaluatedInstallment = { id: string; currency: string };
+
+/**
+ * What evaluatePaymentAllocation found out, without having written anything:
+ *  - `error`: a precondition failed (cuota gone, mixed houses, already paid,
+ *    nothing received, or a Binance rate that is missing/stale).
+ *  - `blockedByRate`: the BCV rate (Bs -> USD) for the payment's own date is
+ *    missing or older than 24h. NOT an error: the payment waits ("en espera")
+ *    until the rate arrives (change pagos-en-espera-por-tasa).
+ *  - `ok`: the allocation to write.
+ */
+export type PaymentEvaluation =
+  | { kind: 'error'; error: string }
+  | { kind: 'blockedByRate' }
+  | { kind: 'ok'; installments: EvaluatedInstallment[]; allocations: Allocation[]; leftoverCents: number };
+
+/**
+ * The read-only half of applyPaymentAllocation: fetches the cuotas, the house's
+ * credit and the rates as of the payment date, and runs allocateFunds. Safe to
+ * call with an admin session or with the service role. Used to apply a
+ * payment, to decide whether a resident's report must wait for a rate, and to
+ * re-check a held payment when releasing it.
+ */
+export async function evaluatePaymentAllocation(
   supabase: SupabaseClient,
   params: ApplyAllocationParams,
   errors: ApplyAllocationErrors,
-): Promise<{ error: string } | { success: true; batchId: string; receiptNumber: number }> {
+): Promise<PaymentEvaluation> {
   const { data: rawInstallments, error: fetchError } = await supabase
     .from('condo_installments')
     .select('id, house_id, currency, status, amount, amount_paid, due_date, installment_number')
     .in('id', params.installment_ids)
     .is('deleted_at', null);
-  if (fetchError) return { error: await friendlyError(fetchError) };
+  if (fetchError) return { kind: 'error', error: await friendlyError(fetchError) };
 
   const installments = rawInstallments ?? [];
   // A shorter result than requested means some id is gone or was voided
   // (deactivated template) since it was selected -- same user-facing error
   // as a hard delete, since either way the cuota no longer exists to pay.
   if (installments.length !== params.installment_ids.length) {
-    return { error: errors.installmentsGone };
+    return { kind: 'error', error: errors.installmentsGone };
   }
   for (const inst of installments) {
-    if (inst.house_id !== params.house_id) return { error: errors.mixedHouses };
-    if (inst.status === 'paid') return { error: errors.alreadyPaid };
+    if (inst.house_id !== params.house_id) return { kind: 'error', error: errors.mixedHouses };
+    if (inst.status === 'paid') return { kind: 'error', error: errors.alreadyPaid };
   }
 
   const existingCredit = await getHouseCredit(supabase, params.house_id, params.currency);
@@ -78,10 +107,15 @@ export async function applyPaymentAllocation(
   // Rates as of the payment's own "Fecha de abono", not "now" -- a backdated
   // entry converts at the rate that was actually in effect that day (see
   // lib/payments/allocate.ts's allocateFunds docstring).
-  const rates = await getExchangeRatesAsOf(params.payment_date);
+  const rates = await fetchRatesAsOf(supabase, params.payment_date);
   const allocationResult = allocateFunds(sorted, fundsAvailable, params.currency, rates, paymentDateParsed);
-  if (allocationResult.blocked) return { error: errors.staleExchangeRate };
-  const { allocations, leftoverCents } = allocationResult;
+  if (allocationResult.blocked) {
+    // Only the BCV rate (Bs) makes a payment wait. Binance (USDT) is a 24/7
+    // market whose stale rate is simply rejected, as before.
+    return allocationResult.missingRateFor === 'Bs'
+      ? { kind: 'blockedByRate' }
+      : { kind: 'error', error: errors.staleExchangeRate };
+  }
 
   // A deposit that doesn't fully cover ANY eligible cuota (full-or-nothing,
   // e.g. $100 against an oldest cuota of $224) is never rejected
@@ -90,8 +124,23 @@ export async function applyPaymentAllocation(
   // house with nothing currently selected/due or nothing inside the 30-day
   // window. Only literally nothing received is an error.
   if (params.amount_received <= 0) {
-    return { error: errors.insufficientAmount };
+    return { kind: 'error', error: errors.insufficientAmount };
   }
+
+  return { kind: 'ok', installments, allocations: allocationResult.allocations, leftoverCents: allocationResult.leftoverCents };
+}
+
+export async function applyPaymentAllocation(
+  supabase: SupabaseClient,
+  params: ApplyAllocationParams,
+  errors: ApplyAllocationErrors,
+): Promise<{ error: string } | { onHold: true } | { success: true; batchId: string; receiptNumber: number }> {
+  const evaluation = await evaluatePaymentAllocation(supabase, params, errors);
+  if (evaluation.kind === 'error') return { error: evaluation.error };
+  // No BCV rate for the payment's date yet: write nothing; the caller parks it
+  // as 'on_hold' and it is released when the rate arrives.
+  if (evaluation.kind === 'blockedByRate') return { onHold: true };
+  const { installments, allocations, leftoverCents } = evaluation;
 
   const { data: receiptData, error: receiptError } = await supabase.rpc('condo_next_receipt_number');
   if (receiptError) return { error: await friendlyError(receiptError) };

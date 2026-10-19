@@ -1,5 +1,5 @@
 export type Currency = 'USD' | 'Bs' | 'USDT';
-export type ReportStatus = 'pending' | 'confirmed' | 'rejected';
+export type ReportStatus = 'pending' | 'on_hold' | 'confirmed' | 'rejected';
 
 export type PaymentReportRow = {
   id: string;
