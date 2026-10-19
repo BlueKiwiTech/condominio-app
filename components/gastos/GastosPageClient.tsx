@@ -18,13 +18,16 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { useSortableTable, SortableTableHead } from '@/components/ui/sortable-table';
 import { markExpensePaidSchema, type MarkExpensePaidInput } from '@/lib/validation/gastos';
 import { markExpensePaid, deleteExpense, deleteExpenseTemplate } from '@/lib/actions/gastos';
-import { formatAmount, formatMoney } from '@/lib/currency';
+import { currencyLabel, formatAmount, formatMoney } from '@/lib/currency';
 import { getExchangeRatesAsOf } from '@/lib/actions/exchangeRate';
 import { isRateFresh, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 import {
+  EXPENSE_PAYMENT_CURRENCIES,
   EXPENSE_PAYMENT_RATE_TYPES,
+  convertExpenseAmount,
   referenceAmount,
   referenceCurrencyFor,
+  type ExpensePaymentCurrency,
   type ExpensePaymentRateType,
 } from '@/lib/gastos/paymentRate';
 import { formatShortDate } from '@/lib/dateFormat';
@@ -105,22 +108,30 @@ export function GastosPageClient({
   const yearOptions = useMemo(() => availableYears.map((y) => ({ label: String(y), value: String(y) })), [availableYears]);
 
   const [markPaidTarget, setMarkPaidTarget] = useState<ExpenseRow | null>(null);
-  const [amount, setAmount] = useState(0);
   const [paidDate, setPaidDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState('');
   const [serverError, setServerError] = useState<string | null>(null);
-  // Rate picker for expenses in Bs (change gastos-pago-multimoneda). bcv/eur/
-  // binance are only previewed here from the rates as of the chosen "Fecha de
-  // pago" -- markExpensePaid re-reads them server-side, so what is stored never
-  // depends on this screen. A custom rate is the only value sent from here.
+  // Payment currency (change gastos-pago-multimoneda): always shown, defaults to
+  // the expense's own. A rate picker appears whenever either currency is Bs.
+  // bcv/eur are only previewed here from the rates as of the chosen "Fecha de
+  // pago" -- markExpensePaid re-reads them server-side, so the stored rate never
+  // depends on this screen. A custom rate is the only rate sent from here.
+  const [paymentCurrency, setPaymentCurrency] = useState<ExpensePaymentCurrency | 'USDT'>('USD');
   const [rateType, setRateType] = useState<ExpensePaymentRateType>('bcv');
   const [customRate, setCustomRate] = useState('');
+  // The amount input is prefilled from the rate; what the admin types replaces
+  // the prefill until currency, rate or date change again (see handlers below).
+  const [amountText, setAmountText] = useState<string | null>(null);
   const [loadedRates, setLoadedRates] = useState<{ date: string; rates: Record<ExchangeRateType, ExchangeRateRow | null> } | null>(null);
 
   const paidDateStr = format(paidDate, 'yyyy-MM-dd');
-  const isBsTarget = markPaidTarget?.currency === 'Bs';
+  const expenseCurrency = markPaidTarget?.currency ?? 'USD';
+  const crossCurrency = !!markPaidTarget && paymentCurrency !== expenseCurrency;
+  // A rate is needed when either side is Bs (USD <-> Bs, or Bs -> Bs to record
+  // the equivalent); USD -> USD and USDT never use one.
+  const needsRate = !!markPaidTarget && expenseCurrency !== 'USDT' && (expenseCurrency === 'Bs' || paymentCurrency === 'Bs');
   useEffect(() => {
-    if (!isBsTarget) return;
+    if (!needsRate) return;
     let cancelled = false;
     getExchangeRatesAsOf(paidDateStr).then((rates) => {
       if (!cancelled) setLoadedRates({ date: paidDateStr, rates });
@@ -128,7 +139,7 @@ export function GastosPageClient({
     return () => {
       cancelled = true;
     };
-  }, [isBsTarget, paidDateStr]);
+  }, [needsRate, paidDateStr]);
 
   // Rates loaded for a different date than the one now selected count as
   // "still loading" instead of showing another day's values.
@@ -141,13 +152,27 @@ export function GastosPageClient({
     return row && isRateFresh(row.updated_at, parseISO(paidDateStr)) ? row.rate : null;
   };
   const customRateNumber = Number(customRate.replace(',', '.'));
-  const selectedRate: number | null =
-    rateType === 'custom'
+  const selectedRate: number | null = !needsRate
+    ? null
+    : rateType === 'custom'
       ? Number.isFinite(customRateNumber) && customRateNumber > 0
         ? customRateNumber
         : null
       : usableRate(rateType);
-  const equivalent = isBsTarget && selectedRate !== null ? referenceAmount(amount, selectedRate) : null;
+
+  // What the amount input shows until the admin edits it: the expense's amount
+  // as is (same currency) or converted with the chosen rate (different one).
+  const prefilledAmount: number | null = !markPaidTarget
+    ? null
+    : !crossCurrency
+      ? markPaidTarget.amount
+      : selectedRate === null || paymentCurrency === 'USDT' || expenseCurrency === 'USDT'
+        ? null
+        : convertExpenseAmount(markPaidTarget.amount, expenseCurrency, paymentCurrency, selectedRate);
+  const amountValue: number | null = amountText !== null ? (amountText.trim() === '' ? null : Number(amountText.replace(',', '.'))) : prefilledAmount;
+  const amountInputValue = amountText ?? (prefilledAmount !== null ? String(prefilledAmount) : '');
+  // Bs paid in Bs: nothing to convert, but the equivalent (USD, or EUR for the euro rate) is kept.
+  const equivalent = needsRate && !crossCurrency && selectedRate !== null && amountValue !== null ? referenceAmount(amountValue, selectedRate) : null;
 
   const statusOptions: { value: 'all' | ExpenseStatus; label: string }[] = [
     { value: 'all', label: t('filters.allStatuses') },
@@ -208,20 +233,47 @@ export function GastosPageClient({
   const openMarkPaid = (expense: ExpenseRow) => {
     setServerError(null);
     setMarkPaidTarget(expense);
-    setAmount(expense.amount);
+    setPaymentCurrency(expense.currency === 'USDT' ? 'USDT' : expense.currency);
+    setAmountText(null);
     setPaidDate(new Date());
     setNotes('');
     setRateType('bcv');
     setCustomRate('');
   };
 
+  // Changing currency, rate or date changes what the amount should be, so any
+  // manual edit is dropped and the prefill takes over again.
+  const changePaymentCurrency = (currency: ExpensePaymentCurrency) => {
+    setPaymentCurrency(currency);
+    setAmountText(null);
+  };
+  const changeRateType = (type: ExpensePaymentRateType) => {
+    setRateType(type);
+    setAmountText(null);
+  };
+  const changeCustomRate = (value: string) => {
+    setCustomRate(value);
+    setAmountText(null);
+  };
+  const changePaidDate = (date: Date) => {
+    setPaidDate(date);
+    setAmountText(null);
+  };
+
   const confirmMarkPaid = () => {
     if (!markPaidTarget) return;
+    if (amountValue === null || !Number.isFinite(amountValue) || amountValue <= 0) {
+      setServerError(tv('amountPositive'));
+      return;
+    }
     const payload: MarkExpensePaidInput = {
-      amount,
+      // Different currency: `amount` stays what was owed and the typed value is what was paid.
+      amount: crossCurrency ? markPaidTarget.amount : amountValue,
       paid_date: paidDateStr,
       notes: notes || undefined,
-      ...(isBsTarget
+      ...(paymentCurrency !== 'USDT' ? { payment_currency: paymentCurrency } : {}),
+      ...(crossCurrency ? { paid_amount: amountValue } : {}),
+      ...(needsRate
         ? {
             exchange_rate_type: rateType,
             custom_rate: rateType === 'custom' && selectedRate !== null ? selectedRate : undefined,
@@ -435,33 +487,62 @@ export function GastosPageClient({
                 <AlertDescription>{serverError}</AlertDescription>
               </Alert>
             )}
+            {markPaidTarget && (
+              <p className="text-sm text-muted-foreground">
+                {t('markPaidDialog.original', { value: formatAmount(markPaidTarget.amount, markPaidTarget.currency) })}
+              </p>
+            )}
             <div className="grid gap-2">
-              <Label htmlFor="markPaidAmount">{t('markPaidDialog.amount')}</Label>
+              <Label htmlFor="markPaidCurrency">{t('markPaidDialog.paymentCurrency')}</Label>
+              {markPaidTarget?.currency === 'USDT' ? (
+                // USDT expenses are paid in USDT, untouched: shown, but nothing to choose.
+                <p id="markPaidCurrency" className="flex h-9 items-center rounded-md border bg-muted px-3 text-sm">
+                  {currencyLabel('USDT')}
+                </p>
+              ) : (
+                <Select
+                  value={paymentCurrency}
+                  onValueChange={(v) => v && changePaymentCurrency(v as ExpensePaymentCurrency)}
+                  items={EXPENSE_PAYMENT_CURRENCIES.map((c) => ({ value: c, label: currencyLabel(c) }))}
+                >
+                  <SelectTrigger id="markPaidCurrency" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXPENSE_PAYMENT_CURRENCIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {currencyLabel(c)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="markPaidAmount">
+                {crossCurrency ? t('markPaidDialog.paidAmount', { currency: currencyLabel(paymentCurrency) }) : t('markPaidDialog.amount')}
+              </Label>
               <Input
                 id="markPaidAmount"
                 type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.valueAsNumber)}
+                step="any"
+                value={amountInputValue}
+                onChange={(e) => setAmountText(e.target.value)}
               />
             </div>
             <DateInput
               id="markPaidDate"
               label={t('markPaidDialog.paidDate')}
               value={paidDate}
-              onChange={(date) => date && setPaidDate(date)}
+              onChange={(date) => date && changePaidDate(date)}
             />
-            {markPaidTarget && (
-              <p className="text-sm text-muted-foreground">
-                {t('markPaidDialog.original', { value: formatAmount(markPaidTarget.amount, markPaidTarget.currency) })}
-              </p>
-            )}
-            {isBsTarget && (
+            {needsRate && (
               <div className="flex flex-col gap-3">
                 <div className="grid gap-2">
                   <Label htmlFor="markPaidRate">{t('markPaidDialog.rateLabel')}</Label>
                   <Select
                     value={rateType}
-                    onValueChange={(v) => v && setRateType(v as ExpensePaymentRateType)}
+                    onValueChange={(v) => v && changeRateType(v as ExpensePaymentRateType)}
                     items={EXPENSE_PAYMENT_RATE_TYPES.map((type) => ({ value: type, label: t(`markPaidDialog.rateTypes.${type}`) }))}
                   >
                     <SelectTrigger id="markPaidRate" className="w-full">
@@ -498,7 +579,7 @@ export function GastosPageClient({
                       inputMode="decimal"
                       step="any"
                       value={customRate}
-                      onChange={(e) => setCustomRate(e.target.value)}
+                      onChange={(e) => changeCustomRate(e.target.value)}
                     />
                   </div>
                 )}
@@ -521,7 +602,7 @@ export function GastosPageClient({
             </div>
           </div>
           <DialogFooter>
-            <Button disabled={isMarkingPaid || (isBsTarget && selectedRate === null)} onClick={confirmMarkPaid}>
+            <Button disabled={isMarkingPaid || (needsRate && selectedRate === null)} onClick={confirmMarkPaid}>
               {t('markPaidDialog.confirm')}
             </Button>
           </DialogFooter>

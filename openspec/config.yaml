@@ -13,7 +13,7 @@ context: |
   Lectura obligatoria antes de tocar auth o cuotas/pagos/reportes: docs/archive/planning/research/PITFALLS.md.
 
   Reglas transversales (aplican a todo cambio):
-  - Nunca sumar montos entre monedas (USD/Bs/USDT). Excepciones únicas: asignación de wallet en "Mi Cartera" y pago de un gasto en Bs con tasa elegida (el equivalente se guarda por fila y nunca entra en un total; ver spec gastos).
+  - Nunca sumar montos entre monedas (USD/Bs/USDT). Excepciones únicas: asignación de wallet en "Mi Cartera" y pago de un gasto con Bs en la moneda del gasto o en la de pago, con tasa BCV dólar, BCV euro o personalizada (lo pagado y el equivalente se guardan por fila y nunca entran en un total; ver spec gastos).
   - Fechas: solo funciones seguras por día calendario (date-fns), nunca split UTC de strings.
   - Generación de cuotas/gastos: transaccional e idempotente (unique constraint + upsert ignoreDuplicates).
   - Admin = Supabase Auth + RLS; residentes = cookie firmada (jose) + cliente service-role filtrado por house_id.

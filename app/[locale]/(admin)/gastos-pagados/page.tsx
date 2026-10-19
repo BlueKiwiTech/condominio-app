@@ -11,7 +11,7 @@ export default async function GastosPagadosPage() {
     supabase
       .from('condo_expenses')
       .select(
-        'id, template_id, category_id, provider, currency, amount, installment_number, period_date, status, paid_date, notes, exchange_rate, exchange_rate_type, reference_amount, reference_currency, condo_expense_templates(name, kind), condo_expense_categories(name)',
+        'id, template_id, category_id, provider, currency, amount, installment_number, period_date, status, paid_date, notes, exchange_rate, exchange_rate_type, reference_amount, reference_currency, paid_currency, paid_amount, condo_expense_templates(name, kind), condo_expense_categories(name)',
       )
       .eq('status', 'paid')
       .is('deleted_at', null)

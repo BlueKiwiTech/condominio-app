@@ -101,11 +101,17 @@ export function markExpensePaidSchema(t: Translator) {
       amount: z.coerce.number().positive(t('amountPositive')),
       paid_date: isoDate(t),
       notes: z.string().trim().optional(),
-      // Only meaningful for expenses in Bs (markExpensePaid enforces that
-      // against the stored currency, which the schema can't see). bcv/eur/
-      // binance are resolved server-side from the stored rates; only a
-      // custom rate travels from the client.
-      exchange_rate_type: z.enum(['bcv', 'eur', 'binance', 'custom']).optional(),
+      // Currency the expense is paid in (defaults to the expense's own).
+      // markExpensePaid checks it against the stored currency, which the
+      // schema can't see: USDT expenses are always paid in USDT.
+      payment_currency: z.enum(['USD', 'Bs']).optional(),
+      // What was actually paid, in payment_currency. Prefilled from the rate
+      // but editable, so it is only validated as a positive number.
+      paid_amount: z.number().positive(t('paidAmountPositive')).optional(),
+      // Required (by markExpensePaid) when either currency is Bs. bcv/eur are
+      // resolved server-side from the stored rates; only a custom rate
+      // travels from the client.
+      exchange_rate_type: z.enum(['bcv', 'eur', 'custom']).optional(),
       custom_rate: z.number().positive(t('customRatePositive')).optional(),
     })
     .refine((v) => v.exchange_rate_type !== 'custom' || v.custom_rate !== undefined, {
