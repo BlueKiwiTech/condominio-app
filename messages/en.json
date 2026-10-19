@@ -182,6 +182,12 @@
         "title": "Pending expenses in {month}",
         "empty": "No pending expenses this month."
       },
+      "communityBalance": {
+        "title": "Community balance",
+        "empty": "No movements yet.",
+        "hint": "Received minus paid expenses, per currency.",
+        "error": "The balance couldn't be computed."
+      },
       "scope": "Overdue and due through {date}"
     },
     "chart": {
@@ -472,6 +478,8 @@
       "paidAmount": "Amount paid in {currency}",
       "original": "Original expense amount: {value}",
       "onHold": "Payment waiting for its rate: it will be recorded by itself when the BCV rate for that date arrives.",
+      "balanceAvailable": "Community balance available in {currency}: {amount}",
+      "balanceMissing": "The balance is not enough: {missing} short ({currency}). This payment cannot be recorded.",
       "rateLabel": "Exchange rate",
       "rateValue": "{rate} Bs.",
       "rateUnavailable": "no rate — will wait",
@@ -507,7 +515,8 @@
       "rateTypeRequired": "Choose the rate used to pay this expense.",
       "staleExchangeRate": "The chosen rate is unavailable or out of date for the payment date. Pick another rate or use a custom one.",
       "paidAmountRequired": "Enter the amount paid in the payment currency.",
-      "alreadyOnHold": "This expense is already waiting for its rate and will be paid by itself when it arrives."
+      "alreadyOnHold": "This expense is already waiting for its rate and will be paid by itself when it arrives.",
+      "insufficientCommunityBalance": "The community balance in {currency} is not enough to pay this expense: available {available}, needed {needed} (short by {missing})."
     }
   },
   "gastosPagados": {

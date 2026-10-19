@@ -2,6 +2,8 @@ import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { GastosPageClient } from '@/components/gastos/GastosPageClient';
 import type { CategoryOption, ExpenseRow } from '@/components/gastos/types';
+import { fetchCommunityBalance } from '@/lib/reporting/communityBalanceQuery';
+import type { CurrencyAmountMap } from '@/lib/reporting/dashboard';
 
 export default async function GastosPage() {
   const t = await getTranslations('gastos');
@@ -18,6 +20,15 @@ export default async function GastosPage() {
     supabase.from('condo_expense_categories').select('id, name').order('name'),
   ]);
 
+  // Shown in the pay dialog and re-checked by markExpensePaid; if it can't be
+  // computed the dialog just doesn't pre-check (the server still does).
+  let communityBalance: CurrencyAmountMap | null = null;
+  try {
+    communityBalance = await fetchCommunityBalance(supabase);
+  } catch (err) {
+    console.error('[gastos] could not compute the community balance:', err);
+  }
+
   return (
     <div className="flex w-full flex-col gap-6 p-4 md:p-8">
       <div className="flex flex-col gap-1">
@@ -27,6 +38,7 @@ export default async function GastosPage() {
       <GastosPageClient
         initialExpenses={(expenses as unknown as ExpenseRow[] | null) ?? []}
         categories={(categories as CategoryOption[] | null) ?? []}
+        communityBalance={communityBalance}
       />
     </div>
   );

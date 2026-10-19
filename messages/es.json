@@ -182,6 +182,12 @@
         "title": "Gastos pendientes en {month}",
         "empty": "Sin gastos pendientes este mes."
       },
+      "communityBalance": {
+        "title": "Saldo de la comunidad",
+        "empty": "Sin movimientos todavía.",
+        "hint": "Cobrado menos gastos pagados, por moneda.",
+        "error": "No se pudo calcular el saldo."
+      },
       "scope": "Cuotas vencidas y hasta el {date}"
     },
     "chart": {
@@ -472,6 +478,8 @@
       "paidAmount": "Monto pagado en {currency}",
       "original": "Monto original del gasto: {value}",
       "onHold": "Pago en espera de tasa: se registrará solo cuando llegue la tasa BCV de esa fecha.",
+      "balanceAvailable": "Saldo disponible de la comunidad en {currency}: {amount}",
+      "balanceMissing": "El saldo no alcanza: faltan {missing} ({currency}). No se puede registrar este pago.",
       "rateLabel": "Tasa de cambio",
       "rateValue": "{rate} Bs.",
       "rateUnavailable": "sin tasa — quedará en espera",
@@ -507,7 +515,8 @@
       "rateTypeRequired": "Elige la tasa con la que se paga este gasto.",
       "staleExchangeRate": "La tasa elegida no está disponible o no está actualizada para la fecha de pago. Elige otra tasa o usa una personalizada.",
       "paidAmountRequired": "Ingresa el monto pagado en la moneda de pago.",
-      "alreadyOnHold": "Este gasto ya está en espera de tasa y se pagará solo cuando llegue."
+      "alreadyOnHold": "Este gasto ya está en espera de tasa y se pagará solo cuando llegue.",
+      "insufficientCommunityBalance": "El saldo de la comunidad en {currency} no alcanza para pagar este gasto: disponible {available}, necesario {needed} (faltan {missing})."
     }
   },
   "gastosPagados": {

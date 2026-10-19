@@ -18,6 +18,9 @@ import { topUpFixedExpense } from '@/lib/gastos/topUp';
 import { referenceAmount, referenceCurrencyFor, type ExpensePaymentCurrency } from '@/lib/gastos/paymentRate';
 import { isRateFresh } from '@/lib/exchangeRate';
 import { getExchangeRatesAsOf } from '@/lib/actions/exchangeRate';
+import { checkBalance, expenseCashOut } from '@/lib/reporting/communityBalance';
+import { fetchCommunityBalance } from '@/lib/reporting/communityBalanceQuery';
+import { currencyLabel, formatMoney } from '@/lib/currency';
 
 type ActionResult = { error: string } | { success: true };
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -319,6 +322,37 @@ export async function markExpensePaid(
         reference_currency: referenceCurrencyFor(rateType),
       };
     }
+  }
+
+  // The community must have the money (change saldo-comunidad-gastos): what
+  // leaves the till, in the currency it is paid in, can't exceed that currency's
+  // balance (received minus spent, never mixed across currencies). Checked before
+  // ANY write -- also when the expense would only wait for its rate -- and not
+  // again when a held expense is released (it already counts as spent). Two
+  // simultaneous payments can still spend the same balance (no transaction).
+  const cashOut = expenseCashOut({
+    currency: expenseCurrency,
+    amount: data.amount,
+    paid_currency: rateColumns.paid_currency as ExpensePaymentCurrency | null,
+    paid_amount: rateColumns.paid_amount,
+  });
+  let balance;
+  try {
+    balance = await fetchCommunityBalance(supabase);
+  } catch (err) {
+    console.error('[markExpensePaid] could not compute the community balance:', err);
+    return { error: tc('invalidData') };
+  }
+  const funds = checkBalance(balance, cashOut);
+  if (!funds.ok) {
+    return {
+      error: tg('errors.insufficientCommunityBalance', {
+        currency: currencyLabel(funds.currency),
+        available: formatMoney(funds.available),
+        needed: formatMoney(funds.needed),
+        missing: formatMoney(funds.missing),
+      }),
+    };
   }
 
   // Same currency: "Monto final" overwrites `amount`, as before. Different

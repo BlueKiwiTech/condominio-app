@@ -17,6 +17,7 @@ import {
   outstandingByCurrency,
   pendingExpensesInMonth,
   percentChange,
+  type CurrencyAmountMap,
 } from '@/lib/reporting/dashboard';
 import { daysToCloseOfMonth } from '@/lib/reporting/dateMath';
 import { groupPaymentsByBatch } from '@/components/payments/types';
@@ -64,6 +65,7 @@ export function DashboardPageClient({
   payments,
   gracePeriodDays,
   exchangeRates,
+  communityBalance,
 }: {
   installments: DashboardInstallment[];
   houses: DashboardHouse[];
@@ -71,6 +73,8 @@ export function DashboardPageClient({
   payments: PaymentRow[];
   gracePeriodDays: number;
   exchangeRates: Record<ExchangeRateType, ExchangeRateRow | null>;
+  /** Received minus paid expenses per currency; null when it could not be computed. */
+  communityBalance: CurrencyAmountMap | null;
 }) {
   const t = useTranslations('dashboard');
   const locale = useLocale();
@@ -117,7 +121,7 @@ export function DashboardPageClient({
         </div>
       </div>
 
-      <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-5">
+      <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
         <StatCard stripeColor="success">
           <div className="flex flex-col gap-2">
             <span className="text-xs font-medium text-muted-foreground">{t('kpis.collected.title', { month: monthLabel })}</span>
@@ -158,6 +162,19 @@ export function DashboardPageClient({
           <div className="flex flex-col gap-2">
             <span className="text-xs font-medium text-muted-foreground">{t('kpis.pendingExpenses.title', { month: monthLabel })}</span>
             <CurrencyAmountList amounts={pendingExpenses} emptyLabel={t('kpis.pendingExpenses.empty')} />
+          </div>
+        </StatCard>
+
+        {/* Admin-only. Not the resident portal's "saldo disponible" (that one adds up the houses' credits). */}
+        <StatCard stripeColor="success">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium text-muted-foreground">{t('kpis.communityBalance.title')}</span>
+            {communityBalance === null ? (
+              <span className="text-sm text-destructive">{t('kpis.communityBalance.error')}</span>
+            ) : (
+              <CurrencyAmountList amounts={communityBalance} emptyLabel={t('kpis.communityBalance.empty')} />
+            )}
+            <span className="text-xs text-muted-foreground">{t('kpis.communityBalance.hint')}</span>
           </div>
         </StatCard>
 
