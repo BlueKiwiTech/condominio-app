@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { format, getMonth, getYear, parseISO } from 'date-fns';
@@ -18,7 +18,15 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { useSortableTable, SortableTableHead } from '@/components/ui/sortable-table';
 import { markExpensePaidSchema, type MarkExpensePaidInput } from '@/lib/validation/gastos';
 import { markExpensePaid, deleteExpense, deleteExpenseTemplate } from '@/lib/actions/gastos';
-import { formatAmount } from '@/lib/currency';
+import { formatAmount, formatMoney } from '@/lib/currency';
+import { getExchangeRatesAsOf } from '@/lib/actions/exchangeRate';
+import { isRateFresh, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
+import {
+  EXPENSE_PAYMENT_RATE_TYPES,
+  referenceAmount,
+  referenceCurrencyFor,
+  type ExpensePaymentRateType,
+} from '@/lib/gastos/paymentRate';
 import { formatShortDate } from '@/lib/dateFormat';
 import type { CategoryOption, ExpenseRow, ExpenseStatus } from './types';
 
@@ -101,6 +109,45 @@ export function GastosPageClient({
   const [paidDate, setPaidDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState('');
   const [serverError, setServerError] = useState<string | null>(null);
+  // Rate picker for expenses in Bs (change gastos-pago-multimoneda). bcv/eur/
+  // binance are only previewed here from the rates as of the chosen "Fecha de
+  // pago" -- markExpensePaid re-reads them server-side, so what is stored never
+  // depends on this screen. A custom rate is the only value sent from here.
+  const [rateType, setRateType] = useState<ExpensePaymentRateType>('bcv');
+  const [customRate, setCustomRate] = useState('');
+  const [loadedRates, setLoadedRates] = useState<{ date: string; rates: Record<ExchangeRateType, ExchangeRateRow | null> } | null>(null);
+
+  const paidDateStr = format(paidDate, 'yyyy-MM-dd');
+  const isBsTarget = markPaidTarget?.currency === 'Bs';
+  useEffect(() => {
+    if (!isBsTarget) return;
+    let cancelled = false;
+    getExchangeRatesAsOf(paidDateStr).then((rates) => {
+      if (!cancelled) setLoadedRates({ date: paidDateStr, rates });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isBsTarget, paidDateStr]);
+
+  // Rates loaded for a different date than the one now selected count as
+  // "still loading" instead of showing another day's values.
+  const dateRates = loadedRates?.date === paidDateStr ? loadedRates.rates : null;
+
+  // Usable value of each stored rate at the payment date (same 24h rule the
+  // server applies); null = missing or stale, shown disabled in the combo.
+  const usableRate = (type: Exclude<ExpensePaymentRateType, 'custom'>): number | null => {
+    const row = dateRates?.[type];
+    return row && isRateFresh(row.updated_at, parseISO(paidDateStr)) ? row.rate : null;
+  };
+  const customRateNumber = Number(customRate.replace(',', '.'));
+  const selectedRate: number | null =
+    rateType === 'custom'
+      ? Number.isFinite(customRateNumber) && customRateNumber > 0
+        ? customRateNumber
+        : null
+      : usableRate(rateType);
+  const equivalent = isBsTarget && selectedRate !== null ? referenceAmount(amount, selectedRate) : null;
 
   const statusOptions: { value: 'all' | ExpenseStatus; label: string }[] = [
     { value: 'all', label: t('filters.allStatuses') },
@@ -164,14 +211,22 @@ export function GastosPageClient({
     setAmount(expense.amount);
     setPaidDate(new Date());
     setNotes('');
+    setRateType('bcv');
+    setCustomRate('');
   };
 
   const confirmMarkPaid = () => {
     if (!markPaidTarget) return;
     const payload: MarkExpensePaidInput = {
       amount,
-      paid_date: format(paidDate, 'yyyy-MM-dd'),
+      paid_date: paidDateStr,
       notes: notes || undefined,
+      ...(isBsTarget
+        ? {
+            exchange_rate_type: rateType,
+            custom_rate: rateType === 'custom' && selectedRate !== null ? selectedRate : undefined,
+          }
+        : {}),
     };
     const parsed = markExpensePaidSchema(tv).safeParse(payload);
     if (!parsed.success) {
@@ -395,13 +450,78 @@ export function GastosPageClient({
               value={paidDate}
               onChange={(date) => date && setPaidDate(date)}
             />
+            {markPaidTarget && (
+              <p className="text-sm text-muted-foreground">
+                {t('markPaidDialog.original', { value: formatAmount(markPaidTarget.amount, markPaidTarget.currency) })}
+              </p>
+            )}
+            {isBsTarget && (
+              <div className="flex flex-col gap-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="markPaidRate">{t('markPaidDialog.rateLabel')}</Label>
+                  <Select
+                    value={rateType}
+                    onValueChange={(v) => v && setRateType(v as ExpensePaymentRateType)}
+                    items={EXPENSE_PAYMENT_RATE_TYPES.map((type) => ({ value: type, label: t(`markPaidDialog.rateTypes.${type}`) }))}
+                  >
+                    <SelectTrigger id="markPaidRate" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EXPENSE_PAYMENT_RATE_TYPES.map((type) => {
+                        const value = type === 'custom' ? null : usableRate(type);
+                        return (
+                          <SelectItem key={type} value={type} disabled={type !== 'custom' && value === null}>
+                            {t(`markPaidDialog.rateTypes.${type}`)}
+                            {type !== 'custom' &&
+                              ` — ${
+                                value === null
+                                  ? dateRates
+                                    ? t('markPaidDialog.rateUnavailable')
+                                    : '…'
+                                  : t('markPaidDialog.rateValue', {
+                                      rate: value.toLocaleString('es-VE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }),
+                                    })
+                              }`}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {rateType === 'custom' && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="markPaidCustomRate">{t('markPaidDialog.customRate')}</Label>
+                    <Input
+                      id="markPaidCustomRate"
+                      type="number"
+                      inputMode="decimal"
+                      step="any"
+                      value={customRate}
+                      onChange={(e) => setCustomRate(e.target.value)}
+                    />
+                  </div>
+                )}
+                {rateType !== 'custom' && dateRates && selectedRate === null && (
+                  <p className="text-sm text-destructive">{t('markPaidDialog.rateStale')}</p>
+                )}
+                {equivalent !== null && (
+                  <p className="text-sm font-medium" data-testid="mark-paid-equivalent">
+                    {t('markPaidDialog.equivalent', {
+                      amount: formatMoney(equivalent),
+                      currency: referenceCurrencyFor(rateType),
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="grid gap-2">
               <Label htmlFor="markPaidNotes">{t('markPaidDialog.notes')}</Label>
               <Input id="markPaidNotes" value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
-            <Button disabled={isMarkingPaid} onClick={confirmMarkPaid}>
+            <Button disabled={isMarkingPaid || (isBsTarget && selectedRate === null)} onClick={confirmMarkPaid}>
               {t('markPaidDialog.confirm')}
             </Button>
           </DialogFooter>

@@ -1,3 +1,5 @@
+import type { ExpensePaymentRateType, ExpenseReferenceCurrency } from '@/lib/gastos/paymentRate';
+
 export type Currency = 'USD' | 'Bs' | 'USDT';
 export type ExpenseKind = 'fixed' | 'variable';
 export type ExpenseCadence = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'annual';
@@ -17,6 +19,12 @@ export type ExpenseRow = {
   status: ExpenseStatus;
   paid_date: string | null;
   notes: string | null;
+  // Set only when an expense in Bs was paid (change gastos-pago-multimoneda);
+  // all four are null for USD/USDT expenses and ones paid before it.
+  exchange_rate: number | null;
+  exchange_rate_type: ExpensePaymentRateType | null;
+  reference_amount: number | null;
+  reference_currency: ExpenseReferenceCurrency | null;
   condo_expense_templates: { name: string; kind: ExpenseKind } | null;
   condo_expense_categories: { name: string } | null;
 };

@@ -10,11 +10,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { useSortableTable, SortableTableHead } from '@/components/ui/sortable-table';
-import { formatAmount } from '@/lib/currency';
+import { formatAmount, formatMoney } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import type { CategoryOption, ExpenseRow } from './types';
 
-type SortColumn = 'name' | 'category' | 'provider' | 'amount' | 'paid_date';
+type SortColumn = 'name' | 'category' | 'provider' | 'amount' | 'rate' | 'reference' | 'paid_date';
 
 function capitalize(s: string): string {
   return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
@@ -110,6 +110,12 @@ export function GastosPagadosPageClient({
           return e.provider ?? '';
         case 'amount':
           return e.amount;
+        // Expenses without a recorded rate (USD/USDT, or paid before the rate
+        // was stored) sort as 0 -- grouped together at one end.
+        case 'rate':
+          return e.exchange_rate ?? 0;
+        case 'reference':
+          return e.reference_amount ?? 0;
         case 'paid_date':
           return e.paid_date ?? '';
       }
@@ -195,6 +201,8 @@ export function GastosPagadosPageClient({
               <SortableTableHead column="category" label={t('table.category')} sort={sort} onSort={handleSort} />
               <SortableTableHead column="provider" label={t('table.provider')} sort={sort} onSort={handleSort} />
               <SortableTableHead column="amount" label={t('table.amount')} sort={sort} onSort={handleSort} align="right" />
+              <SortableTableHead column="rate" label={t('table.rate')} sort={sort} onSort={handleSort} align="right" />
+              <SortableTableHead column="reference" label={t('table.reference')} sort={sort} onSort={handleSort} align="right" />
               <SortableTableHead column="paid_date" label={t('table.paidDate')} sort={sort} onSort={handleSort} />
               <TableHead>{t('table.notes')}</TableHead>
             </TableRow>
@@ -202,7 +210,7 @@ export function GastosPagadosPageClient({
           <TableBody>
             {sortedExpenses.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   {t('empty')}
                 </TableCell>
               </TableRow>
@@ -213,6 +221,17 @@ export function GastosPagadosPageClient({
                   <TableCell className="whitespace-normal">{e.condo_expense_categories?.name ?? '—'}</TableCell>
                   <TableCell className="whitespace-normal">{e.provider ?? '—'}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatAmount(e.amount, e.currency)}</TableCell>
+                  {/* Rate and equivalent live in their own columns and never feed any total: the amount above stays in the expense's own currency. */}
+                  <TableCell className="text-right tabular-nums">
+                    {e.exchange_rate !== null && e.exchange_rate_type
+                      ? `${e.exchange_rate.toLocaleString('es-VE', { minimumFractionDigits: 4, maximumFractionDigits: 4 })} · ${t(`rateTypes.${e.exchange_rate_type}`)}`
+                      : '—'}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {e.reference_amount !== null && e.reference_currency
+                      ? `${formatMoney(e.reference_amount)} ${e.reference_currency}`
+                      : '—'}
+                  </TableCell>
                   <TableCell>{e.paid_date ? formatShortDate(new Date(`${e.paid_date}T00:00:00`), locale) : '—'}</TableCell>
                   <TableCell className="whitespace-normal">{e.notes ?? '—'}</TableCell>
                 </TableRow>

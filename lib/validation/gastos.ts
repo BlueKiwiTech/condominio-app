@@ -96,10 +96,21 @@ export function createExpenseCategorySchema(t: Translator) {
 export type CreateExpenseCategoryInput = z.infer<ReturnType<typeof createExpenseCategorySchema>>;
 
 export function markExpensePaidSchema(t: Translator) {
-  return z.object({
-    amount: z.coerce.number().positive(t('amountPositive')),
-    paid_date: isoDate(t),
-    notes: z.string().trim().optional(),
-  });
+  return z
+    .object({
+      amount: z.coerce.number().positive(t('amountPositive')),
+      paid_date: isoDate(t),
+      notes: z.string().trim().optional(),
+      // Only meaningful for expenses in Bs (markExpensePaid enforces that
+      // against the stored currency, which the schema can't see). bcv/eur/
+      // binance are resolved server-side from the stored rates; only a
+      // custom rate travels from the client.
+      exchange_rate_type: z.enum(['bcv', 'eur', 'binance', 'custom']).optional(),
+      custom_rate: z.number().positive(t('customRatePositive')).optional(),
+    })
+    .refine((v) => v.exchange_rate_type !== 'custom' || v.custom_rate !== undefined, {
+      message: t('customRateRequired'),
+      path: ['custom_rate'],
+    });
 }
 export type MarkExpensePaidInput = z.infer<ReturnType<typeof markExpensePaidSchema>>;
