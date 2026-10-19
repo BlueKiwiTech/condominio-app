@@ -45,7 +45,8 @@
       "amountsSumMismatch": "The installments' sum doesn't match the total amount.",
       "duplicateDates": "Installment dates can't repeat.",
       "customRatePositive": "The custom rate must be greater than 0.",
-      "customRateRequired": "Enter the custom rate."
+      "customRateRequired": "Enter the custom rate.",
+      "paidAmountPositive": "The amount paid must be greater than 0."
     },
     "payments": {
       "invalidDate": "Invalid date.",
@@ -466,6 +467,8 @@
       "amount": "Final amount",
       "paidDate": "Payment date",
       "notes": "Notes (optional)",
+      "paymentCurrency": "Payment currency",
+      "paidAmount": "Amount paid in {currency}",
       "original": "Original expense amount: {value}",
       "rateLabel": "Exchange rate",
       "rateValue": "{rate} Bs.",
@@ -476,7 +479,6 @@
       "rateTypes": {
         "bcv": "BCV (USD)",
         "eur": "BCV (EUR)",
-        "binance": "Binance (USDT)",
         "custom": "Custom"
       },
       "confirm": "Register payment"
@@ -501,7 +503,8 @@
       "hasPayments": "Can't delete: some installments of this expense are already paid.",
       "cannotDeletePaid": "Can't delete an expense that's already paid.",
       "rateTypeRequired": "Choose the rate used to pay this expense.",
-      "staleExchangeRate": "The chosen rate is unavailable or out of date for the payment date. Pick another rate or use a custom one."
+      "staleExchangeRate": "The chosen rate is unavailable or out of date for the payment date. Pick another rate or use a custom one.",
+      "paidAmountRequired": "Enter the amount paid in the payment currency."
     }
   },
   "gastosPagados": {
@@ -512,6 +515,7 @@
       "category": "Category",
       "provider": "Person/Company",
       "amount": "Amount",
+      "paid": "Paid",
       "rate": "Rate",
       "reference": "Equivalent",
       "paidDate": "Payment date",
@@ -520,7 +524,6 @@
     "rateTypes": {
       "bcv": "BCV USD",
       "eur": "BCV EUR",
-      "binance": "Binance",
       "custom": "Custom"
     },
     "filters": {

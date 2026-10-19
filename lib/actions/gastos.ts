@@ -15,7 +15,7 @@ import {
 } from '@/lib/validation/gastos';
 import { computeVariablePeriodDates, parseDateOnly, toDateOnly, computeHorizonEnd } from '@/lib/gastos/generate';
 import { topUpFixedExpense } from '@/lib/gastos/topUp';
-import { referenceAmount, referenceCurrencyFor } from '@/lib/gastos/paymentRate';
+import { referenceAmount, referenceCurrencyFor, type ExpensePaymentCurrency } from '@/lib/gastos/paymentRate';
 import { isRateFresh } from '@/lib/exchangeRate';
 import { getExchangeRatesAsOf } from '@/lib/actions/exchangeRate';
 
@@ -234,26 +234,48 @@ export async function markExpensePaid(
   if (!expense) return { error: tg('errors.notFound') };
   if (expense.status === 'paid') return { error: tg('errors.alreadyPaid') };
 
-  // Only expenses in Bs are valued with a rate (change gastos-pago-multimoneda):
-  // USD and USDT keep the plain flow and the four rate columns stay null.
+  // Which currency the expense is paid in (change gastos-pago-multimoneda).
+  // Default: its own. USDT expenses are always paid in USDT, untouched -- a
+  // client asking for another payment currency on one is a malformed request.
+  const expenseCurrency = expense.currency as ExpensePaymentCurrency | 'USDT';
+  if (expenseCurrency === 'USDT' && data.payment_currency) return { error: tc('invalidData') };
+  const paymentCurrency: ExpensePaymentCurrency | 'USDT' =
+    expenseCurrency === 'USDT' ? 'USDT' : (data.payment_currency ?? expenseCurrency);
+  const crossCurrency = paymentCurrency !== expenseCurrency;
+  // A rate is needed whenever either side is Bs (USD <-> Bs, or Bs -> Bs to
+  // record the equivalent); USD -> USD and USDT never use one.
+  const needsRate = expenseCurrency !== 'USDT' && (expenseCurrency === 'Bs' || paymentCurrency === 'Bs');
+
   let rateColumns: {
     exchange_rate: number | null;
     exchange_rate_type: string | null;
     reference_amount: number | null;
     reference_currency: string | null;
-  } = { exchange_rate: null, exchange_rate_type: null, reference_amount: null, reference_currency: null };
+    paid_currency: string | null;
+    paid_amount: number | null;
+  } = {
+    exchange_rate: null,
+    exchange_rate_type: null,
+    reference_amount: null,
+    reference_currency: null,
+    paid_currency: null,
+    paid_amount: null,
+  };
 
-  if (expense.currency === 'Bs') {
+  if (needsRate) {
     const rateType = data.exchange_rate_type;
     if (!rateType) return { error: tg('errors.rateTypeRequired') };
 
     let rate: number;
     if (rateType === 'custom') {
       // Typed by the admin for this one expense: no freshness rule. Rounded to
-      // the column's 4 decimals so the stored equivalent matches the stored rate.
+      // the column's 4 decimals so what is stored matches the stored rate.
       rate = Math.round(data.custom_rate! * 10000) / 10000;
+      // A tiny rate (0.00004) passes validation but rounds to 0: reject it here
+      // instead of letting the database's `exchange_rate > 0` check fail with a generic error.
+      if (!(rate > 0)) return { error: tv('customRatePositive') };
     } else {
-      // bcv/eur/binance are never taken from the client: re-read here as of the
+      // bcv/eur are never taken from the client: re-read here as of the
       // payment's own date and held to the 24h freshness rule, same as the
       // payments flow (lib/payments/applyAllocation.ts).
       const rates = await getExchangeRatesAsOf(data.paid_date);
@@ -264,15 +286,34 @@ export async function markExpensePaid(
       rate = row.rate;
     }
 
-    const reference = referenceAmount(data.amount, rate);
-    if (reference === null) return { error: tc('invalidData') };
-    rateColumns = {
-      exchange_rate: rate,
-      exchange_rate_type: rateType,
-      reference_amount: reference,
-      reference_currency: referenceCurrencyFor(rateType),
-    };
+    if (crossCurrency) {
+      // The amount actually paid is what the admin confirmed in the dialog
+      // (prefilled from the rate, editable), so it is not recomputed here.
+      if (data.paid_amount === undefined) return { error: tg('errors.paidAmountRequired') };
+      rateColumns = {
+        ...rateColumns,
+        exchange_rate: rate,
+        exchange_rate_type: rateType,
+        paid_currency: paymentCurrency,
+        paid_amount: data.paid_amount,
+      };
+    } else {
+      // Bs paid in Bs: nothing to convert, but keep the USD (or EUR) equivalent.
+      const reference = referenceAmount(data.amount, rate);
+      if (reference === null) return { error: tc('invalidData') };
+      rateColumns = {
+        ...rateColumns,
+        exchange_rate: rate,
+        exchange_rate_type: rateType,
+        reference_amount: reference,
+        reference_currency: referenceCurrencyFor(rateType),
+      };
+    }
   }
+
+  // Same currency: "Monto final" overwrites `amount`, as before. Different
+  // currency: `amount` keeps what was owed and the payment lives in paid_*.
+  const amountUpdate = crossCurrency ? {} : { amount: data.amount };
 
   // `.eq('status', 'pending')` + checking a row was touched closes the gap
   // between the read above and this write: two simultaneous submits can't
@@ -280,7 +321,7 @@ export async function markExpensePaid(
   const { data: updated, error: updateError } = await supabase
     .from('condo_expenses')
     .update({
-      amount: data.amount,
+      ...amountUpdate,
       paid_date: data.paid_date,
       notes: normalizeOptional(data.notes),
       status: 'paid',

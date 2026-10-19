@@ -45,7 +45,8 @@
       "amountsSumMismatch": "La suma de las cuotas no coincide con el monto total.",
       "duplicateDates": "Las fechas de las cuotas no pueden repetirse.",
       "customRatePositive": "La tasa personalizada debe ser mayor a 0.",
-      "customRateRequired": "Ingresa la tasa personalizada."
+      "customRateRequired": "Ingresa la tasa personalizada.",
+      "paidAmountPositive": "El monto pagado debe ser mayor a 0."
     },
     "payments": {
       "invalidDate": "Fecha inválida.",
@@ -466,6 +467,8 @@
       "amount": "Monto final",
       "paidDate": "Fecha de pago",
       "notes": "Notas (opcional)",
+      "paymentCurrency": "Moneda de pago",
+      "paidAmount": "Monto pagado en {currency}",
       "original": "Monto original del gasto: {value}",
       "rateLabel": "Tasa de cambio",
       "rateValue": "{rate} Bs.",
@@ -476,7 +479,6 @@
       "rateTypes": {
         "bcv": "BCV (USD)",
         "eur": "BCV (EUR)",
-        "binance": "Binance (USDT)",
         "custom": "Personalizada"
       },
       "confirm": "Registrar pago"
@@ -501,7 +503,8 @@
       "hasPayments": "No se puede eliminar: ya hay cuotas pagadas de este gasto.",
       "cannotDeletePaid": "No se puede eliminar un gasto ya pagado.",
       "rateTypeRequired": "Elige la tasa con la que se paga este gasto.",
-      "staleExchangeRate": "La tasa elegida no está disponible o no está actualizada para la fecha de pago. Elige otra tasa o usa una personalizada."
+      "staleExchangeRate": "La tasa elegida no está disponible o no está actualizada para la fecha de pago. Elige otra tasa o usa una personalizada.",
+      "paidAmountRequired": "Ingresa el monto pagado en la moneda de pago."
     }
   },
   "gastosPagados": {
@@ -512,6 +515,7 @@
       "category": "Categoría",
       "provider": "Persona/Empresa",
       "amount": "Monto",
+      "paid": "Pagado",
       "rate": "Tasa",
       "reference": "Equivalente",
       "paidDate": "Fecha de pago",
@@ -520,7 +524,6 @@
     "rateTypes": {
       "bcv": "BCV USD",
       "eur": "BCV EUR",
-      "binance": "Binance",
       "custom": "Personalizada"
     },
     "filters": {
