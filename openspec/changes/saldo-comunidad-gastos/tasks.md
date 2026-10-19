@@ -18,7 +18,7 @@
 
 - [x] 4.1 Con el Supabase local (`scripts/e2e/setup-local-supabase.sh`, `NODE_ENV=test npm run dev`), probar de punta a punta: cobrar en USD y en Bs (incluido un abono en Bs a una cuota en USD y uno con sobrante a saldo a favor), ver la tarjeta del dashboard, pagar un gasto con saldo suficiente, intentar uno sin saldo (bloqueo con faltante en el diálogo y en el servidor), pagar un gasto USD en Bs validando el saldo en Bs, y un gasto que quedaría en espera sin saldo (bloqueado). Anotar el resultado.
 - [x] 4.2 Ejecutar `npm run build` y `npx eslint .`. Verificar: ambos terminan sin errores nuevos respecto de los 4 errores previos de `eslint` en archivos no tocados (`use-mobile.ts`, `SplitAmounts.tsx`, `CuotaFormClient.tsx`, `GastoFormClient.tsx`).
-- [ ] 4.3 Ejecutar el agente `spec-auditor` sobre `gastos` y `reporting-morosos` y resolver las discrepancias que reporte. Verificar: informe sin discrepancias nuevas.
+- [x] 4.3 Ejecutar el agente `spec-auditor` sobre `gastos` y `reporting-morosos` y resolver las discrepancias que reporte. Verificar: informe sin discrepancias nuevas.
 
 ## Workflow follow-up
 
