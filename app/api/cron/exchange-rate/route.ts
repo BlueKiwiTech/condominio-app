@@ -2,33 +2,70 @@ import { createServiceClient } from '@/lib/supabase/service';
 import type { ExchangeRateType } from '@/lib/exchangeRate';
 
 // Vercel Cron hits this once a day at 06:00 VET (vercel.json: "0 10 * * *",
-// UTC -- Venezuela has no DST, always UTC-4). Sources the BCV (USD and EUR)
-// and Binance rates from cotizave.com's aggregator API in one call, chosen over scraping
-// bcv.org.ve and Binance's own P2P endpoint directly: BCV's page is stable
-// enough to scrape, but Binance's P2P endpoint is undocumented/unofficial
-// and known to be unstable (see chat history) -- cotizave.com already
-// solves that scraping problem, so one reliable call replaces two fragile
-// ones. Admin can also set either rate manually (lib/actions/
-// exchangeRate.ts) -- both write to the same append-only
-// condo_exchange_rates table, just with a different `source`.
+// UTC -- Venezuela has no DST, always UTC-4). Two independent sources:
+//   - bcv + eur: rates.dolarvzla.com/bcv/current.json (free, no API key).
+//     The BCV publishes the NEXT business day's rate on Friday afternoon and
+//     dolarvzla exposes it right away: `current.date` is that rate's validity
+//     date. So the Saturday/Sunday/holiday runs already insert Monday's (or
+//     Tuesday's) rate and weekend-dated payments convert with it through the
+//     existing "rate as of a date" lookup (by `updated_at`) + 24h freshness.
+//   - binance: cotizave.com's aggregator (market `binance`, field `mid`).
+//     dolarvzla's USDT endpoint needs an API key that expires in 4 days.
+// There is deliberately NO cotizave fallback for bcv/eur: on weekends it
+// serves Friday's value, so a payment would silently convert at the wrong
+// rate. If dolarvzla fails, bcv/eur are skipped and reported (success:false);
+// payments needing them block after 24h and the admin can set a manual rate.
+//
+// Run this ONCE a day, at 10:00 UTC. An extra Friday-afternoon run would insert
+// Monday's rate with a Friday `updated_at`, and Friday-dated payments would
+// pick it up instead of Friday's rate.
+//
+// Admin can also set a rate manually (lib/actions/exchangeRate.ts) -- both
+// write to the same append-only condo_exchange_rates table, just with a
+// different `source`.
 //
 // Not `export const runtime = 'edge'` -- default Node.js (Fluid Compute)
 // is correct here per Vercel's own current guidance; there's nothing
-// edge-specific about one outbound fetch + a Supabase insert, and Node
+// edge-specific about outbound fetches + a Supabase insert, and Node
 // keeps this on the same runtime as every other Server Action/service-role
 // write in the app.
 export const dynamic = 'force-dynamic';
+
+const DOLARVZLA_BCV_URL = 'https://rates.dolarvzla.com/bcv/current.json';
+const COTIZAVE_RATES_URL = 'https://api.cotizave.com/v1/fx/rates';
+// A hung source must not eat the whole function: give up and report it.
+const FETCH_TIMEOUT_MS = 10_000;
+
+type DolarvzlaResponse = { current?: { date?: string; usd?: number; eur?: number } };
 
 type CotizaveRate = {
   market: string;
   type: string;
   mid: number;
-  // Only the BCV/EUR reference markets carry a validity date; P2P (binance) doesn't.
-  effective_date?: string;
   updated_at?: string;
 };
+type CotizaveResponse = { rates?: CotizaveRate[] };
 
-type CotizaveResponse = { rates: CotizaveRate[] };
+type RateCandidate = {
+  rateType: ExchangeRateType;
+  rate: number;
+  effectiveDate: string | null;
+  sourceUpdatedAt: string | null;
+};
+
+// What one source contributed: the rates it can insert plus, for the types it
+// could not provide, why (reported as `skipped: ...`).
+type SourceOutcome = {
+  candidates: RateCandidate[];
+  skipped: Partial<Record<ExchangeRateType, string>>;
+  warnings: string[];
+};
+
+async function fetchJson<T>(url: string, headers?: Record<string, string>): Promise<T> {
+  const res = await fetch(url, { headers, cache: 'no-store', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+  if (!res.ok) throw new Error(`${new URL(url).host} responded ${res.status}`);
+  return (await res.json()) as T;
+}
 
 // Audit-only provider dates (change tasa-bcv-calendario): freshness keeps
 // using `updated_at` (insertion time), so a missing/invalid date must never
@@ -45,12 +82,84 @@ function parseSourceTimestamp(value: unknown): string | null {
   return Number.isNaN(ms) ? null : new Date(ms).toISOString();
 }
 
+// condo_exchange_rates.rate is decimal(14,4) and dolarvzla's euro has 8
+// decimals: round here so the value we report is the one actually stored.
+function roundRate(value: number): number {
+  return Math.round(value * 10000) / 10000;
+}
+
+function isUsableRate(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+async function readBcvFromDolarvzla(): Promise<SourceOutcome> {
+  const outcome: SourceOutcome = { candidates: [], skipped: {}, warnings: [] };
+  let current: NonNullable<DolarvzlaResponse['current']> | undefined;
+  try {
+    current = (await fetchJson<DolarvzlaResponse>(DOLARVZLA_BCV_URL)).current;
+  } catch (err) {
+    console.error('[cron/exchange-rate] dolarvzla fetch failed:', err);
+    const reason = `skipped: dolarvzla unavailable (${(err as Error).message})`;
+    outcome.skipped = { bcv: reason, eur: reason };
+    return outcome;
+  }
+
+  const effectiveDate = parseEffectiveDate(current?.date);
+  for (const [rateType, field] of [
+    ['bcv', 'usd'],
+    ['eur', 'eur'],
+  ] as const) {
+    const value = current?.[field];
+    if (!isUsableRate(value)) {
+      outcome.skipped[rateType] = `skipped: missing or invalid "current.${field}" in dolarvzla response`;
+      continue;
+    }
+    // dolarvzla gives a date but no time, so source_updated_at stays NULL.
+    outcome.candidates.push({ rateType, rate: roundRate(value), effectiveDate, sourceUpdatedAt: null });
+    if (!effectiveDate) {
+      outcome.warnings.push(`${rateType}: missing or invalid current.date in dolarvzla response, stored as NULL`);
+    }
+  }
+  return outcome;
+}
+
+async function readBinanceFromCotizave(): Promise<SourceOutcome> {
+  const outcome: SourceOutcome = { candidates: [], skipped: {}, warnings: [] };
+  const apiKey = process.env.COTIZAVE_API_KEY;
+  if (!apiKey) {
+    outcome.skipped.binance = 'skipped: COTIZAVE_API_KEY is not set';
+    return outcome;
+  }
+
+  let rates: CotizaveRate[] | undefined;
+  try {
+    rates = (await fetchJson<CotizaveResponse>(COTIZAVE_RATES_URL, { 'X-API-Key': apiKey })).rates;
+  } catch (err) {
+    console.error('[cron/exchange-rate] cotizave fetch failed:', err);
+    outcome.skipped.binance = `skipped: cotizave unavailable (${(err as Error).message})`;
+    return outcome;
+  }
+
+  // The BCV markets (`reference`, `eur_reference`) are ignored on purpose: see
+  // the no-fallback note at the top.
+  const entry = rates?.find((r) => r.market === 'binance');
+  if (!isUsableRate(entry?.mid)) {
+    outcome.skipped.binance = 'skipped: missing or invalid "binance" market in response';
+    return outcome;
+  }
+  // P2P has no validity date: effective_date stays NULL by design.
+  outcome.candidates.push({
+    rateType: 'binance',
+    rate: roundRate(entry.mid),
+    effectiveDate: null,
+    sourceUpdatedAt: parseSourceTimestamp(entry.updated_at),
+  });
+  return outcome;
+}
+
 async function insertRate(
   service: ReturnType<typeof createServiceClient>,
-  rateType: ExchangeRateType,
-  rate: number,
-  effectiveDate: string | null,
-  sourceUpdatedAt: string | null,
+  { rateType, rate, effectiveDate, sourceUpdatedAt }: RateCandidate,
 ): Promise<{ error: string | null }> {
   const { error } = await service.from('condo_exchange_rates').insert({
     rate_type: rateType,
@@ -68,55 +177,24 @@ export async function GET(request: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const apiKey = process.env.COTIZAVE_API_KEY;
-  if (!apiKey) {
-    return Response.json({ success: false, error: 'COTIZAVE_API_KEY is not set' }, { status: 500 });
-  }
+  // The two sources are independent: one failing never blocks the other.
+  const [bcvSource, binanceSource] = await Promise.all([readBcvFromDolarvzla(), readBinanceFromCotizave()]);
+  const candidates = [...bcvSource.candidates, ...binanceSource.candidates];
+  const results: Record<string, string> = { ...bcvSource.skipped, ...binanceSource.skipped };
+  const effectiveDates: Record<string, string | null> = {};
+  const warnings = [...bcvSource.warnings, ...binanceSource.warnings];
 
-  let payload: CotizaveResponse;
-  try {
-    const res = await fetch('https://api.cotizave.com/v1/fx/rates', {
-      headers: { 'X-API-Key': apiKey },
-      cache: 'no-store',
-    });
-    if (!res.ok) throw new Error(`cotizave.com responded ${res.status}`);
-    payload = await res.json();
-  } catch (err) {
-    console.error('[cron/exchange-rate] fetch failed:', err);
-    return Response.json({ success: false, error: (err as Error).message }, { status: 502 });
+  // Nothing to store from either source: 502 and no inserts.
+  if (candidates.length === 0) {
+    console.error('[cron/exchange-rate] no source produced a rate:', results);
+    return Response.json({ success: false, error: 'No rate source responded', results, effective_dates: effectiveDates, warnings }, { status: 502 });
   }
 
   const service = createServiceClient();
-  const results: Record<string, string> = {};
-  const effectiveDates: Record<string, string | null> = {};
-  const warnings: string[] = [];
-
-  // Each rate is inserted independently -- a malformed/missing field for
-  // one (e.g. cotizave.com renames a market key) shouldn't block updating
-  // the others. `hasEffectiveDate`: only the BCV/EUR reference markets
-  // publish one; binance is stored with a NULL date by design.
-  const sources: { rateType: ExchangeRateType; market: string; hasEffectiveDate: boolean }[] = [
-    { rateType: 'bcv', market: 'reference', hasEffectiveDate: true },
-    { rateType: 'eur', market: 'eur_reference', hasEffectiveDate: true },
-    { rateType: 'binance', market: 'binance', hasEffectiveDate: false },
-  ];
-
-  for (const { rateType, market, hasEffectiveDate } of sources) {
-    const entry = payload.rates?.find((r) => r.market === market);
-    const rate = entry?.mid;
-    if (typeof rate !== 'number' || !(rate > 0)) {
-      results[rateType] = `skipped: missing or invalid "${market}" market in response`;
-      continue;
-    }
-
-    const effectiveDate = hasEffectiveDate ? parseEffectiveDate(entry?.effective_date) : null;
-    if (hasEffectiveDate && !effectiveDate) {
-      warnings.push(`${rateType}: missing or invalid effective_date in "${market}" market, stored as NULL`);
-    }
-
-    const { error } = await insertRate(service, rateType, rate, effectiveDate, parseSourceTimestamp(entry?.updated_at));
-    results[rateType] = error ? `error: ${error}` : `ok: ${rate}`;
-    effectiveDates[rateType] = error ? null : effectiveDate;
+  for (const candidate of candidates) {
+    const { error } = await insertRate(service, candidate);
+    results[candidate.rateType] = error ? `error: ${error}` : `ok: ${candidate.rate}`;
+    effectiveDates[candidate.rateType] = error ? null : candidate.effectiveDate;
   }
 
   const hadFailure = Object.values(results).some((v) => !v.startsWith('ok'));
