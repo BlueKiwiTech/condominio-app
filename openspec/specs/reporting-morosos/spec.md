@@ -150,6 +150,21 @@ La aplicación NO SHALL ofrecer exportación (CSV, PDF o impresión) de dashboar
 - **WHEN** el admin abre `/reporte`
 - **THEN** no hay acción de exportar; los datos solo se ven en la tabla
 
+### Requirement: Community balance card on the admin dashboard
+El dashboard del admin SHALL mostrar una tarjeta "Saldo de la comunidad" con el saldo por moneda (cobrado menos gastos pagados, según el cálculo de `gastos`), sin sumar monedas, que puede ser negativo, y SHALL NOT mostrarse al residente ni reutilizar la etiqueta "saldo disponible" del portal del residente.
+
+#### Scenario: Saldo por moneda
+- **WHEN** hay 500 USD cobrados, 110 USD gastados y 88.000 Bs cobrados
+- **THEN** la tarjeta muestra 390 USD y 88.000 Bs como importes separados
+
+#### Scenario: Sin movimientos
+- **WHEN** no hay cobros ni gastos pagados
+- **THEN** la tarjeta muestra el texto de vacío en lugar de importes
+
+#### Scenario: Saldo negativo
+- **WHEN** los gastos pagados en una moneda superan lo cobrado en esa moneda
+- **THEN** la tarjeta muestra el importe negativo de esa moneda
+
 ## Known Limitations
 - `outstandingByCurrency` filtra por `status != 'paid'`, de modo que incluye cuotas `advance` y no excluye saldos <= 0, mientras que `computeMorosos` sí descarta saldos <= 0. Ambas cifras pueden diferir levemente para el mismo alcance.
 - En `computeMorosos` con `dueBy`, `daysOverdue` se calcula contra `today` y puede ser 0 para casas incluidas solo por vencer más tarde en el mes; la tabla del dashboard las muestra como morosas con 0 días.
