@@ -401,7 +401,8 @@ export async function deleteExpense(expenseId: string, locale: string): Promise<
     .maybeSingle();
   if (fetchError) return { error: await friendlyError(fetchError) };
   if (!expense) return { error: tg('errors.notFound') };
-  if (expense.status === 'paid') return { error: tg('errors.cannotDeletePaid') };
+  // An expense waiting for its exchange rate is already marked as paid: it gets paid by itself when the rate arrives, so it can't be deleted either.
+  if (expense.status === 'paid' || expense.status === 'on_hold') return { error: tg('errors.cannotDeletePaid') };
 
   const { error } = await supabase
     .from('condo_expenses')
@@ -432,7 +433,7 @@ export async function deleteExpenseTemplate(templateId: string, locale: string):
     .from('condo_expenses')
     .select('id', { count: 'exact', head: true })
     .eq('template_id', templateId)
-    .eq('status', 'paid');
+    .in('status', ['paid', 'on_hold']); // a held expense is committed too (it will be paid by itself)
   if (paidError) return { error: await friendlyError(paidError) };
   if (paidCount && paidCount > 0) return { error: tg('errors.hasPayments') };
 
