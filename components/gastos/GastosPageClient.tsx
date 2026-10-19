@@ -20,6 +20,8 @@ import { useSortableTable, SortableTableHead } from '@/components/ui/sortable-ta
 import { markExpensePaidSchema, type MarkExpensePaidInput } from '@/lib/validation/gastos';
 import { markExpensePaid, deleteExpense, deleteExpenseTemplate } from '@/lib/actions/gastos';
 import { currencyLabel, formatAmount, formatMoney } from '@/lib/currency';
+import { checkBalance } from '@/lib/reporting/communityBalance';
+import type { CurrencyAmountMap } from '@/lib/reporting/dashboard';
 import { getExchangeRatesAsOf } from '@/lib/actions/exchangeRate';
 import { isRateFresh, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 import {
@@ -68,9 +70,12 @@ function FilterChip({ label, selected, onClick }: { label: string; selected: boo
 export function GastosPageClient({
   initialExpenses,
   categories,
+  communityBalance,
 }: {
   initialExpenses: ExpenseRow[];
   categories: CategoryOption[];
+  /** Received minus paid expenses per currency (null: could not be computed -> no pre-check). */
+  communityBalance: CurrencyAmountMap | null;
 }) {
   const t = useTranslations('gastos');
   const tv = useTranslations('validation.gastos');
@@ -175,6 +180,14 @@ export function GastosPageClient({
   const amountInputValue = amountText ?? (prefilledAmount !== null ? String(prefilledAmount) : '');
   // Bs paid in Bs: nothing to convert, but the equivalent (USD, or EUR for the euro rate) is kept.
   const equivalent = needsRate && !crossCurrency && selectedRate !== null && amountValue !== null ? referenceAmount(amountValue, selectedRate) : null;
+
+  // Can the community cover what this payment takes out of the till, in the
+  // currency it is paid in? (what leaves = the amount typed: the paid amount when
+  // the currency differs, the final amount otherwise -- same as the server.)
+  const fundsCheck =
+    communityBalance !== null && markPaidTarget && amountValue !== null && Number.isFinite(amountValue) && amountValue > 0
+      ? checkBalance(communityBalance, { currency: paymentCurrency, amount: amountValue })
+      : null;
 
   const statusOptions: { value: 'all' | ExpenseStatus; label: string }[] = [
     { value: 'all', label: t('filters.allStatuses') },
@@ -535,6 +548,24 @@ export function GastosPageClient({
                 onChange={(e) => setAmountText(e.target.value)}
               />
             </div>
+            {communityBalance !== null && (
+              <div className="flex flex-col gap-1 text-sm" data-testid="community-balance-check">
+                <span className="text-muted-foreground">
+                  {t('markPaidDialog.balanceAvailable', {
+                    currency: currencyLabel(paymentCurrency),
+                    amount: formatMoney(communityBalance[paymentCurrency] ?? 0),
+                  })}
+                </span>
+                {fundsCheck && !fundsCheck.ok && (
+                  <span className="text-destructive" data-testid="community-balance-missing">
+                    {t('markPaidDialog.balanceMissing', {
+                      currency: currencyLabel(paymentCurrency),
+                      missing: formatMoney(fundsCheck.missing),
+                    })}
+                  </span>
+                )}
+              </div>
+            )}
             <DateInput
               id="markPaidDate"
               label={t('markPaidDialog.paidDate')}
@@ -609,7 +640,7 @@ export function GastosPageClient({
             </div>
           </div>
           <DialogFooter>
-            <Button disabled={isMarkingPaid || (needsRate && (rateType === 'custom' ? selectedRate === null : dateRates === null))} onClick={confirmMarkPaid}>
+            <Button disabled={isMarkingPaid || (fundsCheck !== null && !fundsCheck.ok) || (needsRate && (rateType === 'custom' ? selectedRate === null : dateRates === null))} onClick={confirmMarkPaid}>
               {t('markPaidDialog.confirm')}
             </Button>
           </DialogFooter>

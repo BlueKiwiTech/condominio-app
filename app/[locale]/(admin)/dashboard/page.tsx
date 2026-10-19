@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getLatestExchangeRates } from '@/lib/actions/exchangeRate';
+import { fetchCommunityBalance } from '@/lib/reporting/communityBalanceQuery';
+import type { CurrencyAmountMap } from '@/lib/reporting/dashboard';
 import { resolveAdminGracePeriodDays } from '@/lib/auth/adminGracePeriod';
 import { DashboardPageClient } from '@/components/dashboard/DashboardPageClient';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -40,6 +42,16 @@ export default async function DashboardPage() {
 
   const queryError = installmentsError ?? housesError ?? expensesError;
 
+  // "Saldo de la comunidad" (admin only): received minus paid expenses, per
+  // currency. A failure here must not take the whole dashboard down: the card
+  // just says the balance couldn't be computed.
+  let communityBalance: CurrencyAmountMap | null = null;
+  try {
+    communityBalance = await fetchCommunityBalance(supabase);
+  } catch (err) {
+    console.error('[dashboard] could not compute the community balance:', err);
+  }
+
   return (
     <>
       {/* A DB error here (e.g. a migration pending on this environment) used
@@ -58,6 +70,7 @@ export default async function DashboardPage() {
         payments={(payments as unknown as PaymentRow[] | null) ?? []}
         gracePeriodDays={gracePeriodDays}
         exchangeRates={exchangeRates}
+        communityBalance={communityBalance}
       />
     </>
   );
