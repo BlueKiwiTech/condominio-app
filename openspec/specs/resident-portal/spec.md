@@ -82,7 +82,7 @@ Cuando el portal calcula deuda de la propia casa (`/mi-hogar`) SHALL usar `compu
 - **THEN** el residente ve el nuevo valor solo después de cerrar sesión y volver a entrar
 
 ### Requirement: Wallet and reported payments ledger
-`/mi-cartera` SHALL mostrar el saldo a favor de la casa y el total de reportes `pending` por moneda, y una lista de reportes de la casa (`pending`, `confirmed`, `rejected`) filtrable por mes/año de `payment_date`. Si el último reporte creado está `rejected` SHALL mostrar un aviso con el motivo. Un reporte confirmado con `resulting_payment_batch_id` SHALL enlazar a `/mi-cartera/<batchId>`.
+`/mi-cartera` SHALL mostrar el saldo a favor de la casa y el total de reportes `pending` y `on_hold` por moneda, y una lista de reportes de la casa (`pending`, `on_hold`, `confirmed`, `rejected`) filtrable por mes/año de `payment_date`. Si el último reporte creado está `rejected` SHALL mostrar un aviso con el motivo. Un reporte confirmado con `resulting_payment_batch_id` SHALL enlazar a `/mi-cartera/<batchId>`.
 
 #### Scenario: Reporte rechazado
 - **WHEN** el último reporte está `rejected` con `rejection_reason`
@@ -91,6 +91,10 @@ Cuando el portal calcula deuda de la propia casa (`/mi-hogar`) SHALL usar `compu
 #### Scenario: Recarga de saldo confirmada
 - **WHEN** un reporte `confirmed` no tiene cuotas etiquetadas y tiene `resulting_receipt_number`
 - **THEN** se muestra como "crédito agregado" con `#NNNN` y sin enlace al detalle si no hay lote
+
+#### Scenario: Reporte en espera de tasa
+- **WHEN** el residente tiene un reporte `on_hold`
+- **THEN** la lista lo muestra con la etiqueta "En espera de tasa", cuenta en el total de reportes pendientes de su moneda y su deuda sigue visible
 
 ### Requirement: Receipt detail
 `/mi-cartera/[batchId]` SHALL mostrar el recibo de un lote de pago de la propia casa: número de recibo (`#NNNN` con ceros a la izquierda o texto "sin recibo"), fecha, monto recibido por moneda, referencia, notas y una tabla de conceptos (cuota o recarga de saldo) con fecha, tasa, monto convertido y monto. SHALL ocultar el campo "registrado por" y mostrar el desglose por moneda aplicada solo cuando difiere de lo recibido.

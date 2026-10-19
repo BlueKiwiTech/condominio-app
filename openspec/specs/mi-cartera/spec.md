@@ -31,7 +31,7 @@ Un pago sin cuota destino SHALL representarse como fila de `condo_payments` con 
 - **THEN** se crea una fila sin `installment_id` con el recibo del lote y el reporte queda enlazado a ese recibo
 
 ### Requirement: Single cross-currency exception
-La conversión entre monedas SHALL ocurrir únicamente al aplicar fondos recibidos a una cuota de otra moneda (`allocateFunds` en `lib/payments/allocate.ts`) mediante `convertAmount`, con pivote USD (`toUsd` divide entre la tasa, `fromUsd` multiplica por ella). Reportes, morosos y saldos SHALL seguir por moneda sin sumarlas. Los fondos sin aplicar SHALL permanecer en su moneda original y SHALL convertirse solo cuando se apliquen, a la tasa vigente ese día.
+La conversión entre monedas SHALL ocurrir únicamente al aplicar fondos recibidos a una cuota de otra moneda (`allocateFunds`, pivote USD) y al pagar un gasto con alguna moneda en `Bs` (`markExpensePaid`, ver `gastos`). Reportes, morosos, saldos y totales SHALL seguir por moneda sin sumarlas. Los fondos sin aplicar SHALL permanecer en su moneda original y convertirse solo al aplicarse, a la tasa vigente ese día.
 
 #### Scenario: Conversión Bs a USD
 - **WHEN** 4.000 Bs se aplican a una cuota de 100 USD con tasa BCV 40
@@ -40,6 +40,14 @@ La conversión entre monedas SHALL ocurrir únicamente al aplicar fondos recibid
 #### Scenario: Misma moneda
 - **WHEN** origen y destino son la misma moneda
 - **THEN** `convertAmount` devuelve el monto sin tasa
+
+#### Scenario: Pago de un gasto con Bs
+- **WHEN** el admin paga un gasto en una moneda distinta a la suya, o un gasto en Bs, y elige una tasa
+- **THEN** lo pagado y el equivalente se calculan y se guardan en la fila del gasto, sin sumarse a ningún total ni a saldos
+
+#### Scenario: Agregados de gastos
+- **WHEN** hay gastos en distintas monedas
+- **THEN** los agregados siguen agrupados por la moneda original de cada gasto y ningún monto pagado ni equivalente interviene
 
 ### Requirement: Rate types and currency mapping
 Existirán exactamente tres tipos de tasa: `bcv` (dólar oficial, para `Bs`), `eur` (euro oficial del BCV) y `binance` (para `USDT`). `USD` SHALL NOT requerir tasa y `eur` SHALL NOT estar asociado a ninguna moneda de pago de la app (`rateTypeForCurrency`); se almacena para uso de otras capacidades.
@@ -68,31 +76,39 @@ La tabla `condo_exchange_rates` SHALL ser un historial de solo inserciones: `rat
 - **THEN** la tasa actual sigue siendo la más reciente por `updated_at`
 
 ### Requirement: Daily exchange-rate cron
-La ruta `GET /api/cron/exchange-rate` (`0 10 * * *` UTC en `vercel.json`) SHALL exigir `Authorization: Bearer ${CRON_SECRET}` (401) y `COTIZAVE_API_KEY` (500), consultar `https://api.cotizave.com/v1/fx/rates` con `X-API-Key` e insertar de forma independiente, con `source = 'cron'` y solo si `mid` > 0, las tasas `bcv` (mercado `reference`), `eur` (`eur_reference`) y `binance` (`binance`). Para `bcv` y `eur` SHALL guardar `effective_date` y `source_updated_at` de la respuesta.
+La ruta `GET /api/cron/exchange-rate` (`0 10 * * *` UTC, una sola vez al día) SHALL exigir `Authorization: Bearer ${CRON_SECRET}` (401) y obtener las tasas de dos fuentes independientes: `bcv` y `eur` de `https://rates.dolarvzla.com/bcv/current.json` (`current.usd` y `current.eur`, sin clave) y `binance` del mercado `binance` de cotizave (campo `mid`, con `COTIZAVE_API_KEY`). SHALL insertar cada tasa con `source = 'cron'` solo si es mayor a 0.
 
 #### Scenario: Sin autorización
 - **WHEN** falta o es incorrecto el Bearer
 - **THEN** responde 401 y no inserta nada
 
+#### Scenario: Fuente de cada tasa
+- **WHEN** el cron corre y ambas fuentes responden
+- **THEN** `bcv` y `eur` se insertan con `current.usd` y `current.eur` de dolarvzla, y `binance` con el `mid` del mercado `binance` de cotizave
+
+#### Scenario: Tasa BCV no sale de cotizave
+- **WHEN** la respuesta de cotizave trae los mercados `reference` y `eur_reference`
+- **THEN** se ignoran y no se inserta ninguna tasa `bcv` ni `eur` a partir de ellos
+
 #### Scenario: Falla el proveedor
-- **WHEN** cotizave responde no-OK o la llamada lanza excepción
-- **THEN** responde 502 con `success: false`
+- **WHEN** dolarvzla y cotizave fallan (respuesta no-OK o excepción)
+- **THEN** responde 502 con `success: false` y no inserta nada
 
 #### Scenario: Un mercado ausente
-- **WHEN** falta el mercado `binance` en la respuesta
+- **WHEN** falta el mercado `binance` en la respuesta de cotizave
 - **THEN** se insertan `bcv` y `eur`, `binance` se reporta `skipped` y `success` es `false`
 
 #### Scenario: Guarda la fecha de vigencia
-- **WHEN** el mercado `reference` llega con `effective_date` `2026-10-13` y `updated_at` de la fuente
-- **THEN** la fila `bcv` se guarda con `effective_date = 2026-10-13` y `source_updated_at` de la fuente
+- **WHEN** dolarvzla responde `current.date = 2026-10-19` con `usd = 881.0664`
+- **THEN** la fila `bcv` se guarda con `rate = 881.0664` y `effective_date = 2026-10-19`
 
 #### Scenario: Corrida en fin de semana
-- **WHEN** el cron corre un sábado y la API devuelve `bcv` con `effective_date` del viernes
-- **THEN** se inserta una fila nueva con `effective_date` del viernes y su `updated_at` del sábado
+- **WHEN** el cron corre un sábado y dolarvzla devuelve `current.date` del lunes siguiente
+- **THEN** se inserta una fila nueva con esa `effective_date` y su `updated_at` del sábado
 
 #### Scenario: Fecha de vigencia inválida
-- **WHEN** el mercado `reference` llega sin `effective_date` o con un formato inválido (`YYYY-MM-DD`)
-- **THEN** `bcv` se inserta con `effective_date` nula, se reporta un aviso y `success` no cambia por ese motivo
+- **WHEN** `current.date` llega ausente o con un formato inválido (`YYYY-MM-DD`)
+- **THEN** `bcv` y `eur` se insertan con `effective_date` nula, se reporta un aviso y `success` no cambia por ese motivo
 
 #### Scenario: Binance sin fecha de vigencia
 - **WHEN** el cron inserta la tasa `binance`
@@ -150,19 +166,80 @@ Una tasa SHALL considerarse fresca solo si tiene menos de 24 horas respecto de l
 - **THEN** `funding_breakdown[0]` contiene la moneda Bs, el monto en Bs descontado, la tasa usada y `bcv`
 
 ### Requirement: Resident report status and rejection reason
-En Mi Cartera el residente SHALL ver sus reportes con estado `pending`, `confirmed` o `rejected`; para `rejected` SHALL ver el motivo (`rejection_reason`) si existe, y para `confirmed` con número de recibo, el enlace a su detalle.
+En Mi Cartera el residente SHALL ver sus reportes con estado `pending`, `on_hold`, `confirmed` o `rejected`; para `rejected` SHALL ver el motivo (`rejection_reason`) si existe, y para `confirmed` con número de recibo, el enlace a su detalle.
 
 #### Scenario: Último reporte rechazado
 - **WHEN** el reporte más recientemente enviado fue rechazado con motivo
 - **THEN** Mi Cartera muestra el aviso con ese motivo
 
+#### Scenario: Reporte en espera
+- **WHEN** un reporte está `on_hold`
+- **THEN** Mi Cartera lo muestra con la etiqueta "En espera de tasa" y sin enlace a recibo
+
+### Requirement: Cron rounds BCV rates and omits the source time
+Para `bcv` y `eur`, el cron SHALL redondear la tasa a 4 decimales antes de insertarla, reportar ese mismo valor y guardar `source_updated_at` nulo, porque dolarvzla no entrega hora.
+
+#### Scenario: Euro con más de 4 decimales
+- **WHEN** dolarvzla responde `current.eur = 991.16445734`
+- **THEN** la fila `eur` se guarda con `rate = 991.1645`, el resultado reporta ese mismo valor y `source_updated_at` queda nulo
+
+### Requirement: Cron source failures are independent
+Si dolarvzla falla (respuesta no OK, excepción o `current.usd` y `current.eur` inválidos), `bcv` y `eur` SHALL omitirse y reportarse con `success: false`, sin usar cotizave como respaldo. Si cotizave falla o falta `COTIZAVE_API_KEY`, solo `binance` SHALL omitirse y reportarse con `success: false`. La ruta SHALL responder 502 únicamente cuando ambas fuentes fallen.
+
+#### Scenario: Falla dolarvzla
+- **WHEN** dolarvzla responde no-OK o lanza excepción y cotizave responde bien
+- **THEN** `bcv` y `eur` se reportan `skipped`, `binance` se inserta y `success` es `false`
+
+#### Scenario: Falla cotizave
+- **WHEN** cotizave responde no-OK o falta `COTIZAVE_API_KEY` y dolarvzla responde bien
+- **THEN** `bcv` y `eur` se insertan, `binance` se reporta `skipped` y `success` es `false`
+
+#### Scenario: Sin respaldo desde cotizave
+- **WHEN** dolarvzla falla y cotizave sí trae el mercado `reference`
+- **THEN** no se inserta ninguna tasa `bcv` ni `eur`
+
+### Requirement: Weekend rate of the next business day
+El cron SHALL insertar, en una corrida de sábado, domingo o feriado, la tasa BCV que dolarvzla entrega en `current` (la del próximo día hábil, publicada el viernes), de modo que un pago con fecha de fin de semana se convierta con esa tasa mediante la regla existente de "tasa a una fecha" (`updated_at`) y la frescura de 24 h, sin cambios en esas reglas.
+
+#### Scenario: Pago fechado en sábado
+- **WHEN** dolarvzla devolvió el viernes `current.date = 2026-10-19` y el cron del sábado 2026-10-17 insertó esa tasa
+- **THEN** un pago en Bs fechado el 2026-10-17 se convierte con la tasa con `effective_date = 2026-10-19`
+
+#### Scenario: Pago fechado en viernes
+- **WHEN** el cron del viernes 2026-10-16 (06:00 VET) insertó `current.date = 2026-10-16` y el del sábado insertó la del lunes
+- **THEN** un pago fechado el viernes, registrado el sábado o después, se convierte con la tasa del viernes
+
+#### Scenario: Lunes feriado
+- **WHEN** el lunes es feriado y el BCV publicó el viernes la tasa del martes
+- **THEN** el cron del sábado, domingo y lunes inserta la tasa del martes y un pago fechado el lunes se convierte con ella
+
+### Requirement: Rate updates release held transactions
+Al terminar `GET /api/cron/exchange-rate` y tras `setExchangeRate`, el sistema SHALL ejecutar `releaseHeldTransactions` con el cliente service-role para liberar reportes y gastos `on_hold` cuyas tasas ya estén disponibles. Un fallo de la liberación SHALL NOT afectar la inserción de tasas y SHALL reportarse en la respuesta con los conteos de liberados, en espera (su tasa aún falta) y fallidos.
+
+#### Scenario: Cron libera lo pendiente
+- **WHEN** el cron inserta las tasas del día y hay un reporte `on_hold` cuya fecha ya tiene tasa BCV fresca
+- **THEN** el reporte se libera y la respuesta del cron incluye el conteo de liberados
+
+#### Scenario: Tasa manual libera lo pendiente
+- **WHEN** el admin fija una tasa BCV manual que cubre la fecha de un pago `on_hold`
+- **THEN** se ejecuta la liberación y el pago se procesa
+
+#### Scenario: Falla la liberación
+- **WHEN** `releaseHeldTransactions` lanza una excepción durante el cron
+- **THEN** las tasas ya quedaron insertadas, la respuesta reporta el fallo de liberación y `success` es `false`
+
 ## Known Limitations
 - Código muerto: `lib/payments/walletAllocation.ts` (`allocateWalletFunds`, prioridad de retiro Bs -> USDT -> USD, retiro mezclado de varias monedas, salto de cuotas no cubiertas) no tiene ningún llamador en `app/`, `lib/` ni `components/`. Su cabecera, la de la migración `wallet_funding_breakdown` y comentarios de `confirmPaymentReport` describen un flujo de "wallet allocation" que ya no se ejecuta: `confirmPaymentReport` ahora usa `applyPaymentAllocation`/`allocateFunds`, que usa solo UNA moneda de fondos por pago (la del pago/reporte) y se detiene en la primera cuota no cubierta.
 - Por lo anterior, `funding_breakdown` hoy contiene a lo sumo un elemento (la UI lee solo `[0]`), aunque el esquema y `components/payments/types.ts` soportan varios.
 - Crédito entre monedas: el saldo en una moneda no se aplica a cuotas de otra salvo cuando llega un pago nuevo en esa otra moneda; el barrido diario (`sweepStaleCreditsAgainstVencidaInstallments`) es solo de misma moneda, y `allocateFunds` solo convierte lo recibido más el crédito de la moneda del pago. Un crédito en Bs puede quedar sin usar contra cuotas USD vencidas hasta que se registre otro pago.
-- Las comparaciones de frescura usan `updated_at` de la tasa contra `payment_date` (fin de día UTC); una tasa de más de 24 h antes de la fecha del abono bloquea el pago con `staleExchangeRate` aunque exista una anterior; un cron fallido un día puede bloquear pagos de ese día.
+- Las comparaciones de frescura usan `updated_at` de la tasa contra `payment_date` (fin de día UTC). Sin tasa BCV fresca a esa fecha, un pago, reporte o gasto en Bs queda en espera y se libera solo cuando llega una tasa (cron o manual); con Binance/USDT sin tasa fresca se rechaza con `staleExchangeRate`. Si el cron de un día falla, un pago fechado ese día toma la tasa del día anterior si tiene menos de 24 h y se convierte con ella sin aviso.
 - Cabeceras de migración/`exchangeRate.ts` aún hablan de tasa "puramente informativa"; hoy se usa para convertir y asignar.
-- El cron comenta "06:00 VET (0 10 * * *)" y el comentario del `vercel.json` no puede verificarse allí; el horario real es 10:00 UTC.
-- `setExchangeRate` solo revalida `/dashboard`; no valida un rango razonable de la tasa (cualquier valor > 0).
-- `getExchangeRatesAsOf` y `getLatestExchangeRates` usan el cliente de admin (RLS), por lo que dependen de una sesión admin; `fetchRatesAsOf` toma el corte como UTC aunque el negocio es UTC-4.
+- El horario real del cron es 10:00 UTC (06:00 VET); `vercel.json` no admite comentarios que lo documenten.
+- `setExchangeRate` solo revalida `/dashboard`, no valida un rango razonable de la tasa (cualquier valor > 0) y, tras guardarla, libera lo que estaba en espera (si esa liberación falla solo se registra en el log).
+- `getExchangeRatesAsOf` y `getLatestExchangeRates` usan el cliente de admin (RLS), por lo que dependen de una sesión admin; `fetchRatesAsOf` (`lib/rates/asOf.ts`, compartida con la liberación en service-role) toma el corte como UTC aunque el negocio es UTC-4.
 - La cabecera de `app/.../mi-cartera/page.tsx` dice que NO muestra qué cuotas se pagaron (eso es `/mis-pagos`); la función de la página se llama `MisPagosPage` y renderiza `MisPagosClient`.
+- No hay respaldo para `bcv` y `eur`: cotizave entrega el valor del viernes en fin de semana y usarlo de respaldo convertiría pagos con la tasa equivocada. Si dolarvzla cae no se insertan tasas nuevas y, pasadas 24 h, los pagos y gastos con conversión quedan en espera hasta que llegue una tasa o el admin fije una manual.
+- El cron debe correr una sola vez al día (10:00 UTC): una corrida extra el viernes en la tarde insertaría la tasa del lunes con `updated_at` del viernes y los pagos fechados el viernes la tomarían.
+- Un fallo parcial del cron (cae una sola fuente) responde HTTP 200 con `success: false`; Vercel Cron solo marca como fallida una respuesta no 2xx, así que nadie recibe aviso.
+- `current.date` de dolarvzla no se valida como plausible: una fuente congelada con una fecha vieja se inserta como nueva y pasa por fresca.
+- Un pago de gasto retenido guarda el monto pagado que escribió el admin sin ver la tasa; al liberarse solo se completa la tasa y no se concilia con ese monto.

@@ -53,14 +53,18 @@ Un pago SHALL aplicarse únicamente a cuotas vencidas (sin límite hacia atrás)
 - **THEN** la cuota no se paga y el sobrante queda como saldo a favor
 
 ### Requirement: Payment currency independent of cuota currency
-La moneda del pago PUEDE diferir de la de la cuota; en ese caso `allocateFunds` SHALL convertir con `convertAmount` (pivote USD) usando las tasas a la `payment_date` (`getExchangeRatesAsOf`) y SHALL guardar el detalle en `funding_breakdown`. Sin tasa fresca, la acción SHALL devolver `staleExchangeRate` sin escribir.
+La moneda del pago PUEDE diferir de la de la cuota; en ese caso `allocateFunds` SHALL convertir con `convertAmount` (pivote USD) usando las tasas a la `payment_date` (`getExchangeRatesAsOf`) y SHALL guardar el detalle en `funding_breakdown`. Sin tasa BCV fresca, el pago SHALL quedar en espera (`on_hold`) sin escribir pagos; sin tasa Binance fresca, la acción SHALL devolver `staleExchangeRate` sin escribir.
 
 #### Scenario: Pago en Bs a cuota en USD
 - **WHEN** el admin registra un pago en Bs contra una cuota en USD y existe tasa BCV fresca a la fecha del abono
 - **THEN** se descuenta el equivalente en Bs, la fila queda en USD y `funding_breakdown` registra `[{currency, amountDrawn, exchangeRate, exchangeRateType}]` con tipo `bcv`
 
 #### Scenario: Tasa ausente
-- **WHEN** la tasa necesaria no existe o tiene más de 24 h respecto de `payment_date`
+- **WHEN** la tasa BCV necesaria no existe o tiene más de 24 h respecto de `payment_date`
+- **THEN** el pago queda en espera y no se inserta ningún pago
+
+#### Scenario: Tasa Binance ausente
+- **WHEN** el pago es en USDT y la tasa Binance no existe o tiene más de 24 h respecto de `payment_date`
 - **THEN** la acción devuelve `staleExchangeRate` y no se inserta ningún pago
 
 ### Requirement: Saldo a favor (credit) netting and write-back
@@ -122,7 +126,7 @@ El saldo a favor SHALL aplicarse automáticamente a cuotas ya vencidas (`due_dat
 - **THEN** el barrido diario no hace nada
 
 ### Requirement: Resident payment report submission
-Un residente con sesión firmada válida (`getResidentSession`) SHALL poder enviar un reporte de pago (`reportPayment`) con `amount > 0`, `currency`, `payment_date`, `reference` y `notes` opcionales. La `house_id` SHALL provenir de la sesión, nunca del cliente. El reporte se inserta en `condo_payment_reports` con estado `pending` y SHALL NOT modificar `condo_installments`, `condo_payments` ni `condo_house_credits`.
+Un residente con sesión firmada válida (`getResidentSession`) SHALL poder enviar un reporte de pago (`reportPayment`) con `amount > 0`, `currency`, `payment_date`, `reference` y `notes` opcionales. La `house_id` SHALL provenir de la sesión, nunca del cliente. El reporte se inserta en `condo_payment_reports` con estado `pending`, o `on_hold` si aún no puede convertirse por falta de tasa BCV, y SHALL NOT modificar `condo_installments`, `condo_payments` ni `condo_house_credits`.
 
 #### Scenario: Casa de la sesión
 - **WHEN** una petición manipulada incluye otra casa
@@ -131,6 +135,10 @@ Un residente con sesión firmada válida (`getResidentSession`) SHALL poder envi
 #### Scenario: Cuotas etiquetadas
 - **WHEN** el reporte incluye `installment_ids`
 - **THEN** solo se conservan los que pertenecen a la casa de la sesión, no están `paid` ni borrados
+
+#### Scenario: Reporte sin tasa BCV
+- **WHEN** el residente reporta un pago en Bs fechado en un día sin tasa BCV fresca y la casa tiene cuotas en USD elegibles
+- **THEN** el reporte se guarda con estado `on_hold` y `created_by` nulo
 
 ### Requirement: Report screenshot upload
 La captura opcional SHALL ser de tipo `image/*` y de a lo sumo 5 MB (5 * 1024 * 1024 bytes); se sube al bucket privado `payment-report-screenshots` con ruta `<house_id>/<timestamp>-<uuid>.<ext>` mediante cliente service-role, y el admin SHALL verla por URL firmada de 5 minutos (`getReportScreenshotUrl`, gateada con `getUser()`).
@@ -155,7 +163,7 @@ La extracción desde captura (`extractPaymentFieldsFromScreenshot`, modelo `amaz
 - **THEN** se devuelve `extractFailed` y el formulario queda sin prellenar
 
 ### Requirement: Admin confirms a payment report
-`confirmPaymentReport` SHALL requerir admin y un reporte `pending`, y SHALL ejecutar la misma asignación que `registerPayment` (`applyPaymentAllocation`) con los datos del reporte. Sin `installment_ids`, SHALL usar todas las cuotas no `paid` y no borradas de la casa. Después SHALL marcar el reporte `confirmed` con `resulting_payment_batch_id` y `resulting_receipt_number`, y escribir el audit `payment_report.confirm`.
+`confirmPaymentReport` SHALL requerir admin y un reporte `pending`, y ejecutar la misma asignación que `registerPayment` (`applyPaymentAllocation`) con los datos del reporte; sin `installment_ids`, usa todas las cuotas no `paid` ni borradas de la casa. Después SHALL marcar el reporte `confirmed` con su lote y recibo y escribir el audit `payment_report.confirm`. Si falta la tasa BCV, SHALL ponerlo `on_hold` sin registrar pago ni error.
 
 #### Scenario: Reporte sin cuotas etiquetadas
 - **WHEN** el admin confirma un reporte con `installment_ids` vacío
@@ -165,12 +173,24 @@ La extracción desde captura (`extractPaymentFieldsFromScreenshot`, modelo `amaz
 - **WHEN** el estado del reporte no es `pending` o no existe
 - **THEN** la acción devuelve `invalidData` y no registra pago
 
+#### Scenario: Tasa BCV ausente al confirmar
+- **WHEN** el admin confirma un reporte `pending` y la tasa BCV a su `payment_date` no existe o no es fresca
+- **THEN** el reporte pasa a `on_hold`, no se registra ningún pago y la acción responde éxito indicando que quedó en espera
+
 ### Requirement: Admin rejects a payment report
-`rejectPaymentReport` SHALL requerir admin, fijar `status = 'rejected'` y `rejection_reason` (texto recortado o nulo) y escribir el audit `payment_report.reject`. El rechazo SHALL NOT crear ni modificar filas de pagos, cuotas o crédito.
+`rejectPaymentReport` SHALL requerir admin y un reporte `pending` u `on_hold`, fijar `status = 'rejected'` y `rejection_reason` (texto recortado o nulo) y escribir el audit `payment_report.reject`. El rechazo SHALL NOT crear ni modificar filas de pagos, cuotas o crédito.
 
 #### Scenario: Rechazo con motivo
 - **WHEN** el admin rechaza con un motivo
 - **THEN** el residente ve el motivo en Mi Cartera
+
+#### Scenario: Rechazo de un reporte en espera
+- **WHEN** el admin rechaza un reporte `on_hold`
+- **THEN** pasa a `rejected` y la liberación posterior ya no lo procesa
+
+#### Scenario: Reporte ya confirmado
+- **WHEN** el admin intenta rechazar un reporte `confirmed`
+- **THEN** la acción devuelve `invalidData` y no cambia el reporte
 
 ### Requirement: Currency set
 Las monedas aceptadas en pagos y reportes SHALL ser `USD`, `Bs` y `USDT`, validadas por `currencySchema` y por CHECK en base de datos; el pago SHALL poder recibirse en cualquier moneda sin importar la de la cuota (se eliminó el trigger que las igualaba). Las cuotas NUEVAS solo se crean en USD (`cuotaCreateCurrencySchema`). La UI SHALL mostrar USD como "$ Efectivo", Bs como "Bs." y USDT como "Binance" sin cambiar los valores almacenados.
@@ -186,6 +206,40 @@ Las monedas aceptadas en pagos y reportes SHALL ser `USD`, `Bs` y `USDT`, valida
 - **WHEN** un residente pide `/mi-cartera/<batchId>` de otra casa
 - **THEN** la consulta filtra por su `house_id` y no devuelve filas ajenas
 
+### Requirement: Admin payment on hold for a missing BCV rate
+Cuando `registerPayment` detecta que la asignación se bloquea por falta de tasa BCV fresca a `payment_date`, SHALL insertar un reporte `on_hold` en `condo_payment_reports` con `created_by` del admin y los datos del pago (casa, monto, moneda, fecha, referencia, notas y cuotas), SHALL NOT escribir en `condo_installments`, `condo_payments` ni `condo_house_credits`, y SHALL responder éxito indicando que el pago quedó en espera.
+
+#### Scenario: Pago de fin de semana sin tasa
+- **WHEN** el admin registra un pago en Bs contra una cuota en USD y la tasa BCV a `payment_date` no existe o no es fresca
+- **THEN** se crea un reporte `on_hold` con `created_by` del admin, la casa sigue mostrando su deuda y la acción responde éxito con el indicador de espera
+
+#### Scenario: Pago que no necesita tasa
+- **WHEN** el pago es en USD, o en Bs contra cuotas en Bs, o no tiene cuotas elegibles (depósito a cartera)
+- **THEN** se registra como siempre y no entra en espera
+
+### Requirement: Held payments are released automatically
+Un reporte `on_hold` SHALL liberarse cuando la asignación deje de bloquearse por tasa: si `created_by` no es nulo (pago del admin), SHALL aplicarse con `applyPaymentAllocation` y quedar `confirmed` con `resulting_payment_batch_id` y `resulting_receipt_number`; si es nulo (reporte del residente), SHALL pasar a `pending`. Cada liberación SHALL reclamarse con `release_claimed_at` para no duplicar pagos ni recibos.
+
+#### Scenario: Pago del admin liberado
+- **WHEN** llega la tasa BCV a la fecha de un reporte `on_hold` con `created_by` del admin
+- **THEN** se aplica el pago, el reporte queda `confirmed` enlazado al recibo y las cuotas se actualizan
+
+#### Scenario: Reporte del residente liberado
+- **WHEN** llega la tasa BCV a la fecha de un reporte `on_hold` con `created_by` nulo
+- **THEN** pasa a `pending` y el admin puede confirmarlo
+
+#### Scenario: Liberación simultánea
+- **WHEN** el cron y una tasa manual intentan liberar el mismo reporte a la vez
+- **THEN** solo uno lo reclama y se crea un solo pago y un solo recibo
+
+#### Scenario: Falla al aplicar
+- **WHEN** la aplicación de un pago liberado falla
+- **THEN** el reporte sigue `on_hold`, el reclamo se limpia y se reintenta en la siguiente liberación
+
+#### Scenario: Reclamo vencido
+- **WHEN** una corrida cayó con un reclamo de más de 10 minutos sin completarse
+- **THEN** la siguiente liberación vuelve a reclamar ese reporte
+
 ## Known Limitations
 - No existe anulación/reverso/edición de pagos: no hay acción que borre o revierta un lote de `condo_payments`, restaure `amount_paid` o devuelva crédito. Solo existe el soft-delete de cuotas al desactivar una plantilla.
 - Documentación vs. código: `PLAN.md` y cabeceras de `allocate.ts` aún mencionan pago parcial oldest-first ("la siguiente queda parcialmente pagada"); el código actual es full-or-nothing (decisión 2026-09-29) y el sobrante va a saldo a favor. El estado `partial` sigue en el CHECK pero ningún flujo lo produce; el comentario de `creditSweep.ts` aún dice que `registerPayment` puede dejar cuotas `partial`.
@@ -195,6 +249,9 @@ Las monedas aceptadas en pagos y reportes SHALL ser `USD`, `Bs` y `USDT`, valida
 - `confirmPaymentReport` actualiza el reporte a `confirmed` en un paso aparte: si ese UPDATE falla tras registrar el pago, el reporte queda `pending` y reconfirmarlo duplicaría el pago. Tampoco filtra el UPDATE por `status = 'pending'`.
 - El saldo a favor solo se netea en la moneda del pago; el crédito en otra moneda no se mezcla al confirmar (lo recoge el barrido, solo de la misma moneda).
 - `payment_batch_id` no tiene FK ni tabla de lotes; `receipt_number` ya no es único a nivel de base de datos.
-- `rejectPaymentReport` no verifica que el reporte esté `pending` (puede rechazar uno ya confirmado, dejando el pago real en pie) ni que exista.
+- `rejectPaymentReport` solo actúa sobre reportes `pending` u `on_hold`; si el admin rechaza un reporte justo mientras se libera, el reporte queda `confirmed` si el pago ya se aplicó.
 - El esquema de `reportPaymentSchema` valida y el residente ve etiquetas, pero `reportPayment` no limita la frecuencia de envíos ni valida duplicados.
 - El barrido diario usa `paymentDate` = hoy y `created_by = null` para los lotes automáticos.
+- `applyPaymentAllocation` no es transaccional y la liberación de un pago en espera la reutiliza: una caída a mitad de una liberación puede dejar un pago aplicado a medias con el reporte aún `on_hold` (el reclamo vence a los 10 minutos y un reintento lo duplicaría), lo que requeriría conciliación manual.
+- Un pago del admin en espera que nunca se puede aplicar (cuota ya pagada o inexistente) falla en cada liberación y sigue `on_hold`; no se descarta solo, el admin debe rechazarlo.
+- Un reporte de residente `on_hold` pasa a `pending` al llegar la tasa sin evaluar si luego se podrá aplicar; los errores se ven al confirmarlo.
