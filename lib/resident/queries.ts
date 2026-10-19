@@ -51,7 +51,7 @@ export type ResidentCredit = { currency: Currency; balance: number };
 
 export type ResidentCommunity = { name: string; phone: string | null };
 
-export type ResidentReportStatus = 'pending' | 'confirmed' | 'rejected';
+export type ResidentReportStatus = 'pending' | 'on_hold' | 'confirmed' | 'rejected';
 
 // condo_payment_reports for this house, every status -- shown on /mi-cartera
 // so a resident always sees their self-reported payment (pending, confirmed,
@@ -222,7 +222,7 @@ type CommunityExpenseQueryRow = {
   currency: Currency;
   amount: number;
   period_date: string;
-  status: 'pending' | 'paid';
+  status: 'pending' | 'on_hold' | 'paid';
   paid_date: string | null;
   condo_expense_templates: { name: string } | null;
 };

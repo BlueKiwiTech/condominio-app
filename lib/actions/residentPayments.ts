@@ -7,8 +7,20 @@ import { getTranslations } from 'next-intl/server';
 import { getResidentSession } from '@/lib/auth/residentSession';
 import { createServiceClient } from '@/lib/supabase/service';
 import { reportPaymentSchema, type ReportPaymentInput } from '@/lib/validation/residentPayments';
+import { evaluatePaymentAllocation, type ApplyAllocationErrors } from '@/lib/payments/applyAllocation';
 
 type ActionResult = { error: string } | { success: true };
+
+// Only the "is a BCV rate missing?" verdict of evaluatePaymentAllocation is
+// used here; its other outcomes never block creating a report, so their
+// messages are never shown.
+const IGNORED_EVALUATION_ERRORS: ApplyAllocationErrors = {
+  installmentsGone: '',
+  mixedHouses: '',
+  alreadyPaid: '',
+  insufficientAmount: '',
+  staleExchangeRate: '',
+};
 
 const SCREENSHOT_BUCKET = 'payment-report-screenshots';
 const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
@@ -77,7 +89,40 @@ export async function reportPayment(
     screenshotPath = path;
   }
 
+  // Would confirming this report need a BCV rate (Bs -> USD) that doesn't exist
+  // yet for its date? Then it is created 'on_hold' instead of 'pending' and the
+  // admin can't confirm it until the rate arrives (change pagos-en-espera-por-tasa);
+  // releasing it later turns it into a normal 'pending' report. Read-only: the
+  // report still never touches cuotas, payments or credit by itself. Same cuota
+  // set confirmPaymentReport would use: the tagged ones, or every unpaid one.
+  let candidateIds = verifiedInstallmentIds;
+  if (candidateIds.length === 0) {
+    const { data: unpaid } = await supabase
+      .from('condo_installments')
+      .select('id')
+      .eq('house_id', session.house_id)
+      .neq('status', 'paid')
+      .is('deleted_at', null);
+    candidateIds = (unpaid ?? []).map((r) => r.id as string);
+  }
+  const evaluation = await evaluatePaymentAllocation(
+    supabase,
+    {
+      house_id: session.house_id,
+      currency: data.currency,
+      amount_received: data.amount,
+      payment_date: data.payment_date,
+      reference: null,
+      notes: null,
+      installment_ids: candidateIds,
+      created_by: null,
+    },
+    IGNORED_EVALUATION_ERRORS,
+  );
+  const status = evaluation.kind === 'blockedByRate' ? 'on_hold' : 'pending';
+
   const { error } = await supabase.from('condo_payment_reports').insert({
+    status,
     house_id: session.house_id,
     amount: data.amount,
     currency: data.currency,

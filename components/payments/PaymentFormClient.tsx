@@ -241,6 +241,12 @@ export function PaymentFormClient({
         setServerError(result.error);
         return;
       }
+      if ('onHold' in result) {
+        // No BCV rate for that date yet: the payment is parked and applies by itself when it arrives.
+        toast.info(t('toastOnHold'));
+        router.push('/pagos-reportados');
+        return;
+      }
       toast.success(t('toastSuccess'));
       router.push(`/pagos/${result.batchId}`);
     });

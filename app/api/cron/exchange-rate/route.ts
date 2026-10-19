@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service';
 import type { ExchangeRateType } from '@/lib/exchangeRate';
+import { releaseHeldTransactions, type ReleaseSummary } from '@/lib/payments/releaseHeld';
 
 // Vercel Cron hits this once a day at 06:00 VET (vercel.json: "0 10 * * *",
 // UTC -- Venezuela has no DST, always UTC-4). Two independent sources:
@@ -197,9 +198,28 @@ export async function GET(request: Request) {
     effectiveDates[candidate.rateType] = error ? null : candidate.effectiveDate;
   }
 
-  const hadFailure = Object.values(results).some((v) => !v.startsWith('ok'));
+  // New rates may unblock payments/expenses that were parked "en espera de
+  // tasa". Strictly after the inserts and inside its own try/catch: the rates
+  // are already stored, so a failing release must never undo or hide that.
+  let released: ReleaseSummary | null = null;
+  let releaseError: string | null = null;
+  try {
+    released = await releaseHeldTransactions(service);
+  } catch (err) {
+    releaseError = (err as Error).message;
+    console.error('[cron/exchange-rate] releasing held transactions failed:', err);
+  }
+
+  const hadFailure = Object.values(results).some((v) => !v.startsWith('ok')) || releaseError !== null;
   if (hadFailure) console.error('[cron/exchange-rate] partial failure:', results);
   if (warnings.length) console.warn('[cron/exchange-rate] warnings:', warnings);
 
-  return Response.json({ success: !hadFailure, results, effective_dates: effectiveDates, warnings });
+  return Response.json({
+    success: !hadFailure,
+    results,
+    effective_dates: effectiveDates,
+    warnings,
+    released,
+    ...(releaseError ? { release_error: releaseError } : {}),
+  });
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { useTranslations, useLocale } from 'next-intl';
 import { format, getMonth, getYear, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
@@ -35,6 +36,7 @@ import type { CategoryOption, ExpenseRow, ExpenseStatus } from './types';
 
 const STATUS_CLASSES: Record<ExpenseStatus, string> = {
   pending: 'bg-warning/10 text-warning',
+  on_hold: 'bg-primary/10 text-primary',
   paid: 'bg-success/10 text-success',
 };
 
@@ -177,6 +179,7 @@ export function GastosPageClient({
   const statusOptions: { value: 'all' | ExpenseStatus; label: string }[] = [
     { value: 'all', label: t('filters.allStatuses') },
     { value: 'pending', label: t('status.pending') },
+    { value: 'on_hold', label: t('status.on_hold') },
     { value: 'paid', label: t('status.paid') },
   ];
   const categoryOptions = [
@@ -291,6 +294,8 @@ export function GastosPageClient({
         setServerError(result.error);
         return;
       }
+      // No fresh bcv/eur rate for that date yet: the expense is parked and gets paid by itself when it arrives.
+      if ('onHold' in result) toast.info(t('markPaidDialog.onHold'));
       setMarkPaidTarget(null);
     });
   };
@@ -552,7 +557,7 @@ export function GastosPageClient({
                       {EXPENSE_PAYMENT_RATE_TYPES.map((type) => {
                         const value = type === 'custom' ? null : usableRate(type);
                         return (
-                          <SelectItem key={type} value={type} disabled={type !== 'custom' && value === null}>
+                          <SelectItem key={type} value={type}>
                             {t(`markPaidDialog.rateTypes.${type}`)}
                             {type !== 'custom' &&
                               ` — ${
@@ -584,7 +589,9 @@ export function GastosPageClient({
                   </div>
                 )}
                 {rateType !== 'custom' && dateRates && selectedRate === null && (
-                  <p className="text-sm text-destructive">{t('markPaidDialog.rateStale')}</p>
+                  <p className="text-sm text-muted-foreground" data-testid="mark-paid-hold-notice">
+                    {t('markPaidDialog.rateStale')}
+                  </p>
                 )}
                 {equivalent !== null && (
                   <p className="text-sm font-medium" data-testid="mark-paid-equivalent">
@@ -602,7 +609,7 @@ export function GastosPageClient({
             </div>
           </div>
           <DialogFooter>
-            <Button disabled={isMarkingPaid || (needsRate && selectedRate === null)} onClick={confirmMarkPaid}>
+            <Button disabled={isMarkingPaid || (needsRate && (rateType === 'custom' ? selectedRate === null : dateRates === null))} onClick={confirmMarkPaid}>
               {t('markPaidDialog.confirm')}
             </Button>
           </DialogFooter>

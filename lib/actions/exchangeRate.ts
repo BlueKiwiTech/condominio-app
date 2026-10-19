@@ -8,14 +8,10 @@ import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { getResidentSession } from '@/lib/auth/residentSession';
 import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
+import { RATE_COLUMNS, RATE_TYPES, fetchRatesAsOf } from '@/lib/rates/asOf';
+import { releaseHeldTransactions } from '@/lib/payments/releaseHeld';
 
 type ActionResult = { error: string } | { success: true };
-type SupabaseLike = Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createServiceClient>;
-
-// Order matters: destructured positionally as [bcv, eur, binance] below.
-const RATE_TYPES = ['bcv', 'eur', 'binance'] as const satisfies readonly ExchangeRateType[];
-// effective_date/source_updated_at are audit-only (change tasa-bcv-calendario); freshness and the as-of cut use updated_at.
-const RATE_COLUMNS = 'rate_type, rate, source, updated_at, effective_date, source_updated_at';
 
 /** Network-verified — never getSession() as an authorization gate (CLAUDE.md). */
 async function requireAdmin(tc: Awaited<ReturnType<typeof getTranslations>>) {
@@ -25,28 +21,6 @@ async function requireAdmin(tc: Awaited<ReturnType<typeof getTranslations>>) {
     return { error: tc('sessionExpired'), supabase: null, userId: null };
   }
   return { error: null, supabase, userId: data.user.id };
-}
-
-/** Shared query behind getExchangeRatesAsOf/getExchangeRatesAsOfForResident — only the client (and therefore the RLS path) differs. */
-async function fetchRatesAsOf(supabase: SupabaseLike, dateStr: string): Promise<Record<ExchangeRateType, ExchangeRateRow | null>> {
-  const cutoff = `${dateStr}T23:59:59.999Z`;
-  const [{ data: bcv }, { data: eur }, { data: binance }] = await Promise.all(
-    RATE_TYPES.map((rateType) =>
-      supabase
-        .from('condo_exchange_rates')
-        .select(RATE_COLUMNS)
-        .eq('rate_type', rateType)
-        .lte('updated_at', cutoff)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ),
-  );
-  return {
-    bcv: (bcv as ExchangeRateRow | null) ?? null,
-    eur: (eur as ExchangeRateRow | null) ?? null,
-    binance: (binance as ExchangeRateRow | null) ?? null,
-  };
 }
 
 /** Latest row for each rate_type ('bcv', 'eur', 'binance') — null entries mean no row exists yet at all. */
@@ -136,6 +110,16 @@ export async function setExchangeRate(rateType: ExchangeRateType, rate: number, 
     .from('condo_exchange_rates')
     .insert({ rate_type: rateType, rate, source: 'admin', updated_by: userId });
   if (error) return { error: await friendlyError(error) };
+
+  // A manual rate can unblock payments/expenses that were parked "en espera de
+  // tasa" (service role: the release isn't tied to this admin's session). The
+  // rate is already saved, so a failing release is logged, never surfaced as
+  // if the rate itself had failed.
+  try {
+    await releaseHeldTransactions(createServiceClient());
+  } catch (err) {
+    console.error('[setExchangeRate] releasing held transactions failed:', err);
+  }
 
   revalidatePath('/dashboard');
   return { success: true };

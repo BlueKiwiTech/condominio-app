@@ -3,10 +3,17 @@
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
+import { friendlyError } from '@/lib/errors';
 import { registerPaymentSchema, type RegisterPaymentInput } from '@/lib/validation/payments';
 import { applyPaymentAllocation } from '@/lib/payments/applyAllocation';
 
-type ActionResult = { error: string } | { success: true; batchId: string; receiptNumber: number };
+// `onHold`: the BCV rate for the payment's date isn't there yet, so the payment
+// was parked as an 'on_hold' report instead of being rejected (it applies by
+// itself once the rate arrives -- lib/payments/releaseHeld.ts).
+type ActionResult =
+  | { error: string }
+  | { success: true; batchId: string; receiptNumber: number }
+  | { success: true; onHold: true };
 
 /** Network-verified — never getSession() as an authorization gate (CLAUDE.md). */
 async function requireAdmin(tc: Awaited<ReturnType<typeof getTranslations>>) {
@@ -102,6 +109,27 @@ export async function registerPayment(input: RegisterPaymentInput, locale: strin
     },
   );
   if ('error' in result) return result;
+
+  if ('onHold' in result) {
+    // Nothing was written to cuotas, payments or credit: the whole payment is
+    // stored as a report the admin already vouched for (created_by), which
+    // releaseHeldTransactions applies when the rate shows up. The house keeps
+    // showing its debt until then.
+    const { error: holdError } = await supabase.from('condo_payment_reports').insert({
+      house_id: data.house_id,
+      amount: data.amount_received,
+      currency: data.currency,
+      payment_date: data.payment_date,
+      reference: data.reference || null,
+      notes: data.notes || null,
+      installment_ids: data.installment_ids,
+      status: 'on_hold',
+      created_by: userId,
+    });
+    if (holdError) return { error: await friendlyError(holdError) };
+    revalidatePath('/pagos-reportados');
+    return { success: true, onHold: true };
+  }
 
   revalidatePath('/pagos');
   revalidatePath('/cuotas');

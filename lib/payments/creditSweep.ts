@@ -36,15 +36,15 @@
 // about getting right over convenience.
 import { friendlyError } from '@/lib/errors';
 import { randomUUID } from 'crypto';
-import type { createClient } from '@/lib/supabase/server';
 import { allocateFundsFullOrNothing, sortOldestFirst, type AllocatableInstallment } from './allocate';
 import { toDateOnly } from '@/lib/cuotas/generate';
+import type { DbClient } from '@/lib/supabase/dbClient';
 
 // Both callers (lib/actions/payments.ts, lib/actions/cuotas.ts) build their
 // client via lib/supabase/server.ts's createClient() — same cookie-based,
 // getUser()-gated admin client either way, so this type alias matches
 // whichever instance either Server Action passes in.
-type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+type SupabaseClient = DbClient;
 
 type Currency = 'USD' | 'Bs' | 'USDT';
 

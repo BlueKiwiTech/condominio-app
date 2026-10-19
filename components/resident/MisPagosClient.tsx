@@ -107,7 +107,8 @@ export function MisPagosClient({
   const pendingBalance = useMemo(() => {
     const totals: CurrencyAmountMap = {};
     for (const report of reports) {
-      if (report.status !== 'pending') continue;
+      // Reports waiting for an exchange rate ('on_hold') are still unresolved claims, so they count too.
+      if (report.status !== 'pending' && report.status !== 'on_hold') continue;
       totals[report.currency] = (totals[report.currency] ?? 0) + report.amount;
     }
     return totals;
