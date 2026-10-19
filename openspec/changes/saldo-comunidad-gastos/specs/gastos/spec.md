@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Community balance per currency
-El saldo de la comunidad SHALL calcularse por moneda (`USD`, `Bs`, `USDT`), sin mezclar monedas y sin saldo inicial, como recibido menos gastos pagados. Recibido SHALL ser lo aplicado a cuotas en la moneda con que se pagó (desglose de `funding_breakdown`, o `amount_paid` en la moneda de la fila), sin contar las filas de depósito con `installment_id` nulo, más los `condo_house_credits.balance` en esa moneda. Gastos pagados SHALL ser los gastos `paid` u `on_hold` en la moneda con que salió el dinero.
+El saldo de la comunidad SHALL calcularse por moneda (`USD`, `Bs`, `USDT`), sin mezclar monedas y sin saldo inicial, como recibido menos gastos pagados. Recibido SHALL ser lo aplicado a cuotas en la moneda con que se pagó (`funding_breakdown`, o `amount_paid` en la moneda de la fila), sin contar las filas de depósito con `installment_id` nulo, más los `condo_house_credits.balance` en esa moneda. Gastos pagados SHALL ser los gastos `paid` u `on_hold` en la moneda con que salió el dinero.
 
 #### Scenario: Pago en la moneda de la cuota
 - **WHEN** una casa paga 100 USD a una cuota de 100 USD y no hay gastos
