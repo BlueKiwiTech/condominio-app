@@ -146,6 +146,9 @@ async function releaseReport(db: DbClient, report: HeldReport, summary: ReleaseS
     }
     if ('error' in result) throw new Error(result.error);
 
+    // No `status = 'on_hold'` guard on purpose: the payment above is already
+    // applied, so if an admin rejected the report during this (rare) window the
+    // truthful final state is 'confirmed' with its receipt, not 'rejected'.
     const { error } = await db
       .from('condo_payment_reports')
       .update({

@@ -14,7 +14,7 @@ En Mi Cartera el residente SHALL ver sus reportes con estado `pending`, `on_hold
 ## ADDED Requirements
 
 ### Requirement: Rate updates release held transactions
-Al terminar `GET /api/cron/exchange-rate` y tras `setExchangeRate`, el sistema SHALL ejecutar `releaseHeldTransactions` con el cliente service-role para liberar reportes y gastos `on_hold` cuyas tasas ya estén disponibles. Un fallo de la liberación SHALL NOT afectar la inserción de tasas y SHALL reportarse en la respuesta con el conteo de liberados y fallidos.
+Al terminar `GET /api/cron/exchange-rate` y tras `setExchangeRate`, el sistema SHALL ejecutar `releaseHeldTransactions` con el cliente service-role para liberar reportes y gastos `on_hold` cuyas tasas ya estén disponibles. Un fallo de la liberación SHALL NOT afectar la inserción de tasas y SHALL reportarse en la respuesta con los conteos de liberados, en espera (su tasa aún falta) y fallidos.
 
 #### Scenario: Cron libera lo pendiente
 - **WHEN** el cron inserta las tasas del día y hay un reporte `on_hold` cuya fecha ya tiene tasa BCV fresca

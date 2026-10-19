@@ -11,6 +11,25 @@ El dashboard SHALL mostrar "Gastos pendientes del mes": suma de `amount` de inst
 - **WHEN** un gasto del mes está `on_hold`
 - **THEN** sigue incluido en los gastos pendientes del mes, en su moneda original
 
+### Requirement: Soft delete
+Eliminar un gasto o plantilla SHALL poner `deleted_at` y nunca borrar la fila; todas las lecturas (listado, cron, dashboard) SHALL filtrar `deleted_at IS NULL`. Un gasto pagado o en espera de tasa SHALL NOT poder eliminarse; una plantilla con cualquier instancia pagada o en espera SHALL NOT poder eliminarse.
+
+#### Scenario: Eliminar gasto pagado
+- **WHEN** el admin intenta eliminar un gasto pagado
+- **THEN** falla con `cannotDeletePaid`
+
+#### Scenario: Eliminar plantilla sin pagos
+- **WHEN** el admin elimina una plantilla sin instancias pagadas ni en espera
+- **THEN** la plantilla y sus instancias `pending` quedan con `deleted_at`
+
+#### Scenario: Eliminar gasto en espera
+- **WHEN** el admin intenta eliminar un gasto `on_hold`
+- **THEN** falla con `cannotDeletePaid` y el gasto sigue en espera
+
+#### Scenario: Eliminar plantilla con un gasto en espera
+- **WHEN** el admin intenta eliminar una plantilla con un gasto `on_hold`
+- **THEN** falla con `hasPayments` y nada queda con `deleted_at`
+
 ## ADDED Requirements
 
 ### Requirement: Expenses on hold for a missing BCV rate
@@ -23,6 +42,10 @@ Al pagar un gasto con alguna moneda en `Bs` (la del gasto o la de pago) con tasa
 #### Scenario: Gasto en Bs pagado en USD sin tasa
 - **WHEN** el admin paga un gasto de 9.857,30 Bs en USD con tasa `eur`, escribe 9,95 USD y no hay tasa `eur` fresca
 - **THEN** el gasto queda `on_hold` con `amount = 9857.30`, `paid_currency = 'USD'` y `paid_amount = 9.95`
+
+#### Scenario: Pagar un gasto ya en espera
+- **WHEN** el admin intenta marcar como pagado un gasto que ya está `on_hold`
+- **THEN** la acción devuelve `alreadyOnHold` y el gasto no cambia
 
 #### Scenario: Gasto en Bs pagado en Bs sin tasa
 - **WHEN** el admin paga un gasto en Bs en Bs con tasa `bcv`, escribe 8.800 Bs como monto final y no hay tasa fresca
