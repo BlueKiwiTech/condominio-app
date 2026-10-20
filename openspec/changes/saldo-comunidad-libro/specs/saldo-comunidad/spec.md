@@ -50,6 +50,10 @@ Todo abono aplicado (registrado por el admin, reporte de residente confirmado o 
 - **WHEN** llega la tasa y un pago `on_hold` del admin se aplica
 - **THEN** el saldo sube en ese momento y no antes
 
+#### Scenario: Reporte del residente sin aprobar
+- **WHEN** un reporte del residente está `pending` o `on_hold`, o el admin lo rechaza
+- **THEN** el saldo no cambia, y solo sube cuando el admin lo confirma
+
 ### Requirement: Paid expenses subtract from the balance
 Pagar un gasto SHALL registrar un movimiento `expense_out` por el monto que sale de caja, en la moneda de pago (`paid_currency` y `paid_amount` si difiere de la del gasto; si no, la del gasto), referenciando el gasto, tanto si queda `paid` como `on_hold`. Liberar un gasto en espera SHALL NOT restar de nuevo.
 
