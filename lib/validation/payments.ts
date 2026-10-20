@@ -12,6 +12,9 @@ export function registerPaymentSchema(t: Translator) {
     // a pure wallet top-up (applyPaymentAllocation requires amount_received
     // > 0 in that case instead).
     installment_ids: z.array(z.string().uuid()),
+    // Special cuotas the admin picked on purpose. When non-empty the payment
+    // applies ONLY to them (installment_ids is ignored); empty = normal flow.
+    selected_special_ids: z.array(z.string().uuid(t('invalidSelection'))).default([]),
     currency: currencySchema,
     // decimal(12,2) in the DB — validated as non-negative here (zero is
     // valid: the admin can register a payment funded entirely by an

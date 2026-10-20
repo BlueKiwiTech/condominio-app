@@ -62,6 +62,10 @@ Al registrar un pago, el admin PUEDE elegir cuotas especiales pendientes de la c
 - **WHEN** `selected_special_ids` incluye una cuota `paid` o borrada
 - **THEN** la acción devuelve el error de selección inválida y no escribe nada
 
+#### Scenario: Ids duplicados o inexistentes
+- **WHEN** `selected_special_ids` repite un id o incluye uno que no existe
+- **THEN** la acción devuelve el error de selección inválida y no escribe nada
+
 ### Requirement: Held admin payments keep their cuota selection
 Un pago del admin en espera de tasa SHALL conservar su selección: el reporte `on_hold` guarda `installment_ids` con las cuotas elegidas y `explicit_installments = true`, y al liberarse SHALL aplicarse a esas cuotas con las mismas reglas (solo las elegidas, sin ventana). Sin selección, `explicit_installments` SHALL ser falso y la liberación SHALL usar la regla de siempre.
 

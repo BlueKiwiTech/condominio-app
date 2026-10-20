@@ -58,6 +58,7 @@ type HeldReport = {
   notes: string | null;
   installment_ids: string[];
   created_by: string | null;
+  explicit_installments: boolean;
 };
 
 type HeldExpense = {
@@ -115,6 +116,8 @@ async function releaseReport(db: DbClient, report: HeldReport, summary: ReleaseS
       notes: report.notes,
       installment_ids: installmentIds,
       created_by: report.created_by,
+      // Special cuotas the admin chose: they keep skipping the 30-day window on release.
+      explicit_installments: report.explicit_installments,
     };
 
     const evaluation = await evaluatePaymentAllocation(db, params, LOGGED_ERRORS);
@@ -218,7 +221,7 @@ export async function releaseHeldTransactions(db: DbClient): Promise<ReleaseSumm
 
   const { data: reports, error: reportsError } = await db
     .from('condo_payment_reports')
-    .select('id, house_id, amount, currency, payment_date, reference, notes, installment_ids, created_by')
+    .select('id, house_id, amount, currency, payment_date, reference, notes, installment_ids, created_by, explicit_installments')
     .eq('status', 'on_hold')
     .order('created_at', { ascending: true });
   if (reportsError) throw new Error(`could not read held reports: ${reportsError.message}`);
