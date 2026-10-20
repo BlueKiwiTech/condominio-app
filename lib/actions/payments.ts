@@ -145,5 +145,8 @@ export async function registerPayment(input: RegisterPaymentInput, locale: strin
 
   revalidatePath('/pagos');
   revalidatePath('/cuotas');
+  revalidatePath('/dashboard');
+  revalidatePath('/gastos');
+  revalidatePath('/saldo-comunidad');
   return { success: true, batchId: result.batchId, receiptNumber: result.receiptNumber };
 }

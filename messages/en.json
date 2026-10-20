@@ -68,6 +68,13 @@
       "notesTooLong": "The notes are too long.",
       "invalidFileType": "Must be an image (photo or screenshot).",
       "fileTooLarge": "The image is too large (max 5 MB)."
+    },
+    "communityBalance": {
+      "amountInvalid": "The amount is not valid.",
+      "amountPositive": "The amount must be greater than zero.",
+      "amountNonZero": "The amount can't be zero.",
+      "noteRequired": "The reason is required.",
+      "noteTooLong": "The reason is too long (300 characters max)."
     }
   },
   "auth": {
@@ -143,7 +150,8 @@
       "report": "Monthly report",
       "paymentsHistory": "Payment history",
       "expensePayments": "Expense payment history",
-      "exchangeRate": "Exchange rate"
+      "exchangeRate": "Exchange rate",
+      "communityBalance": "Community balance"
     },
     "roleLabel": "Board admin",
     "unknownAdmin": "Admin",
@@ -904,5 +912,65 @@
         "admin": "Manual"
       }
     }
+  },
+  "communityBalance": {
+    "heading": "Community balance",
+    "subtitle": "Money the community has, per currency: what comes in from applied payments, plus the opening balance and adjustments, minus paid expenses. Currencies are never added together.",
+    "balancesHeading": "Current balance",
+    "actions": {
+      "opening": "Register opening balance",
+      "adjustment": "Register adjustment"
+    },
+    "ledger": {
+      "heading": "Movement ledger",
+      "empty": "No movements yet.",
+      "columns": {
+        "date": "Date",
+        "type": "Type",
+        "amount": "Amount",
+        "detail": "Detail",
+        "author": "Registered by"
+      },
+      "types": {
+        "opening": "Opening balance",
+        "payment_in": "Payment",
+        "expense_out": "Paid expense",
+        "adjustment": "Adjustment"
+      },
+      "system": "System",
+      "viewReceipt": "View receipt",
+      "page": "Page {page} of {pages}",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "loadError": "The community balance could not be loaded.",
+    "openingDialog": {
+      "heading": "Register opening balance",
+      "description": "Money the community already had before using the system. Registered once per currency and added to the balance.",
+      "currency": "Currency",
+      "amount": "Amount",
+      "allRegistered": "Every currency already has an opening balance.",
+      "submit": "Register opening balance"
+    },
+    "adjustmentDialog": {
+      "heading": "Register adjustment",
+      "description": "Corrects the balance by adding or subtracting an amount, with a reason. It stays in the ledger and can't be edited or deleted.",
+      "currency": "Currency",
+      "direction": "Adjustment type",
+      "increase": "Add to the balance",
+      "decrease": "Subtract from the balance",
+      "amount": "Amount",
+      "note": "Reason",
+      "notePlaceholder": "E.g.: Expense paid outside the system",
+      "submit": "Register adjustment"
+    },
+    "toasts": {
+      "opening": "Opening balance registered.",
+      "adjustment": "Adjustment registered."
+    },
+    "errors": {
+      "openingExists": "That currency already has an opening balance."
+    },
+    "cancel": "Cancel"
   }
 }

@@ -68,6 +68,13 @@
       "notesTooLong": "Las notas son demasiado largas.",
       "invalidFileType": "Debe ser una imagen (foto o captura de pantalla).",
       "fileTooLarge": "La imagen es muy pesada (máximo 5 MB)."
+    },
+    "communityBalance": {
+      "amountInvalid": "El monto no es válido.",
+      "amountPositive": "El monto debe ser mayor que cero.",
+      "amountNonZero": "El monto no puede ser cero.",
+      "noteRequired": "El motivo es obligatorio.",
+      "noteTooLong": "El motivo es demasiado largo (máximo 300 caracteres)."
     }
   },
   "auth": {
@@ -143,7 +150,8 @@
       "report": "Reporte mensual",
       "paymentsHistory": "Historial de abonos",
       "expensePayments": "Historial de pagos de gastos",
-      "exchangeRate": "Tasa de cambio"
+      "exchangeRate": "Tasa de cambio",
+      "communityBalance": "Saldo de la comunidad"
     },
     "roleLabel": "Administradora",
     "unknownAdmin": "Administrador",
@@ -904,5 +912,65 @@
         "admin": "Manual"
       }
     }
+  },
+  "communityBalance": {
+    "heading": "Saldo de la comunidad",
+    "subtitle": "Dinero con el que cuenta la comunidad por moneda: lo que entra por abonos aplicados, más el saldo inicial y los ajustes, menos los gastos pagados. Nunca se suman monedas.",
+    "balancesHeading": "Saldo actual",
+    "actions": {
+      "opening": "Registrar saldo inicial",
+      "adjustment": "Registrar ajuste"
+    },
+    "ledger": {
+      "heading": "Libro de movimientos",
+      "empty": "Aún no hay movimientos.",
+      "columns": {
+        "date": "Fecha",
+        "type": "Tipo",
+        "amount": "Monto",
+        "detail": "Detalle",
+        "author": "Registrado por"
+      },
+      "types": {
+        "opening": "Saldo inicial",
+        "payment_in": "Abono",
+        "expense_out": "Gasto pagado",
+        "adjustment": "Ajuste"
+      },
+      "system": "Sistema",
+      "viewReceipt": "Ver recibo",
+      "page": "Página {page} de {pages}",
+      "previous": "Anterior",
+      "next": "Siguiente"
+    },
+    "loadError": "No se pudo cargar el saldo de la comunidad.",
+    "openingDialog": {
+      "heading": "Registrar saldo inicial",
+      "description": "Dinero que ya tenía la comunidad antes de usar el sistema. Se registra una sola vez por moneda y se suma al saldo.",
+      "currency": "Moneda",
+      "amount": "Monto",
+      "allRegistered": "Todas las monedas ya tienen saldo inicial.",
+      "submit": "Registrar saldo inicial"
+    },
+    "adjustmentDialog": {
+      "heading": "Registrar ajuste",
+      "description": "Corrige el saldo sumando o restando un monto, con un motivo. Queda en el libro y no se puede editar ni borrar.",
+      "currency": "Moneda",
+      "direction": "Tipo de ajuste",
+      "increase": "Sumar al saldo",
+      "decrease": "Restar del saldo",
+      "amount": "Monto",
+      "note": "Motivo",
+      "notePlaceholder": "Ej.: Gasto pagado fuera del sistema",
+      "submit": "Registrar ajuste"
+    },
+    "toasts": {
+      "opening": "Saldo inicial registrado.",
+      "adjustment": "Ajuste registrado."
+    },
+    "errors": {
+      "openingExists": "Esa moneda ya tiene un saldo inicial."
+    },
+    "cancel": "Cancelar"
   }
 }

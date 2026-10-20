@@ -1,61 +1,52 @@
-// Loads what lib/reporting/communityBalance.ts needs, with minimal selects, and
-// returns the community balance per currency. Server-side only (takes the
-// admin's Supabase client, so RLS applies, or the service role).
-//
-// PostgREST caps a response at 1000 rows by default and silently truncates, so
-// every table is read in pages: a balance computed from a truncated list would
-// be wrong without any error.
+// Reads the stored community balance and its ledger (change
+// saldo-comunidad-libro). Server-side only: takes the admin's Supabase client,
+// so RLS applies (only admins of the community can read these tables).
 import type { DbClient } from '@/lib/supabase/dbClient';
-import {
-  communityBalance,
-  type CreditForBalance,
-  type ExpenseForBalance,
-  type PaymentForBalance,
-} from './communityBalance';
-import type { CurrencyAmountMap } from './dashboard';
+import type { Currency, CurrencyAmountMap } from './dashboard';
 
-const PAGE_SIZE = 1000;
+export type MovementType = 'opening' | 'payment_in' | 'expense_out' | 'adjustment';
 
-async function fetchAll<T>(
-  load: (from: number, to: number) => PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>,
-  what: string,
-): Promise<T[]> {
-  const rows: T[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await load(from, from + PAGE_SIZE - 1);
-    if (error) throw new Error(`could not load ${what}: ${error.message}`);
-    const page = (data ?? []) as T[];
-    rows.push(...page);
-    if (page.length < PAGE_SIZE) return rows;
-  }
+export type CommunityMovement = {
+  id: string;
+  type: MovementType;
+  currency: Currency;
+  /** Signed: positive adds to the balance, negative subtracts. */
+  amount: number;
+  reference_id: string | null;
+  occurred_on: string;
+  note: string | null;
+  created_by: string | null;
+  author_email: string | null;
+  created_at: string;
+};
+
+export const MOVEMENTS_PAGE_SIZE = 25;
+
+/** The stored balance per currency. Only currencies that ever had a movement have a row. */
+export async function fetchCommunityBalance(db: DbClient): Promise<CurrencyAmountMap> {
+  const { data, error } = await db.from('condo_community_balances').select('currency, balance');
+  if (error) throw new Error(`could not load the community balance: ${error.message}`);
+  const out: CurrencyAmountMap = {};
+  for (const row of data ?? []) out[row.currency as Currency] = Number(row.balance);
+  return out;
 }
 
-export async function fetchCommunityBalance(db: DbClient): Promise<CurrencyAmountMap> {
-  const [payments, credits, expenses] = await Promise.all([
-    fetchAll<PaymentForBalance>(
-      (from, to) =>
-        db
-          .from('condo_payments')
-          .select('installment_id, amount_paid, currency, funding_breakdown')
-          .order('id')
-          .range(from, to),
-      'payments',
-    ),
-    fetchAll<CreditForBalance>(
-      (from, to) => db.from('condo_house_credits').select('currency, balance').order('house_id').order('currency').range(from, to),
-      'house credits',
-    ),
-    fetchAll<ExpenseForBalance>(
-      (from, to) =>
-        db
-          .from('condo_expenses')
-          .select('status, currency, amount, paid_currency, paid_amount')
-          .is('deleted_at', null)
-          .in('status', ['paid', 'on_hold'])
-          .order('id')
-          .range(from, to),
-      'expenses',
-    ),
-  ]);
-  return communityBalance(payments, credits, expenses);
+/** One page of the ledger, newest first (page is 1-based), with the total row count. */
+export async function fetchMovementsPage(
+  db: DbClient,
+  page: number,
+): Promise<{ movements: CommunityMovement[]; total: number; pageSize: number; page: number }> {
+  const safePage = Number.isInteger(page) && page >= 1 ? page : 1;
+  const from = (safePage - 1) * MOVEMENTS_PAGE_SIZE;
+  const { data, error, count } = await db
+    .from('condo_community_movements')
+    .select('id, type, currency, amount, reference_id, occurred_on, note, created_by, author_email, created_at', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, from + MOVEMENTS_PAGE_SIZE - 1);
+  // PGRST103: the page is past the end (a stale or typed ?page=999): show the first one.
+  if (error?.code === 'PGRST103' && safePage > 1) return fetchMovementsPage(db, 1);
+  if (error) throw new Error(`could not load the movements: ${error.message}`);
+  const movements = (data ?? []).map((m) => ({ ...m, amount: Number(m.amount) })) as CommunityMovement[];
+  return { movements, total: count ?? movements.length, pageSize: MOVEMENTS_PAGE_SIZE, page: safePage };
 }

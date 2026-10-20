@@ -15,6 +15,7 @@ import {
   FileText,
   CheckCircle2,
   TrendingUp,
+  Wallet,
   LogOut,
   type LucideIcon,
 } from 'lucide-react';
@@ -61,6 +62,7 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: '/gastos', icon: Receipt, labelKey: 'items.gastos' },
       { href: '/gastos/plantillas', icon: Copy, labelKey: 'items.expenseTemplates' },
+      { href: '/saldo-comunidad', icon: Wallet, labelKey: 'items.communityBalance' },
     ],
   },
   {

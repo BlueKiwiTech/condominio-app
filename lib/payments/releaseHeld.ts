@@ -238,7 +238,7 @@ export async function releaseHeldTransactions(db: DbClient): Promise<ReleaseSumm
   if (summary.released > 0) {
     // Outside a request (a script) there is no cache to revalidate: ignore.
     try {
-      for (const path of ['/pagos', '/pagos-reportados', '/cuotas', '/gastos', '/gastos-pagados', '/dashboard']) revalidatePath(path);
+      for (const path of ['/pagos', '/pagos-reportados', '/cuotas', '/gastos', '/gastos-pagados', '/dashboard', '/saldo-comunidad']) revalidatePath(path);
     } catch {
       /* nothing to revalidate */
     }
