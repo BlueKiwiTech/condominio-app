@@ -295,7 +295,7 @@ El saldo de la comunidad SHALL leerse del balance guardado por moneda (`USD`, `B
 - **THEN** su monto ya cuenta como gastado en la moneda con que se pagó
 
 ### Requirement: Expense payment blocked by insufficient community balance
-`markExpensePaid` SHALL calcular el monto que sale de caja y su moneda (`paid_amount` en la moneda de pago si difiere de la del gasto; si no, el monto final en la moneda del gasto, y `USDT` en `USDT`) y SHALL pagar el gasto y restar el balance en una sola operación atómica, rechazándola sin escribir nada, con saldo disponible, monto necesario y faltante, si el saldo no alcanza. SHALL aplicar igual si el gasto quedaría `paid` o `on_hold`, y SHALL NOT volver a validar ni restar al liberar un gasto en espera.
+`markExpensePaid` SHALL calcular lo que sale de caja y su moneda (`paid_amount` en la moneda de pago si difiere de la del gasto; si no, el monto final en la del gasto, y `USDT` en `USDT`) y SHALL pagar el gasto y restar el balance en una sola operación atómica, rechazándola sin escribir con disponible, necesario y faltante si el saldo no alcanza. Aplica igual si quedaría `paid` u `on_hold`; al liberar un gasto en espera SHALL NOT validar ni restar de nuevo.
 
 #### Scenario: Saldo suficiente
 - **WHEN** el saldo en USD es 500 y el admin paga un gasto de 110 USD en USD
