@@ -25,7 +25,7 @@
 
 - [x] 5.1 Con el Supabase local y la migración aplicada (`scripts/e2e/setup-local-supabase.sh`, `NODE_ENV=test npm run dev`), probar de punta a punta: una casa con una cuota recurrente vencida y dos especiales (una a 45 días); abono a una especial lejana (se paga y la recurrente queda intacta), abono con fondos para una de dos especiales (sobrante a saldo a favor), abono sin selección (como antes), abono en Bs a una especial en USD con tasa fresca, una selección manipulada (cuota de otra casa o recurrente rechazada), y un pago en espera con selección que se libera al llegar la tasa. Anotar el resultado.
 - [x] 5.2 Ejecutar `npm run build` y `npx eslint .`. Verificar: ambos terminan sin errores nuevos respecto de los 4 errores previos de `eslint` en archivos no tocados (`use-mobile.ts`, `SplitAmounts.tsx`, `CuotaFormClient.tsx`, `GastoFormClient.tsx`).
-- [ ] 5.3 Ejecutar el agente `spec-auditor` sobre `payments` y resolver las discrepancias que reporte. Verificar: informe sin discrepancias nuevas.
+- [x] 5.3 Ejecutar el agente `spec-auditor` sobre `payments` y resolver las discrepancias que reporte. Verificar: informe sin discrepancias nuevas.
 
 ## Workflow follow-up
 

@@ -243,7 +243,8 @@ export function PaymentFormClient({
         {
           house_id: houseId,
           installment_ids: houseInstallments.map((i) => i.id),
-          selected_special_ids: selectedSpecialIds,
+          // Only ids still listed as pending specials (the list can refresh under the form).
+          selected_special_ids: selectedSpecialIds.filter((id) => specialInstallments.some((i) => i.id === id)),
           currency,
           amount_received: amountReceived,
           payment_date: toDateOnly(paymentDate),
