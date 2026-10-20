@@ -116,10 +116,16 @@ set search_path = ''
 as $$
 declare
   v_balance numeric;
+  v_created boolean;
 begin
+  -- Defence in depth: this function is internal (not granted to API roles), but
+  -- it never trusts its caller.
+  perform public.condo_assert_can_write_balance(p_community_id);
+
   insert into public.condo_community_balances (community_id, currency, balance)
   values (p_community_id, p_currency, 0)
   on conflict (community_id, currency) do nothing;
+  v_created := found;
 
   select balance into v_balance
   from public.condo_community_balances
@@ -134,6 +140,11 @@ begin
   end if;
 
   if p_require_funds and v_balance + p_amount < 0 then
+    -- Don't leave a zero row behind for a currency that never had a movement.
+    if v_created then
+      delete from public.condo_community_balances
+      where community_id = p_community_id and currency = p_currency;
+    end if;
     return jsonb_build_object('ok', false, 'reason', 'insufficient', 'available', v_balance);
   end if;
 
@@ -151,8 +162,11 @@ begin
 end;
 $$;
 
-revoke all on function condo_assert_can_write_balance(uuid) from public;
-revoke all on function condo_record_movement(uuid, text, text, numeric, uuid, date, text, uuid, boolean) from public;
+-- Supabase grants EXECUTE on new public functions to anon and authenticated by
+-- default privileges, and `revoke ... from public` does not remove those, so
+-- they are revoked by name. The internal helpers are not callable from the API at all.
+revoke all on function condo_assert_can_write_balance(uuid) from public, anon, authenticated;
+revoke all on function condo_record_movement(uuid, text, text, numeric, uuid, date, text, uuid, boolean) from public, anon, authenticated;
 
 -- --------------------------------------------------- payment batch (+ in)
 -- Inserts the rows of one payment batch and the payment_in movement for the
@@ -179,6 +193,9 @@ set search_path = public, pg_temp
 as $$
 declare
   v_community uuid;
+  v_service boolean := coalesce((select auth.role()), '') = 'service_role';
+  v_actor uuid;
+  v_received numeric := round(p_amount_received, 2);
 begin
   select community_id into v_community from public.condo_houses where id = p_house_id;
   if v_community is null then
@@ -186,22 +203,40 @@ begin
   end if;
   perform public.condo_assert_can_write_balance(v_community);
 
+  -- The author is the caller, never a parameter (the service role -- releasing a
+  -- held payment without a session -- passes the admin who registered it).
+  v_actor := case when v_service then p_created_by else (select auth.uid()) end;
+
+  -- Every row must belong to the house the caller was authorized for, and every
+  -- cuota to that house: this function inserts with its owner's privileges, so
+  -- it can't rely on the RLS policy of condo_payments.
+  if exists (
+    select 1
+    from jsonb_to_recordset(p_rows) as r(house_id uuid, installment_id uuid)
+    where r.house_id is distinct from p_house_id
+       or (r.installment_id is not null and not exists (
+             select 1 from public.condo_installments i
+             where i.id = r.installment_id and i.house_id = p_house_id))
+  ) then
+    return jsonb_build_object('ok', false, 'reason', 'invalid_rows');
+  end if;
+
   insert into public.condo_payments (
     house_id, installment_id, payment_batch_id, amount_paid, currency,
     payment_date, reference, notes, receipt_number, created_by, funding_breakdown
   )
   select
     r.house_id, r.installment_id, r.payment_batch_id, r.amount_paid, r.currency,
-    r.payment_date, r.reference, r.notes, r.receipt_number, r.created_by, r.funding_breakdown
+    r.payment_date, r.reference, r.notes, r.receipt_number, v_actor, r.funding_breakdown
   from jsonb_to_recordset(p_rows) as r(
     house_id uuid, installment_id uuid, payment_batch_id uuid, amount_paid numeric,
     currency text, payment_date date, reference text, notes text,
     receipt_number integer, created_by uuid, funding_breakdown jsonb
   );
 
-  if p_amount_received > 0 then
+  if v_received > 0 then
     perform public.condo_record_movement(
-      v_community, 'payment_in', p_currency, p_amount_received, p_batch_id, p_occurred_on, null, p_created_by, false
+      v_community, 'payment_in', p_currency, v_received, p_batch_id, p_occurred_on, null, v_actor, false
     );
   end if;
 
@@ -209,7 +244,7 @@ begin
 end;
 $$;
 
-revoke all on function condo_apply_payment_batch(uuid, uuid, jsonb, text, numeric, date, uuid) from public;
+revoke all on function condo_apply_payment_batch(uuid, uuid, jsonb, text, numeric, date, uuid) from public, anon;
 grant execute on function condo_apply_payment_batch(uuid, uuid, jsonb, text, numeric, date, uuid) to authenticated, service_role;
 
 -- ------------------------------------------------- pay expense (- out)
@@ -286,7 +321,7 @@ begin
 end;
 $$;
 
-revoke all on function condo_pay_expense(uuid, numeric, date, text, text, numeric, text, numeric, text, text, numeric, text, numeric) from public;
+revoke all on function condo_pay_expense(uuid, numeric, date, text, text, numeric, text, numeric, text, text, numeric, text, numeric) from public, anon;
 grant execute on function condo_pay_expense(uuid, numeric, date, text, text, numeric, text, numeric, text, text, numeric, text, numeric) to authenticated, service_role;
 
 -- ---------------------------------------- opening balance and adjustments
@@ -337,7 +372,7 @@ exception
 end;
 $$;
 
-revoke all on function condo_add_community_movement(uuid, text, text, numeric, text, date) from public;
+revoke all on function condo_add_community_movement(uuid, text, text, numeric, text, date) from public, anon;
 grant execute on function condo_add_community_movement(uuid, text, text, numeric, text, date) to authenticated, service_role;
 
 -- --------------------------------------------------------------- backfill
@@ -359,19 +394,19 @@ begin
 
   for r in
     with recv as (
-      select p.community_id, f ->> 'currency' as currency, (f ->> 'amountDrawn')::numeric as amt
+      select p.community_id, coalesce(f ->> 'currency', p.currency) as currency, (f ->> 'amountDrawn')::numeric as amt
       from condo_payments p
-      cross join lateral jsonb_array_elements(p.funding_breakdown) f
+      cross join lateral jsonb_array_elements(
+        case when jsonb_typeof(p.funding_breakdown) = 'array' then p.funding_breakdown else '[]'::jsonb end
+      ) f
       where p.installment_id is not null
-        and jsonb_typeof(p.funding_breakdown) = 'array'
-        and jsonb_array_length(p.funding_breakdown) > 0
       union all
       select p.community_id, p.currency, p.amount_paid
       from condo_payments p
       where p.installment_id is not null
-        and (p.funding_breakdown is null
-             or jsonb_typeof(p.funding_breakdown) <> 'array'
-             or jsonb_array_length(p.funding_breakdown) = 0)
+        and jsonb_array_length(
+              case when jsonb_typeof(p.funding_breakdown) = 'array' then p.funding_breakdown else '[]'::jsonb end
+            ) = 0
       union all
       select h.community_id, c.currency, c.balance
       from condo_house_credits c
@@ -399,7 +434,7 @@ begin
     on conflict (community_id, currency) do update set balance = excluded.balance, updated_at = now();
 
     insert into condo_community_movements (community_id, type, currency, amount, occurred_on, note)
-    values (r.community_id, 'adjustment', r.currency, r.amt, current_date,
+    values (r.community_id, 'adjustment', r.currency, r.amt, (now() at time zone 'America/Caracas')::date,
             'Saldo calculado al activar el libro de movimientos');
   end loop;
 end;

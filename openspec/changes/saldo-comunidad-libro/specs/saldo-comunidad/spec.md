@@ -129,6 +129,25 @@ Una pantalla del admin SHALL mostrar el saldo por moneda y el libro de movimient
 - **WHEN** un admin consulta balance o libro
 - **THEN** solo ve los de su propia comunidad
 
+### Requirement: Balance writes are restricted and attributed
+El balance y el libro SHALL modificarse solo mediante las operaciones de la capacidad, ejecutables únicamente por un admin de la comunidad o por el servicio de liberación de pagos en espera, y SHALL NOT poder escribirse directamente en las tablas ni invocarse sin sesión de admin. Cada movimiento SHALL atribuirse al usuario que ejecuta la operación, nunca a un valor enviado por el cliente, y un lote de pagos SHALL aceptar solo filas de la casa y de cuotas de esa casa.
+
+#### Scenario: Sin sesión de admin
+- **WHEN** alguien sin sesión, o un usuario que no es admin, intenta registrar un movimiento o pagar un gasto
+- **THEN** la operación se rechaza y el balance no cambia
+
+#### Scenario: Escritura directa
+- **WHEN** un admin intenta insertar, editar o borrar movimientos o balances directamente
+- **THEN** se rechaza, porque solo se escriben mediante las operaciones
+
+#### Scenario: Autor falsificado
+- **WHEN** una petición de abono envía como autor a otro usuario
+- **THEN** el movimiento queda atribuido al usuario que la ejecutó
+
+#### Scenario: Filas de otra casa
+- **WHEN** un lote de pagos incluye una fila de otra casa o de una cuota ajena
+- **THEN** se rechaza completo y no se guarda nada
+
 ### Requirement: Balance activation preserves the current balance
 Al activar el libro, el balance de cada moneda SHALL arrancar en el valor que producía el cálculo derivado anterior (recibido por abonos y créditos de casas, menos gastos `paid` y `on_hold`), registrado como un movimiento `adjustment` de migración, de modo que el saldo no cambie al desplegar.
 

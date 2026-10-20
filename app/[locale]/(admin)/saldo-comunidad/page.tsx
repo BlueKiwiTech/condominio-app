@@ -38,7 +38,7 @@ export default async function SaldoComunidadPage({ searchParams }: { searchParam
           movements={data.ledger.movements}
           total={data.ledger.total}
           pageSize={data.ledger.pageSize}
-          page={Number.isInteger(page) && page >= 1 ? page : 1}
+          page={data.ledger.page}
           openingCurrencies={data.openingCurrencies}
         />
       ) : (

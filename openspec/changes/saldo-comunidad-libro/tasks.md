@@ -23,7 +23,7 @@
 
 - [x] 4.1 Con el Supabase local (`scripts/e2e/setup-local-supabase.sh`, `NODE_ENV=test npm run dev`), probar de punta a punta: saldo inicial en USD, abono en USD y en Bs, abono con sobrante, reporte confirmado, pago liberado desde espera, gasto pagado en USD y en Bs, gasto que se bloquea por saldo, ajuste negativo y la pantalla del libro con paginación. Verificar: el saldo de la tarjeta, del diálogo y de la pantalla coincide en cada paso y con la suma manual de los movimientos.
 - [x] 4.2 Ejecutar `npm run build` y `npx eslint .`. Verificar: ambos terminan sin errores nuevos respecto de los 4 errores previos de `eslint` en archivos no tocados.
-- [ ] 4.3 Ejecutar el agente `spec-auditor` sobre `saldo-comunidad`, `gastos`, `payments` y `reporting-morosos` y resolver las discrepancias que reporte. Verificar: informe sin discrepancias nuevas.
+- [x] 4.3 Ejecutar el agente `spec-auditor` sobre `saldo-comunidad`, `gastos`, `payments` y `reporting-morosos` y resolver las discrepancias que reporte. Verificar: informe sin discrepancias nuevas.
 
 ## Workflow follow-up
 

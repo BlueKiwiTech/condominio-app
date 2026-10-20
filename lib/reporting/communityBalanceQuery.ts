@@ -22,7 +22,7 @@ export type CommunityMovement = {
 
 export const MOVEMENTS_PAGE_SIZE = 25;
 
-/** The stored balance per currency. Only currencies that ever had a movement appear. */
+/** The stored balance per currency. Only currencies that ever had a movement have a row. */
 export async function fetchCommunityBalance(db: DbClient): Promise<CurrencyAmountMap> {
   const { data, error } = await db.from('condo_community_balances').select('currency, balance');
   if (error) throw new Error(`could not load the community balance: ${error.message}`);
@@ -35,7 +35,7 @@ export async function fetchCommunityBalance(db: DbClient): Promise<CurrencyAmoun
 export async function fetchMovementsPage(
   db: DbClient,
   page: number,
-): Promise<{ movements: CommunityMovement[]; total: number; pageSize: number }> {
+): Promise<{ movements: CommunityMovement[]; total: number; pageSize: number; page: number }> {
   const safePage = Number.isInteger(page) && page >= 1 ? page : 1;
   const from = (safePage - 1) * MOVEMENTS_PAGE_SIZE;
   const { data, error, count } = await db
@@ -44,7 +44,9 @@ export async function fetchMovementsPage(
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .range(from, from + MOVEMENTS_PAGE_SIZE - 1);
+  // PGRST103: the page is past the end (a stale or typed ?page=999): show the first one.
+  if (error?.code === 'PGRST103' && safePage > 1) return fetchMovementsPage(db, 1);
   if (error) throw new Error(`could not load the movements: ${error.message}`);
   const movements = (data ?? []).map((m) => ({ ...m, amount: Number(m.amount) })) as CommunityMovement[];
-  return { movements, total: count ?? movements.length, pageSize: MOVEMENTS_PAGE_SIZE };
+  return { movements, total: count ?? movements.length, pageSize: MOVEMENTS_PAGE_SIZE, page: safePage };
 }
