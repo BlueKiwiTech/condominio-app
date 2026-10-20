@@ -179,6 +179,9 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
   revalidatePath('/pagos-reportados');
   revalidatePath('/pagos');
   revalidatePath('/cuotas');
+  revalidatePath('/dashboard');
+  revalidatePath('/gastos');
+  revalidatePath('/saldo-comunidad');
   return { success: true };
 }
 

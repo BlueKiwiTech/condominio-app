@@ -19,7 +19,6 @@ import { referenceAmount, referenceCurrencyFor, type ExpensePaymentCurrency } fr
 import { isRateFresh } from '@/lib/exchangeRate';
 import { getExchangeRatesAsOf } from '@/lib/actions/exchangeRate';
 import { checkBalance, expenseCashOut } from '@/lib/reporting/communityBalance';
-import { fetchCommunityBalance } from '@/lib/reporting/communityBalanceQuery';
 import { currencyLabel, formatMoney } from '@/lib/currency';
 
 type ActionResult = { error: string } | { success: true };
@@ -324,58 +323,54 @@ export async function markExpensePaid(
     }
   }
 
-  // The community must have the money (change saldo-comunidad-gastos): what
-  // leaves the till, in the currency it is paid in, can't exceed that currency's
-  // balance (received minus spent, never mixed across currencies). Checked before
-  // ANY write -- also when the expense would only wait for its rate -- and not
-  // again when a held expense is released (it already counts as spent). Two
-  // simultaneous payments can still spend the same balance (no transaction).
+  // Pay the expense, check the community's funds and record the money leaving
+  // the till in ONE database function (change saldo-comunidad-libro): it locks
+  // the balance of the currency the expense is paid in, so what leaves the till
+  // can't exceed that balance even with simultaneous payments, and it does the
+  // same whether the expense ends up 'paid' or 'on_hold'. A held expense is not
+  // charged again when it is released (it already counts as spent).
   const cashOut = expenseCashOut({
     currency: expenseCurrency,
     amount: data.amount,
     paid_currency: rateColumns.paid_currency as ExpensePaymentCurrency | null,
     paid_amount: rateColumns.paid_amount,
   });
-  let balance;
-  try {
-    balance = await fetchCommunityBalance(supabase);
-  } catch (err) {
-    console.error('[markExpensePaid] could not compute the community balance:', err);
-    return { error: tc('invalidData') };
-  }
-  const funds = checkBalance(balance, cashOut);
-  if (!funds.ok) {
-    return {
-      error: tg('errors.insufficientCommunityBalance', {
-        currency: currencyLabel(funds.currency),
-        available: formatMoney(funds.available),
-        needed: formatMoney(funds.needed),
-        missing: formatMoney(funds.missing),
-      }),
-    };
-  }
-
   // Same currency: "Monto final" overwrites `amount`, as before. Different
   // currency: `amount` keeps what was owed and the payment lives in paid_*.
-  const amountUpdate = crossCurrency ? {} : { amount: data.amount };
-
-  // `.eq('status', 'pending')` + checking a row was touched closes the gap
-  // between the read above and this write: two simultaneous submits can't
-  // overwrite the rate of an expense that was just paid.
-  const { data: updated, error: updateError } = await supabase
-    .from('condo_expenses')
-    .update({
-      ...amountUpdate,
-      paid_date: data.paid_date,
-      notes: normalizeOptional(data.notes),
-      status: onHold ? 'on_hold' : 'paid',
-      ...rateColumns,
-    })
-    .eq('id', expenseId)
-    .eq('status', 'pending')
-    .select('id');
-  if (updateError) return { error: await friendlyError(updateError) };
-  if (!updated || updated.length === 0) return { error: tg('errors.alreadyPaid') };
+  const { data: paid, error: payError } = await supabase.rpc('condo_pay_expense', {
+    p_expense_id: expenseId,
+    p_amount: crossCurrency ? null : data.amount,
+    p_paid_date: data.paid_date,
+    p_notes: normalizeOptional(data.notes),
+    p_status: onHold ? 'on_hold' : 'paid',
+    p_exchange_rate: rateColumns.exchange_rate,
+    p_exchange_rate_type: rateColumns.exchange_rate_type,
+    p_reference_amount: rateColumns.reference_amount,
+    p_reference_currency: rateColumns.reference_currency,
+    p_paid_currency: rateColumns.paid_currency,
+    p_paid_amount: rateColumns.paid_amount,
+    p_cash_currency: cashOut.currency,
+    p_cash_amount: cashOut.amount,
+  });
+  if (payError) return { error: await friendlyError(payError) };
+  const outcome = paid as { ok: boolean; reason?: string; available?: number } | null;
+  if (!outcome?.ok) {
+    if (outcome?.reason === 'insufficient') {
+      const funds = checkBalance({ [cashOut.currency]: outcome.available ?? 0 }, cashOut);
+      return {
+        error: tg('errors.insufficientCommunityBalance', {
+          currency: currencyLabel(funds.currency),
+          available: formatMoney(funds.available),
+          needed: formatMoney(funds.needed),
+          missing: formatMoney(funds.missing),
+        }),
+      };
+    }
+    // not_pending: someone paid it between the read above and this call.
+    if (outcome?.reason === 'not_pending') return { error: tg('errors.alreadyPaid') };
+    if (outcome?.reason === 'not_found') return { error: tg('errors.notFound') };
+    return { error: tc('invalidData') };
+  }
 
   await logAudit(supabase, {
     userId,
@@ -385,6 +380,8 @@ export async function markExpensePaid(
   });
 
   revalidatePath('/gastos');
+  revalidatePath('/dashboard');
+  revalidatePath('/saldo-comunidad');
   return onHold ? { success: true, onHold: true } : { success: true };
 }
 

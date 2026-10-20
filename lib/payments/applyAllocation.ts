@@ -220,8 +220,22 @@ export async function applyPaymentAllocation(
         // inferable from the credit balance silently changing.
         [walletTopUpRow(params.amount_received)];
 
-  const { error: paymentsError } = await supabase.from('condo_payments').insert(paymentRows);
+  // The batch rows and the money received (amount_received, in its own currency)
+  // are saved by ONE database function, so the community balance and the payment
+  // ledger can't disagree: if the movement can't be written, no row is kept
+  // (change saldo-comunidad-libro). A payment funded only by existing credit has
+  // amount_received 0 and adds nothing -- that money was counted when it arrived.
+  const { data: batchResult, error: paymentsError } = await supabase.rpc('condo_apply_payment_batch', {
+    p_house_id: params.house_id,
+    p_batch_id: batchId,
+    p_rows: paymentRows,
+    p_currency: params.currency,
+    p_amount_received: params.amount_received,
+    p_occurred_on: params.payment_date,
+    p_created_by: params.created_by,
+  });
   if (paymentsError) return { error: await friendlyError(paymentsError) };
+  if (!(batchResult as { ok?: boolean } | null)?.ok) return { error: errors.installmentsGone };
 
   for (const a of allocations) {
     const { error: updateError } = await supabase
