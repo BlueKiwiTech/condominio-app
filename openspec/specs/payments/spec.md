@@ -316,12 +316,31 @@ El formulario de pago del admin SHALL listar, al elegir una casa, sus cuotas esp
 - **WHEN** el admin cambia de casa
 - **THEN** la selección se vacía y se listan las especiales de la nueva casa
 
+### Requirement: Applied payments register the received money in the community balance
+`applyPaymentAllocation` SHALL guardar las filas de `condo_payments` del lote y el movimiento `payment_in` por el dinero recibido (`amount_received` en su moneda) en una sola operación atómica, referenciada por el lote. Si el movimiento no puede registrarse, el lote SHALL NOT quedar guardado. Un pago en espera no suma hasta aplicarse, y el saldo a favor consumido y el barrido de crédito SHALL NOT sumar.
+
+#### Scenario: Abono del admin
+- **WHEN** el admin registra 100 USD y el pago se aplica
+- **THEN** quedan las filas del lote y un movimiento `payment_in` de 100 USD en el mismo momento
+
+#### Scenario: Reporte del residente confirmado
+- **WHEN** el admin confirma un reporte de 50.000 Bs
+- **THEN** se registra un movimiento `payment_in` de 50.000 Bs referenciando el lote resultante
+
+#### Scenario: Fallo al registrar el movimiento
+- **WHEN** el movimiento no puede registrarse
+- **THEN** no queda ninguna fila del lote en `condo_payments` y la acción devuelve error
+
+#### Scenario: Pago solo con saldo a favor
+- **WHEN** un pago con monto recibido cero se cubre con el saldo a favor de la casa
+- **THEN** no se registra ningún movimiento `payment_in`
+
 ## Known Limitations
 - No existe anulación/reverso/edición de pagos: no hay acción que borre o revierta un lote de `condo_payments`, restaure `amount_paid` o devuelva crédito. Solo existe el soft-delete de cuotas al desactivar una plantilla.
 - Documentación vs. código: `PLAN.md` y cabeceras de `allocate.ts` aún mencionan pago parcial oldest-first ("la siguiente queda parcialmente pagada"); el código actual es full-or-nothing (decisión 2026-09-29) y el sobrante va a saldo a favor. El estado `partial` sigue en el CHECK pero ningún flujo lo produce; el comentario de `creditSweep.ts` aún dice que `registerPayment` puede dejar cuotas `partial`.
 - La cabecera de `20260908090000_resident_payment_reports.sql` dice que confirmar es solo un flag y que no hay UI de admin; hoy confirmar sí registra el pago real.
 - La cabecera de `20260908120000_exchange_rate.sql` y `20260908110000` dicen que no hay conversión automática ("cada quien saca la cuenta"); `allocateFunds` ahora convierte automáticamente.
-- Sin transacción: los fallos tras insertar `condo_payments` dejan cuotas/crédito desincronizados (no hay compensación). Dos pagos concurrentes de la misma casa pueden leer el mismo saldo a favor (lectura-modificación-escritura sin bloqueo).
+- Sin transacción entre cuotas y crédito: el lote de `condo_payments` y su movimiento del saldo de la comunidad se guardan juntos, pero los fallos posteriores dejan cuotas/crédito desincronizados (no hay compensación) y el dinero ya contado en el saldo; reintentar crea un lote nuevo y lo contaría otra vez (se corrige con un ajuste). Dos pagos concurrentes de la misma casa pueden leer el mismo saldo a favor (lectura-modificación-escritura sin bloqueo).
 - `confirmPaymentReport` actualiza el reporte a `confirmed` en un paso aparte: si ese UPDATE falla tras registrar el pago, el reporte queda `pending` y reconfirmarlo duplicaría el pago. Tampoco filtra el UPDATE por `status = 'pending'`.
 - El saldo a favor solo se netea en la moneda del pago; el crédito en otra moneda no se mezcla al confirmar (lo recoge el barrido, solo de la misma moneda).
 - `payment_batch_id` no tiene FK ni tabla de lotes; `receipt_number` ya no es único a nivel de base de datos.
