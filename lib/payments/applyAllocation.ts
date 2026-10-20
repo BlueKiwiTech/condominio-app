@@ -37,6 +37,12 @@ export type ApplyAllocationParams = {
   notes: string | null;
   installment_ids: string[];
   created_by: string | null;
+  /**
+   * True when the admin picked the cuotas on purpose (special cuotas chosen on
+   * the payment form): the money goes to exactly installment_ids, oldest
+   * first, and the 30-day conversion window does not apply. Default false.
+   */
+  explicit_installments?: boolean;
 };
 
 export type ApplyAllocationErrors = {
@@ -102,7 +108,10 @@ export async function evaluatePaymentAllocation(
   // rate -- cuotas further out are left untouched here (still 'pending')
   // rather than pre-paid, so any leftover money becomes saldo a favor and
   // gets converted later at the rate in effect when it's actually drawn on.
-  const eligible = filterEligibleForConversionWindow(installments as AllocatableInstallment[], paymentDateParsed);
+  // Cuotas chosen on purpose (explicit_installments) skip that window.
+  const eligible = params.explicit_installments
+    ? (installments as AllocatableInstallment[])
+    : filterEligibleForConversionWindow(installments as AllocatableInstallment[], paymentDateParsed);
   const sorted = sortOldestFirst(eligible);
   // Rates as of the payment's own "Fecha de abono", not "now" -- a backdated
   // entry converts at the rate that was actually in effect that day (see

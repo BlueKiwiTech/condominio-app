@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { friendlyError } from '@/lib/errors';
 import { registerPaymentSchema, type RegisterPaymentInput } from '@/lib/validation/payments';
 import { applyPaymentAllocation } from '@/lib/payments/applyAllocation';
+import { validateSpecialSelection } from '@/lib/payments/specialSelection';
 
 // `onHold`: the BCV rate for the payment's date isn't there yet, so the payment
 // was parked as an 'on_hold' report instead of being rejected (it applies by
@@ -88,6 +89,15 @@ export async function registerPayment(input: RegisterPaymentInput, locale: strin
   const { error: authError, supabase, userId } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
+  // Special cuotas chosen on purpose: the payment applies only to them and
+  // skips the 30-day window. No selection = the normal flow, unchanged.
+  const explicit = data.selected_special_ids.length > 0;
+  if (explicit) {
+    const check = await validateSpecialSelection(supabase, data.house_id, data.selected_special_ids);
+    if (!check.ok) return { error: tv('invalidSelection') };
+  }
+  const installmentIds = explicit ? data.selected_special_ids : data.installment_ids;
+
   const result = await applyPaymentAllocation(
     supabase,
     {
@@ -97,8 +107,9 @@ export async function registerPayment(input: RegisterPaymentInput, locale: strin
       payment_date: data.payment_date,
       reference: data.reference || null,
       notes: data.notes || null,
-      installment_ids: data.installment_ids,
+      installment_ids: installmentIds,
       created_by: userId,
+      explicit_installments: explicit,
     },
     {
       installmentsGone: tp('errors.installmentsGone'),
@@ -122,7 +133,8 @@ export async function registerPayment(input: RegisterPaymentInput, locale: strin
       payment_date: data.payment_date,
       reference: data.reference || null,
       notes: data.notes || null,
-      installment_ids: data.installment_ids,
+      installment_ids: installmentIds,
+      explicit_installments: explicit,
       status: 'on_hold',
       created_by: userId,
     });

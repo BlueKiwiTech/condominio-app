@@ -20,6 +20,8 @@ export type PendingInstallment = {
   due_date: string;
   status: InstallmentStatus;
   installment_number: number;
+  /** The cuota's template is a special one (can be chosen on the payment form). */
+  is_special: boolean;
 };
 
 export type HouseCredit = {

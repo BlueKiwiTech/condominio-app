@@ -49,6 +49,7 @@
       "paidAmountPositive": "The amount paid must be greater than 0."
     },
     "payments": {
+      "invalidSelection": "The selection of special cuotas is not valid.",
       "invalidDate": "Invalid date.",
       "houseRequired": "Select a house.",
       "installmentsRequired": "Select at least one cuota.",
@@ -614,6 +615,11 @@
       "noHousesRegistered": "No houses registered.",
       "noPendingInstallments": "This house has no pending cuotas. What you register will be saved as wallet credit.",
       "existingCredit": "This house has a credit balance of {amount} {currency}, which will be applied automatically to this payment.",
+      "specialPicker": {
+        "heading": "Pay towards special cuotas (optional)",
+        "hint": "If you tick any, the payment applies only to the ticked ones, oldest first, without the 30-day window. Whatever is left becomes saldo a favor. With nothing ticked, the payment is spread as usual.",
+        "selectedNotice": "The payment will apply only to the ticked cuotas."
+      },
       "currencyFreeHint": "The payment's currency doesn't have to match the selected cuotas' currency — it's converted automatically using the current exchange rate.",
       "usdReference": "≈ ${amount} ({source} reference)",
       "immediateNotice": "This payment is registered immediately.",

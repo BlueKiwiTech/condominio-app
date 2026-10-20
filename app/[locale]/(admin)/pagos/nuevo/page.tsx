@@ -13,7 +13,7 @@ export default async function NuevoPagoPage() {
     supabase.from('condo_houses').select('id, house_number, house_name, owner_name').order('house_number'),
     supabase
       .from('condo_installments')
-      .select('id, house_id, name, amount, amount_paid, currency, due_date, status, installment_number')
+      .select('id, house_id, name, amount, amount_paid, currency, due_date, status, installment_number, condo_installment_templates(installment_type)')
       .in('status', ['pending', 'partial'])
       .is('deleted_at', null)
       // Every pending/partial cuota, past AND future — a payment here
@@ -33,12 +33,25 @@ export default async function NuevoPagoPage() {
     getLatestExchangeRates(),
   ]);
 
+  // The template type only tells the form which cuotas can be picked (special
+  // ones); registerPayment re-validates the selection on the server.
+  const pendingInstallments: PendingInstallment[] = (
+    (installments as unknown as Array<
+      Omit<PendingInstallment, 'is_special'> & {
+        condo_installment_templates: { installment_type: string } | { installment_type: string }[] | null;
+      }
+    > | null) ?? []
+  ).map(({ condo_installment_templates, ...rest }) => {
+    const template = Array.isArray(condo_installment_templates) ? condo_installment_templates[0] : condo_installment_templates;
+    return { ...rest, is_special: template?.installment_type === 'special' };
+  });
+
   return (
     <div className="flex w-full flex-col gap-6 p-4 md:p-8">
       <h1 className="text-2xl font-bold">{t('heading')}</h1>
       <PaymentFormClient
         houses={(houses as HouseOption[] | null) ?? []}
-        pendingInstallments={(installments as PendingInstallment[] | null) ?? []}
+        pendingInstallments={pendingInstallments}
         houseCredits={(credits as HouseCredit[] | null) ?? []}
         gracePeriodDays={gracePeriodDays}
         exchangeRates={exchangeRates}

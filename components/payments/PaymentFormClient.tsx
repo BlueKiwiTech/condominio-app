@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DateInput } from '@/components/ui/date-input';
 import { MoneyInput } from '@/components/ui/money-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -53,6 +54,9 @@ export function PaymentFormClient({
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
+  // Special cuotas the admin picked on purpose (change abono-a-cuotas-especiales).
+  // Empty = the normal flow: every pending cuota, 30-day window.
+  const [selectedSpecialIds, setSelectedSpecialIds] = useState<string[]>([]);
 
   // Rates as of the selected "Fecha de abono", not today's -- both the USD
   // reference hint and the allocation preview below must match what
@@ -135,10 +139,19 @@ export function PaymentFormClient({
   // anything further stays pending here and falls to saldo a favor,
   // converted later at the rate in effect the day it's actually used
   // (2026-09-29 business rule from Josi; applies to Bs, USD, and USDT alike).
+  // With special cuotas chosen, the payment applies to exactly those and skips
+  // the window (the server does the same with explicit_installments).
+  const specialInstallments = useMemo(() => houseInstallments.filter((i) => i.is_special), [houseInstallments]);
+  const hasSelection = selectedSpecialIds.length > 0;
   const eligibleInstallments = useMemo(
-    () => filterEligibleForConversionWindow(houseInstallments, paymentDate),
-    [houseInstallments, paymentDate],
+    () =>
+      hasSelection
+        ? houseInstallments.filter((i) => selectedSpecialIds.includes(i.id))
+        : filterEligibleForConversionWindow(houseInstallments, paymentDate),
+    [houseInstallments, paymentDate, hasSelection, selectedSpecialIds],
   );
+  const toggleSpecial = (id: string, checked: boolean) =>
+    setSelectedSpecialIds((prev) => (checked ? [...prev, id] : prev.filter((x) => x !== id)));
 
   const deferredByWindow = useMemo(
     () => houseInstallments.filter((i) => !eligibleInstallments.some((e) => e.id === i.id)),
@@ -203,6 +216,7 @@ export function PaymentFormClient({
   // currency as a starting point, but is freely changeable.
   const handleHouseSelect = (id: string) => {
     setHouseId(id);
+    setSelectedSpecialIds([]);
     const nextInstallments = sortOldestFirst(pendingInstallments.filter((i) => i.house_id === id));
     const nextCurrency = nextInstallments[0]?.currency ?? null;
     setCurrency(nextCurrency);
@@ -229,6 +243,7 @@ export function PaymentFormClient({
         {
           house_id: houseId,
           installment_ids: houseInstallments.map((i) => i.id),
+          selected_special_ids: selectedSpecialIds,
           currency,
           amount_received: amountReceived,
           payment_date: toDateOnly(paymentDate),
@@ -328,6 +343,34 @@ export function PaymentFormClient({
           <Alert>
             <AlertDescription>{t('noPendingInstallments')}</AlertDescription>
           </Alert>
+        )}
+
+        {houseId && specialInstallments.length > 0 && (
+          <Card className="p-5" data-testid="special-installments">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <h2 className="text-base font-semibold">{t('specialPicker.heading')}</h2>
+                <p className="text-xs text-muted-foreground">{t('specialPicker.hint')}</p>
+              </div>
+              {specialInstallments.map((inst) => (
+                <label key={inst.id} className="flex cursor-pointer items-center gap-3">
+                  <Checkbox
+                    checked={selectedSpecialIds.includes(inst.id)}
+                    onCheckedChange={(checked) => toggleSpecial(inst.id, checked === true)}
+                    data-testid={`special-${inst.id}`}
+                  />
+                  <span className="flex flex-1 flex-wrap items-center justify-between gap-2 text-sm">
+                    <span>
+                      {inst.name}
+                      <span className="text-muted-foreground"> · {formatShortDate(parseISO(inst.due_date), locale)}</span>
+                    </span>
+                    <span className="tabular-nums">{formatAmount(balanceDue(inst), inst.currency)}</span>
+                  </span>
+                </label>
+              ))}
+              {hasSelection && <p className="text-xs text-muted-foreground">{t('specialPicker.selectedNotice')}</p>}
+            </div>
+          </Card>
         )}
 
         {houseId && (
