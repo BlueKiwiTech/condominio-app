@@ -11,7 +11,8 @@
       "tooManyRequests": "Too many attempts. Wait a moment and try again.",
       "generic": "Something went wrong. Please try again; if it keeps happening, contact the administrator."
     },
-    "moneyInputInvalid": "Type numbers only, with a comma for decimals (e.g. 1.234,56). Negative signs are not allowed."
+    "moneyInputInvalid": "Type numbers only, with a comma for decimals (e.g. 1.234,56). Negative signs are not allowed.",
+    "moneyInputReads": "Will be read as {amount}."
   },
   "validation": {
     "auth": {

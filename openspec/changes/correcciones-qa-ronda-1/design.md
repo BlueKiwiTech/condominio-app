@@ -17,7 +17,7 @@ Hallazgos del reporte `qa/reports/2026-10-20-agente.md`. Causas encontradas leye
 
 ## Decisions
 
-**1. Un abono es una transacción, serializada por casa.** `condo_apply_payment_batch` (misma función, nueva firma) toma `pg_advisory_xact_lock` sobre la casa, bloquea las cuotas a actualizar y la fila del saldo a favor, y comprueba que sigan **exactamente** como las leyó la app (`expected_amount_paid`, `expected_status`, `expected_credit`). Si no, devuelve `conflict` sin escribir; si sí, inserta el lote, registra `payment_in`, actualiza las cuotas y fija el crédito, todo junto. La app reevalúa con el estado nuevo y reintenta hasta 4 veces con una pausa corta; en una selección automática descarta las cuotas que otro pago ya cubrió, en una elegida a propósito (cuotas especiales) falla con "ya pagada" en vez de pagar otra cosa. El número de recibo se reserva una sola vez por abono. Alternativas descartadas: reescribir toda la asignación en SQL (demasiado código duplicado de `allocateFunds`); un `select … for update` desde PostgREST (no hay transacciones entre llamadas). Esto también elimina el hueco "lote escrito sin cuotas actualizadas". `creditSweep` (cron y generación de cuotas) no toma el candado de la casa: una colisión con un abono se detecta igual por la comprobación del estado esperado, salvo la creación simultánea de una fila de crédito inexistente (límite documentado).
+**1. Un abono es una transacción, serializada por casa.** `condo_apply_payment_batch` (misma función, nueva firma) toma `pg_advisory_xact_lock` sobre la casa, bloquea las cuotas a actualizar y la fila del saldo a favor, y comprueba que sigan **exactamente** como las leyó la app (`expected_amount_paid`, `expected_status`, `expected_credit`). Si no, devuelve `conflict` sin escribir; si sí, inserta el lote, registra `payment_in`, actualiza las cuotas y fija el crédito, todo junto. La app reevalúa con el estado nuevo y reintenta hasta 4 veces con una pausa corta; en una selección automática descarta las cuotas que otro pago ya cubrió, en una elegida a propósito (cuotas especiales) falla con "ya pagada" en vez de pagar otra cosa. El número de recibo se reserva una sola vez por abono. Alternativas descartadas: reescribir toda la asignación en SQL (demasiado código duplicado de `allocateFunds`); un `select … for update` desde PostgREST (no hay transacciones entre llamadas). Esto también elimina el hueco "lote escrito sin cuotas actualizadas". `creditSweep` (cron y generación de cuotas) NO usa el candado ni la comprobación: sigue escribiendo cuotas y crédito en llamadas separadas, así que una colisión con un abono sigue siendo posible (límite previo, documentado; la revisión lo señaló y moverlo a SQL queda como mejora posterior). Cada envío es un pago: no hay clave de idempotencia, así que un envío duplicado deliberado (no el doble clic, que el botón impide) es un segundo pago, y si otro abono cubrió toda la selección automática, el reintento lo registra como saldo a favor porque el dinero sí se recibió.
 
 **2. Un solo parser de montos, estricto.** `lib/money/parseMoney.ts` lee `1.234,56` (punto = miles, coma = decimal) y también `1234.5` y `10.25` (un punto seguido de 1 o 2 dígitos es decimal; un punto seguido de exactamente 3 dígitos y nada más es miles, como imprime la app). Todo lo ambiguo o extraño devuelve error (letras, signos, exponente, más de una coma, grupos que no son de 3 dígitos, 3+ decimales tras un punto). `MoneyInput` conserva lo escrito, muestra el mensaje y entrega `null` mientras sea inválido, en vez de "arreglarlo". Los campos `type="number"` nativos (cuotas, diálogo de gastos) se quedan con su validación del navegador y los esquemas del servidor.
 
@@ -32,6 +32,14 @@ Hallazgos del reporte `qa/reports/2026-10-20-agente.md`. Causas encontradas leye
 **7. Rechazo con motivo.** El motivo (3 a 500 caracteres) se exige en el servidor y el botón se deshabilita en el cliente; es la regla de negocio del 2026-09-29 (el vecino ve la explicación en Mi Cartera). Confirmar o rechazar un reporte ya procesado responde "ya fue procesado".
 
 **8. Menú.** Sección nueva "Comunidad" entre Gastos y Reportes con "Saldo de la comunidad".
+
+**9. Un reporte se reserva antes de aplicarse.** `confirmPaymentReport` reclama el reporte con el mismo candado corto (`release_claimed_at`, 10 minutos) que usa la liberación de pagos en espera, antes de mover dinero: dos pestañas que confirman a la vez ya no aplican dos veces; la segunda responde "ya fue procesado". Si falla antes de aplicar, suelta el candado; si el pago ya se aplicó y falla el marcado final, lo conserva para no pagar de nuevo.
+
+**10. Monto cero con saldo a favor.** Un abono de 0 es válido cuando el saldo a favor de la casa paga por completo al menos una cuota (el código y el spec ya lo anunciaban, pero el servidor lo rechazaba siempre); sin ninguna cuota pagada sigue siendo `insufficientAmount`. No suma a la comunidad (ese dinero se contó al recibirse).
+
+**11. La función verifica también el precio de la cuota.** Además de `amount_paid` y `status`, comprueba `amount`: si un admin cambió el precio entre la lectura y la escritura, es un conflicto y se reevalúa, para no marcar `paid` con un monto calculado sobre el precio viejo.
+
+**12. El monto se lee antes de enviarse.** `MoneyInput` muestra "Se leerá como …" mientras se escribe un monto con separadores, porque `1.500` es 1500 en el formato de la app y una persona con teclado anglosajón podría esperar 1,5.
 
 **Impacto declarado (reglas del proyecto):**
 - *Monedas:* nada se suma ni convierte entre monedas; el resumen del pago ahora etiqueta cada cuota en SU moneda.
@@ -50,7 +58,7 @@ Hallazgos del reporte `qa/reports/2026-10-20-agente.md`. Causas encontradas leye
 ## Migration Plan
 
 1. Migración `20261022000000_payment_batch_atomic.sql` (la aplica el usuario antes de desplegar): elimina `condo_apply_payment_batch` con la firma anterior y crea la nueva. Sin cambios de datos.
-2. Desplegar el código: el código nuevo llama a la firma nueva, así que la migración va antes.
+2. Desplegar el código: el código nuevo llama a la firma nueva (con `expected_amount`), así que la migración va antes.
 3. Rollback: revertir el código y la migración anterior; no hay datos que deshacer.
 
 ## Open Questions

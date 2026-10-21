@@ -28,6 +28,40 @@
 - **WHEN** el motivo está vacío o tiene menos de 3 caracteres
 - **THEN** la acción lo rechaza, el botón de confirmar el rechazo está deshabilitado y el reporte no cambia
 
+### Requirement: Wallet-only deposit
+Un pago SHALL poder registrarse sin cuotas elegibles (casa sin deuda, sin cuotas seleccionadas o fuera de la ventana de 30 días): se inserta UNA fila `condo_payments` con `installment_id = NULL` por el monto recibido y el monto se acredita al saldo. Un pago con `amount_received <= 0` SHALL rechazarse con `insufficientAmount`, salvo que el saldo a favor existente pague por completo al menos una cuota.
+
+#### Scenario: Casa sin cuotas pendientes
+- **WHEN** el admin registra 50 USD para una casa sin cuotas pendientes
+- **THEN** se crea una fila con `installment_id` nulo, recibo y lote nuevos, y el saldo a favor en USD aumenta en 50
+
+#### Scenario: Monto cero sin cuotas
+- **WHEN** `amount_received` es 0 y se llega a la validación de `applyPaymentAllocation`
+- **THEN** la acción devuelve `insufficientAmount`
+
+#### Scenario: Monto cero cubierto con saldo a favor
+- **WHEN** `amount_received` es 0 y el saldo a favor de la casa en esa moneda paga por completo la cuota más antigua
+- **THEN** el pago se registra, la cuota queda `paid`, el saldo a favor baja y la comunidad no suma nada
+
+### Requirement: Admin confirms a payment report
+`confirmPaymentReport` SHALL requerir admin y un reporte `pending`, reservarlo con un candado corto antes de aplicar el dinero, ejecutar la misma asignación que `registerPayment` con los datos del reporte (sin `installment_ids`, todas las cuotas no `paid` ni borradas de la casa), marcarlo `confirmed` con su lote y recibo y escribir el audit `payment_report.confirm`. Si falta la tasa BCV, SHALL ponerlo `on_hold` sin registrar pago ni error.
+
+#### Scenario: Reporte sin cuotas etiquetadas
+- **WHEN** el admin confirma un reporte con `installment_ids` vacío
+- **THEN** la asignación corre contra todas las cuotas pendientes de la casa dentro de la ventana de 30 días y el reporte queda enlazado al recibo
+
+#### Scenario: Reporte ya resuelto
+- **WHEN** el estado del reporte no es `pending`
+- **THEN** la acción responde que el reporte ya fue procesado y no registra pago
+
+#### Scenario: Tasa BCV ausente al confirmar
+- **WHEN** el admin confirma un reporte `pending` y la tasa BCV a su `payment_date` no existe o no es fresca
+- **THEN** el reporte pasa a `on_hold`, no se registra ningún pago y la acción responde éxito indicando que quedó en espera
+
+#### Scenario: Doble confirmación simultánea
+- **WHEN** dos pestañas confirman a la vez el mismo reporte `pending`
+- **THEN** solo una aplica el pago y la otra responde que el reporte ya fue procesado, sin un segundo recibo
+
 ## ADDED Requirements
 
 ### Requirement: Concurrent payments to the same house
@@ -45,8 +79,12 @@ Los abonos a la misma casa SHALL serializarse: la operación atómica SHALL comp
 - **WHEN** el admin marcó una cuota especial y otro abono la pagó primero
 - **THEN** el segundo se rechaza como cuota ya pagada y no se aplica a otra cuota
 
+#### Scenario: Selección automática ya cubierta
+- **WHEN** otro abono pagó todas las cuotas de una selección automática antes de que este se aplique
+- **THEN** este abono se registra como saldo a favor, porque es dinero realmente recibido (cada envío es un pago; no hay clave de idempotencia)
+
 ### Requirement: Payment dates cannot be in the future
-La fecha de un abono, registrado por el admin o reportado por el residente, SHALL NOT ser posterior al día de hoy en Caracas (`America/Caracas`). El servidor SHALL rechazarla con un mensaje y el selector del formulario del admin SHALL no permitir días futuros.
+La fecha de un abono, registrado por el admin o reportado por el residente, SHALL NOT ser posterior al día de hoy en Caracas (`America/Caracas`). El servidor SHALL rechazarla con un mensaje (es la barrera) y el selector del formulario del admin SHALL limitar la elección a hoy según el reloj del navegador.
 
 #### Scenario: Fecha futura
 - **WHEN** se envía un abono con fecha de mañana

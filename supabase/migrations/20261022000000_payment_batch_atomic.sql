@@ -14,7 +14,9 @@
 -- This also removes the old "payment rows written but cuotas/credit not updated" gap.
 --
 -- Returns {"ok": true}, or {"ok": false, "reason": "house_not_found" | "invalid_rows" | "conflict"}.
--- p_installment_updates: [{id, expected_amount_paid, expected_status, new_amount_paid, new_status}]
+-- p_installment_updates: [{id, expected_amount, expected_amount_paid, expected_status, new_amount_paid, new_status}]
+-- (expected_amount is checked too: a price edited between the read and the write is a conflict,
+-- so a cuota is never marked paid against an old amount)
 -- Re-runnable (`drop ... if exists`, `create or replace`); the previous function has a
 -- different signature, so it is dropped explicitly. Nothing is migrated: no data changes.
 drop function if exists condo_apply_payment_batch(uuid, uuid, jsonb, text, numeric, date, uuid);
@@ -83,12 +85,13 @@ begin
   if exists (
     select 1
     from jsonb_to_recordset(p_installment_updates) as u(
-      id uuid, expected_amount_paid numeric, expected_status text, new_amount_paid numeric, new_status text
+      id uuid, expected_amount numeric, expected_amount_paid numeric, expected_status text, new_amount_paid numeric, new_status text
     )
     where not exists (
       select 1 from public.condo_installments i
       where i.id = u.id and i.house_id = p_house_id and i.deleted_at is null
         and i.status = u.expected_status and i.amount_paid = u.expected_amount_paid
+        and i.amount = u.expected_amount
     )
   ) then
     return jsonb_build_object('ok', false, 'reason', 'conflict');
@@ -124,7 +127,7 @@ begin
   update public.condo_installments i
   set amount_paid = u.new_amount_paid, status = u.new_status
   from jsonb_to_recordset(p_installment_updates) as u(
-    id uuid, expected_amount_paid numeric, expected_status text, new_amount_paid numeric, new_status text
+    id uuid, expected_amount numeric, expected_amount_paid numeric, expected_status text, new_amount_paid numeric, new_status text
   )
   where i.id = u.id;
 

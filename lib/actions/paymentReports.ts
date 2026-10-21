@@ -119,6 +119,26 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
   if (!report) return { error: tc('invalidData') };
   if (report.status !== 'pending') return { error: tp('errors.reportAlreadyProcessed') };
 
+  // Reserve the report BEFORE applying the money. Two tabs (or a double click) confirming the
+  // same report both pass the status check above; without this claim both would apply the
+  // payment and the second would be recorded as an extra deposit. The claim uses the same
+  // short lease (release_claimed_at) as the held-payment release: only one caller gets the
+  // row, and a crashed one lets go after 10 minutes.
+  const leaseExpired = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { data: claimed, error: claimError } = await supabase
+    .from('condo_payment_reports')
+    .update({ release_claimed_at: new Date().toISOString() })
+    .eq('id', reportId)
+    .eq('status', 'pending')
+    .or(`release_claimed_at.is.null,release_claimed_at.lt.${leaseExpired}`)
+    .select('id');
+  if (claimError) return { error: await friendlyError(claimError) };
+  if (!claimed || claimed.length === 0) return { error: tp('errors.reportAlreadyProcessed') };
+  const failAndRelease = async (message: string): Promise<ActionResult> => {
+    await supabase.from('condo_payment_reports').update({ release_claimed_at: null }).eq('id', reportId).eq('status', 'pending');
+    return { error: message };
+  };
+
   let installmentIds = report.installment_ids;
   if (installmentIds.length === 0) {
     const { data: pendingRows, error: pendingFetchError } = await supabase
@@ -127,7 +147,7 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
       .eq('house_id', report.house_id)
       .neq('status', 'paid')
       .is('deleted_at', null);
-    if (pendingFetchError) return { error: await friendlyError(pendingFetchError) };
+    if (pendingFetchError) return failAndRelease(await friendlyError(pendingFetchError));
     installmentIds = (pendingRows ?? []).map((r) => r.id as string);
   }
 
@@ -152,7 +172,7 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
       concurrentPayment: tp('errors.concurrentPayment'),
     },
   );
-  if ('error' in result) return result;
+  if ('error' in result) return failAndRelease(result.error);
 
   if ('onHold' in result) {
     // The BCV rate for this report's date isn't available (anymore): nothing was
@@ -160,10 +180,10 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
     // turned back into a normal 'pending' one when the rate arrives.
     const { error: holdError } = await supabase
       .from('condo_payment_reports')
-      .update({ status: 'on_hold' })
+      .update({ status: 'on_hold', release_claimed_at: null })
       .eq('id', reportId)
       .eq('status', 'pending');
-    if (holdError) return { error: await friendlyError(holdError) };
+    if (holdError) return failAndRelease(await friendlyError(holdError));
     revalidatePath('/pagos-reportados');
     return { success: true, onHold: true };
   }
@@ -174,8 +194,11 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
       status: 'confirmed',
       resulting_payment_batch_id: result.batchId,
       resulting_receipt_number: result.receiptNumber,
+      release_claimed_at: null,
     })
     .eq('id', reportId);
+  // The payment above is already applied, so the claim is kept if this write fails: the report
+  // stays locked (not confirmable twice) until the lease expires, instead of paying again.
   if (updateError) return { error: await friendlyError(updateError) };
 
   await logAudit(supabase, {

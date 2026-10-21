@@ -11,7 +11,8 @@
       "tooManyRequests": "Demasiados intentos. Espera un momento e intenta de nuevo.",
       "generic": "Ocurrió un error inesperado. Intenta de nuevo; si persiste, contacta al administrador."
     },
-    "moneyInputInvalid": "Escribe solo números, con coma para los decimales (ej. 1.234,56). No uses signos negativos."
+    "moneyInputInvalid": "Escribe solo números, con coma para los decimales (ej. 1.234,56). No uses signos negativos.",
+    "moneyInputReads": "Se leerá como {amount}."
   },
   "validation": {
     "auth": {

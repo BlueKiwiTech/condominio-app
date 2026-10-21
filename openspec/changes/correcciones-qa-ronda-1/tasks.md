@@ -26,15 +26,18 @@
 - [x] 4.2 Sustituir las comprobaciones "tiene pagos" por un helper que filtra por relación (`condo_installments!inner(template_id)`) con `limit(1)` en `lib/actions/cuotas.ts` y las consultas `HEAD` con conteo por selects normales (cuotas y gastos). Verificar: eliminar una cuota con pagos muestra "ya tiene pagos" y una de 300 cuotas sin pagos se elimina.
 - [x] 4.3 Mover "Saldo de la comunidad" a una sección nueva "Comunidad" del menú del admin (es y en). Verificar: aparece en "Comunidad" y no en "Gastos".
 - [x] 4.4 `scripts/e2e/setup-local-supabase.sh` genera `RESIDENT_SESSION_SECRET`. Verificar: el login de residente funciona en una máquina sin `.env`.
+- [x] 4.5 Tras la revisión: reservar el reporte antes de aplicarlo en `confirmPaymentReport` (candado corto), comprobar también `expected_amount` en la función SQL, aceptar un abono de 0 pagado con saldo a favor, mostrar "Se leerá como …" en `MoneyInput` y hacer exacta la comprobación de 2 decimales. Verificar: dos confirmaciones simultáneas aplican una sola vez; cambiar el precio de la cuota entre lectura y escritura da `conflict`; un abono de 0 con saldo a favor suficiente paga la cuota.
 
 ## 5. Cierre y verificación
 
+
+
 - [x] 5.1 Con el Supabase local y la migración aplicada, repetir de punta a punta los hallazgos corregidos (concurrencia, montos, fechas, rechazo, eliminación, menú) y los escenarios de `qa/`. Verificar: todo pasa y el invariante del saldo de la comunidad cuadra.
 - [x] 5.2 Ejecutar `npm run build` y `npx eslint .`. Verificar: ambos terminan sin errores nuevos respecto de los 4 errores previos de `eslint` en archivos no tocados.
-- [ ] 5.3 Ejecutar el agente `spec-auditor` sobre `payments`, `dual-auth`, `saldo-comunidad`, `cuota-engine`, `houses-residents`, `gastos`, `reporting-morosos` y `entrada-de-montos` y resolver las discrepancias que reporte. Verificar: informe sin discrepancias nuevas.
+- [x] 5.3 Ejecutar el agente `spec-auditor` sobre `payments`, `dual-auth`, `saldo-comunidad`, `cuota-engine`, `houses-residents`, `gastos`, `reporting-morosos` y `entrada-de-montos` y resolver las discrepancias que reporte. Verificar: informe sin discrepancias nuevas.
 
 ## Workflow follow-up
 
 - La migración debe aplicarse antes de desplegar; el usuario la aplica manualmente en Supabase.
 - Revisar el diff con el agente `adversarial-reviewer` antes de fusionar.
-- Al archivar, actualizar Known Limitations: en `payments` quitar la de "Sin transacción: los fallos tras insertar `condo_payments`…" y la de `applyPaymentAllocation` no transaccional, y agregar que `creditSweep` no toma el candado de la casa; en `saldo-comunidad` quitar "si fallan los pasos posteriores al lote de pagos el dinero ya sumó".
+- Al archivar, actualizar Known Limitations: en `payments` quitar la de "Sin transacción: los fallos tras insertar `condo_payments`…" y la de `applyPaymentAllocation` no transaccional, y agregar: `creditSweep` no usa el candado ni la comprobación de estado, un envío duplicado deliberado es un segundo pago (sin clave de idempotencia) y un abono que agota los reintentos deja un hueco en la numeración de recibos; en `saldo-comunidad` quitar "si fallan los pasos posteriores al lote de pagos el dinero ya sumó".

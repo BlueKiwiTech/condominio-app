@@ -55,7 +55,7 @@ export type ApplyAllocationErrors = {
   concurrentPayment: string;
 };
 
-type EvaluatedInstallment = { id: string; currency: string; amount_paid: number; status: string };
+type EvaluatedInstallment = { id: string; currency: string; amount: number; amount_paid: number; status: string };
 
 /**
  * What evaluatePaymentAllocation found out, without having written anything:
@@ -140,8 +140,10 @@ export async function evaluatePaymentAllocation(
   // (2026-10-06 user decision): the whole amount is banked as saldo a favor
   // and gets applied automatically once enough accumulates. Same goes for a
   // house with nothing currently selected/due or nothing inside the 30-day
-  // window. Only literally nothing received is an error.
-  if (params.amount_received <= 0) {
+  // window. Only literally nothing to apply is an error: an amount of 0 is valid
+  // when the house's existing saldo a favor alone fully pays at least one cuota
+  // (it nets in above), so it is refused only when no cuota gets paid.
+  if (params.amount_received <= 0 && allocationResult.allocations.length === 0) {
     return { kind: 'error', error: errors.insufficientAmount };
   }
 
@@ -253,6 +255,7 @@ export async function applyPaymentAllocation(
       const before = installments.find((i) => i.id === a.installment_id);
       return {
         id: a.installment_id,
+        expected_amount: before?.amount ?? 0,
         expected_amount_paid: before?.amount_paid ?? 0,
         expected_status: before?.status ?? 'pending',
         new_amount_paid: a.newAmountPaid,

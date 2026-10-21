@@ -81,6 +81,13 @@ export function MoneyInput({
           {t("moneyInputInvalid")}
         </p>
       )}
+      {/* "1.500" is read as one thousand five hundred (the app's own format): show the reading
+          while typing so a keyboard that uses "." for decimals can't turn 1,5 into 1500 unseen. */}
+      {isFocused && !parsed.error && parsed.value !== null && /[.,]/.test(text) && (
+        <p className="text-xs text-muted-foreground" data-testid="money-input-reads">
+          {t("moneyInputReads", { amount: formatMoney(parsed.value) })}
+        </p>
+      )}
     </>
   )
 }
