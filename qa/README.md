@@ -10,8 +10,9 @@ Todo corre **en local**: Supabase en Docker + la app en `http://localhost:3000`.
 |---|---|
 | `AGENT.md` | El prompt maestro: reglas, cuentas, datos sembrados y cómo trabajar |
 | `scenarios/` | Escenarios con pasos, resultado esperado y "Intenta romperlo" |
-| `REPORT_TEMPLATE.html` | Plantilla del reporte en HTML (un archivo autocontenido: resumen, resultado por escenario, hallazgos con comentarios y verificación del saldo) |
-| `REPORT_TEMPLATE.md` | Versión en texto plano de la misma plantilla, por si el agente no puede producir HTML |
+| `REPORT_TEMPLATE.md` | Plantilla del reporte en Markdown (veredicto, resultado por escenario, hallazgos con comentarios del agente y verificación del saldo) |
+| `examples/reporte-ejemplo.md` | Un reporte de ejemplo completo con el formato esperado |
+| `report-to-html.mjs` | Convierte el reporte `.md` en un HTML autocontenido (sin dependencias) |
 | `reports/` | Reportes guardados (el contenido no se versiona) |
 | `start.sh` / `seed.mjs` | Reinicia el Supabase local, siembra datos y arranca la app |
 
@@ -39,7 +40,13 @@ Un agente en la nube **no puede abrir tu `localhost`**: el navegador del agente 
 
 ## Paso 3: revisar el reporte
 
-Al terminar, el agente entrega un **HTML** (`qa/reports/AAAA-MM-DD-agente.html` o un bloque de código que guardas como `.html`): ábrelo con doble clic. Trae el veredicto, el resultado de cada escenario y, por cada fallo, pasos, esperado, real y **comentarios del agente** (causa probable, impacto y sugerencia).
+Al terminar, el agente entrega un reporte en **Markdown** (`qa/reports/AAAA-MM-DD-agente.md`, o un bloque de código que guardas como `.md`). Conviértelo a HTML (lo puedes correr tú o pedírmelo):
+
+```bash
+node qa/report-to-html.mjs qa/reports/AAAA-MM-DD-agente.md      # genera AAAA-MM-DD-agente.html al lado
+```
+
+Ábrelo con doble clic: trae el veredicto con fichas por severidad, el resultado de cada escenario con insignias y, por cada fallo, pasos, esperado, real y **comentarios del agente** (causa probable, impacto y sugerencia). Las capturas enlazadas como `![texto](captura.png)` se incrustan solas.
 
 1. Reproduce a mano los hallazgos Críticos y Altos antes de darlos por buenos: un agente puede equivocarse o malinterpretar.
 2. Los fallos reales entran al flujo normal del proyecto: se arreglan con un change de OpenSpec si cambian comportamiento (`/opsx:propose`), o con una rama de corrección.
