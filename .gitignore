@@ -45,3 +45,7 @@ graphify-out
 
 # superpowers SDD scratch workspace (ledger, briefs, review packages)
 .superpowers/
+
+# QA agent reports (the folder itself is versioned, the reports are not)
+qa/reports/*
+!qa/reports/.gitkeep
