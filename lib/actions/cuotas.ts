@@ -54,6 +54,26 @@ function dueDateModeFor(input: CreateTemplateInput): DueDateMode {
   return input.is_divided ? { kind: 'special-divided', cadence: input.cadence } : { kind: 'special-single' };
 }
 
+/**
+ * True when any payment exists against any installment of the template. It filters through
+ * the relation (one short condition) instead of listing every installment id in the URL:
+ * a cuota for many houses and months has hundreds of installments, and `.in(ids)` grew past
+ * the URL limit ("URI too long"), so deleting or editing such a cuota failed with a generic
+ * error (QA round 1). A plain select with limit(1), not a HEAD count, which failed without a message.
+ */
+async function templateHasPayments(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  templateId: string,
+): Promise<{ error: string | null; has: boolean }> {
+  const { data, error } = await supabase
+    .from('condo_payments')
+    .select('id, condo_installments!inner(template_id)')
+    .eq('condo_installments.template_id', templateId)
+    .limit(1);
+  if (error) return { error: await friendlyError(error), has: false };
+  return { error: null, has: (data?.length ?? 0) > 0 };
+}
+
 export async function createInstallmentTemplate(input: CreateTemplateInput, locale: string): Promise<ActionResult> {
   const [tv, tc, tq] = await Promise.all([
     getTranslations({ locale, namespace: 'validation.cuotas' }),
@@ -270,21 +290,9 @@ export async function updateInstallmentTemplate(
   // currency and start date are locked. The dialog sends the untouched
   // original values for locked fields, so a mismatch here means a stale/forged
   // submit and is rejected rather than silently ignored.
-  const { data: templateInstallmentRows, error: installmentIdsError } = await supabase
-    .from('condo_installments')
-    .select('id')
-    .eq('template_id', templateId);
-  if (installmentIdsError) return { error: await friendlyError(installmentIdsError) };
-  const templateInstallmentIds = (templateInstallmentRows ?? []).map((r) => r.id as string);
-  let hasPayments = false;
-  if (templateInstallmentIds.length > 0) {
-    const { count, error: paymentsCountError } = await supabase
-      .from('condo_payments')
-      .select('id', { count: 'exact', head: true })
-      .in('installment_id', templateInstallmentIds);
-    if (paymentsCountError) return { error: await friendlyError(paymentsCountError) };
-    hasPayments = !!count && count > 0;
-  }
+  const paymentsCheck = await templateHasPayments(supabase, templateId);
+  if (paymentsCheck.error) return { error: paymentsCheck.error };
+  const hasPayments = paymentsCheck.has;
   if (hasPayments) {
     const changesLockedField =
       data.name !== template.name ||
@@ -416,16 +424,9 @@ async function changeTemplateStartDate(
     .select('id, installment_number, due_date')
     .eq('template_id', template.id);
   if (rowsError) return friendlyError(rowsError);
-  const ids = (rows ?? []).map((r) => r.id as string);
-
-  if (ids.length > 0) {
-    const { count, error: paymentsError } = await supabase
-      .from('condo_payments')
-      .select('id', { count: 'exact', head: true })
-      .in('installment_id', ids);
-    if (paymentsError) return friendlyError(paymentsError);
-    if (count && count > 0) return hasPaymentsMessage;
-  }
+  const paymentsCheck = await templateHasPayments(supabase, template.id);
+  if (paymentsCheck.error) return paymentsCheck.error;
+  if (paymentsCheck.has) return hasPaymentsMessage;
 
   const newStart = parseDateOnly(newStartDate);
   const isOpenEndedRecurring = template.installment_type === 'recurring' && template.number_of_installments === null;
@@ -526,23 +527,9 @@ export async function deleteInstallmentTemplate(templateId: string, locale: stri
   if (authError || !supabase) return { error: authError! };
 
   // CUOT-06: only allowed before any payment exists against it.
-  const { data: installmentRows, error: idsError } = await supabase
-    .from('condo_installments')
-    .select('id')
-    .eq('template_id', templateId);
-  if (idsError) return { error: await friendlyError(idsError) };
-  const ids = (installmentRows ?? []).map((r) => r.id as string);
-
-  if (ids.length > 0) {
-    const { count, error: paymentsError } = await supabase
-      .from('condo_payments')
-      .select('id', { count: 'exact', head: true })
-      .in('installment_id', ids);
-    if (paymentsError) return { error: await friendlyError(paymentsError) };
-    if (count && count > 0) {
-      return { error: tq('errors.hasPayments') };
-    }
-  }
+  const paymentsCheck = await templateHasPayments(supabase, templateId);
+  if (paymentsCheck.error) return { error: paymentsCheck.error };
+  if (paymentsCheck.has) return { error: tq('errors.hasPayments') };
 
   const { error: deleteInstallmentsError } = await supabase
     .from('condo_installments')

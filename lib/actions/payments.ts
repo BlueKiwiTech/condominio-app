@@ -7,6 +7,7 @@ import { friendlyError } from '@/lib/errors';
 import { registerPaymentSchema, type RegisterPaymentInput } from '@/lib/validation/payments';
 import { applyPaymentAllocation } from '@/lib/payments/applyAllocation';
 import { validateSpecialSelection } from '@/lib/payments/specialSelection';
+import { caracasToday } from '@/lib/dates/caracas';
 
 // `onHold`: the BCV rate for the payment's date isn't there yet, so the payment
 // was parked as an 'on_hold' report instead of being rejected (it applies by
@@ -85,6 +86,9 @@ export async function registerPayment(input: RegisterPaymentInput, locale: strin
   const parsed = registerPaymentSchema(tv).safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
   const data = parsed.data;
+  // A payment can't be dated in the future: the money would already count in the
+  // community balance. "Today" is Caracas' calendar day (the server runs in UTC).
+  if (data.payment_date > caracasToday()) return { error: tv('futureDate') };
 
   const { error: authError, supabase, userId } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
@@ -117,6 +121,7 @@ export async function registerPayment(input: RegisterPaymentInput, locale: strin
       alreadyPaid: tp('errors.alreadyPaid'),
       insufficientAmount: tp('errors.insufficientAmount'),
       staleExchangeRate: tp('errors.staleExchangeRate'),
+      concurrentPayment: tp('errors.concurrentPayment'),
     },
   );
   if ('error' in result) return result;

@@ -10,7 +10,8 @@
       "forbidden": "You don't have permission to do this.",
       "tooManyRequests": "Too many attempts. Wait a moment and try again.",
       "generic": "Something went wrong. Please try again; if it keeps happening, contact the administrator."
-    }
+    },
+    "moneyInputInvalid": "Type numbers only, with a comma for decimals (e.g. 1.234,56). Negative signs are not allowed."
   },
   "validation": {
     "auth": {
@@ -24,7 +25,10 @@
       "houseNumberRequired": "House number is required.",
       "invalidEmail": "Invalid email.",
       "residentNameRequired": "Name is required.",
-      "phoneRequired": "Phone is required."
+      "phoneRequired": "Phone is required.",
+      "houseNumberTooLong": "The house number is too long (20 characters max).",
+      "nameTooLong": "The name is too long (100 characters max).",
+      "phoneInvalid": "The phone is not valid: use only digits, spaces, +, - and parentheses."
     },
     "cuotas": {
       "invalidDate": "Invalid date.",
@@ -32,7 +36,11 @@
       "amountPositive": "Amount must be greater than 0.",
       "minInstallments": "There must be at least 1 installment.",
       "maxInstallments": "Number of installments is too high.",
-      "amountsSumMismatch": "The installments' sum doesn't match the total amount."
+      "amountsSumMismatch": "The installments' sum doesn't match the total amount.",
+      "amountTooLarge": "The amount is too large.",
+      "amountDecimals": "The amount allows at most 2 decimals.",
+      "nameTooLong": "The name is too long (120 characters max).",
+      "descriptionTooLong": "The description is too long (500 characters max)."
     },
     "gastos": {
       "invalidDate": "Invalid date.",
@@ -46,7 +54,13 @@
       "duplicateDates": "Installment dates can't repeat.",
       "customRatePositive": "The custom rate must be greater than 0.",
       "customRateRequired": "Enter the custom rate.",
-      "paidAmountPositive": "The amount paid must be greater than 0."
+      "paidAmountPositive": "The amount paid must be greater than 0.",
+      "amountTooLarge": "The amount is too large.",
+      "amountDecimals": "The amount allows at most 2 decimals.",
+      "customRateTooLarge": "The rate is too large.",
+      "nameTooLong": "The name is too long (120 characters max).",
+      "providerTooLong": "The provider is too long (120 characters max).",
+      "notesTooLong": "The notes are too long (500 characters max)."
     },
     "payments": {
       "invalidSelection": "The selection of special cuotas is not valid.",
@@ -55,7 +69,10 @@
       "installmentsRequired": "Select at least one cuota.",
       "amountPositive": "Amount received cannot be negative.",
       "referenceTooLong": "Reference is too long.",
-      "notesTooLong": "Notes are too long."
+      "notesTooLong": "Notes are too long.",
+      "amountTooLarge": "The amount is too large.",
+      "amountDecimals": "The amount allows at most 2 decimals.",
+      "futureDate": "The payment date can't be in the future."
     },
     "residentAuth": {
       "houseRequired": "Select your house.",
@@ -67,14 +84,19 @@
       "referenceTooLong": "The reference is too long.",
       "notesTooLong": "The notes are too long.",
       "invalidFileType": "Must be an image (photo or screenshot).",
-      "fileTooLarge": "The image is too large (max 5 MB)."
+      "fileTooLarge": "The image is too large (max 5 MB).",
+      "amountTooLarge": "The amount is too large.",
+      "amountDecimals": "The amount allows at most 2 decimals.",
+      "futureDate": "The payment date can't be in the future."
     },
     "communityBalance": {
       "amountInvalid": "The amount is not valid.",
       "amountPositive": "The amount must be greater than zero.",
       "amountNonZero": "The amount can't be zero.",
       "noteRequired": "The reason is required.",
-      "noteTooLong": "The reason is too long (300 characters max)."
+      "noteTooLong": "The reason is too long (300 characters max).",
+      "amountTooLarge": "The amount is too large.",
+      "amountDecimals": "The amount allows at most 2 decimals."
     }
   },
   "auth": {
@@ -137,6 +159,7 @@
       "general": "General",
       "collection": "Dues",
       "expenses": "Expenses",
+      "community": "Community",
       "reports": "Reports"
     },
     "items": {
@@ -230,7 +253,7 @@
       "setNow": "Set now",
       "save": "Save",
       "cancel": "Cancel",
-      "invalidValue": "Enter a number greater than 0."
+      "invalidValue": "Enter a number greater than 0 and less than 1,000,000."
     }
   },
   "houses": {
@@ -576,7 +599,9 @@
       "mixedHouses": "All cuotas must belong to the same house.",
       "alreadyPaid": "One of the selected cuotas is already paid.",
       "insufficientAmount": "Enter an amount received greater than 0.",
-      "staleExchangeRate": "The exchange rate needed to convert the wallet balance isn't up to date (or doesn't exist). Refresh the rate before confirming this report."
+      "staleExchangeRate": "The exchange rate needed to convert the wallet balance isn't up to date (or doesn't exist). Refresh the rate before confirming this report.",
+      "reportAlreadyProcessed": "This report was already processed: reload the list.",
+      "concurrentPayment": "Another payment to this house was being processed at the same time. Nothing was recorded: check the receipts and try again."
     },
     "table": {
       "date": "Date",
@@ -694,7 +719,10 @@
     "confirmReject": "Confirm rejection",
     "cancel": "Cancel",
     "rejectionReason": "Rejection reason",
-    "rejectionReasonPlaceholder": "Explain why this payment is being rejected (the resident will see this in Mi Cartera)"
+    "rejectionReasonPlaceholder": "Explain why this payment is being rejected (the resident will see this in Mi Cartera)",
+    "rejectReasonRequired": "The rejection reason is required (3 characters minimum): the resident will see it in Mi Cartera.",
+    "rejectReasonTooLong": "The reason is too long (500 characters max).",
+    "alreadyProcessed": "This report was already processed: reload the list."
   },
   "residentAuth": {
     "heading": "Log in with your house and PIN",

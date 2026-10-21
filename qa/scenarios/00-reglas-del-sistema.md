@@ -4,7 +4,8 @@ Estas reglas valen en **todos** los escenarios. Cualquier violación es un halla
 
 ## Dinero y monedas
 - Las monedas son **USD** (`$ Efectivo`), **Bs** (`Bs.`) y **USDT** (`Binance`). **Nunca se suman entre sí**: cada pantalla muestra un importe por moneda. Las únicas conversiones son: un abono en otra moneda a una cuota (con la tasa BCV del día del abono) y el pago de un gasto con Bs en alguno de los dos lados (con la tasa que elige el admin).
-- Los montos usan **punto para miles y coma para decimales** (`1.234,56`) y siempre 2 decimales.
+- Los montos usan **punto para miles y coma para decimales** (`1.234,56`) y siempre 2 decimales. Al escribir un monto, el campo lo lee así (`1.000,50` es mil con cincuenta; `1234.5` también vale) y **rechaza con un mensaje** lo que no puede leer sin ambigüedad (`-5`, `1e9`, `1,000.50`, letras): nunca debe cambiar el monto en silencio. Un monto admite como máximo 2 decimales y tiene un tope; fuera de eso se rechaza con un mensaje claro.
+- Una **fecha de calendario** se ve como el mismo día en todas las pantallas. Un abono no puede tener fecha futura.
 
 ## Abonos (pagos de cuotas)
 - Un abono se reparte entre las cuotas **de la más antigua a la más nueva**, y una cuota solo se paga **completa o nada** (no hay pagos parciales de una cuota). Lo que sobra queda como **saldo a favor** de la casa, en la moneda del abono.

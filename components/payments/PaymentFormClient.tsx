@@ -218,7 +218,8 @@ export function PaymentFormClient({
     setHouseId(id);
     setSelectedSpecialIds([]);
     const nextInstallments = sortOldestFirst(pendingInstallments.filter((i) => i.house_id === id));
-    const nextCurrency = nextInstallments[0]?.currency ?? null;
+    // A house with nothing pending (a pure deposit) starts on USD instead of an empty currency.
+    const nextCurrency = nextInstallments[0]?.currency ?? 'USD';
     setCurrency(nextCurrency);
     setAmountReceived(NaN);
     setOcrStepDone(false);
@@ -232,8 +233,15 @@ export function PaymentFormClient({
   // there's nothing for existing credit alone to "pay off" -- the admin has
   // to actually be depositing something for a wallet-only abono to mean
   // anything, so amountReceived itself has to be > 0 in that case.
+  // With cuotas pending, an amount of 0 only makes sense when the existing credit
+  // alone fully pays at least one of them; otherwise the server would answer "enter
+  // an amount greater than 0" after the click (QA round 1), so it is blocked here.
+  const hasAllocation = (preview?.allocations.length ?? 0) > 0;
   const canSubmit =
-    houseId && currency && amountReceived >= 0 && (houseInstallments.length > 0 ? fundsAvailable > 0 : amountReceived > 0);
+    houseId &&
+    currency &&
+    amountReceived >= 0 &&
+    (houseInstallments.length > 0 ? fundsAvailable > 0 && (amountReceived > 0 || hasAllocation) : amountReceived > 0);
 
   const onSubmit = () => {
     setServerError(null);
@@ -425,7 +433,7 @@ export function PaymentFormClient({
                   </Button>
                 </div>
 
-                <DateInput id="payment_date" label={t('fields.paymentDate')} value={paymentDate} onChange={(date) => setPaymentDate(date)} />
+                <DateInput id="payment_date" label={t('fields.paymentDate')} value={paymentDate} maxDate={new Date()} onChange={(date) => setPaymentDate(date)} />
 
                 <div className="flex flex-wrap gap-4">
                   <div className="grid min-w-[180px] flex-1 gap-2">
@@ -495,7 +503,8 @@ export function PaymentFormClient({
                   <span className="text-sm">{inst.name}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm tabular-nums">
-                      {formatMoney(a.amountApplied)} {currency ? currencyLabel(currency) : ''}
+                      {/* amountApplied is in the CUOTA's own currency, not the payment's */}
+                      {formatMoney(a.amountApplied)} {currencyLabel(inst.currency)}
                     </span>
                     <Badge variant="outline" className={a.newStatus === 'paid' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}>
                       {t(`status.${a.newStatus}`)}
@@ -528,7 +537,7 @@ export function PaymentFormClient({
                 </AlertDescription>
               </Alert>
             )}
-            {preview.leftoverCents === 0 && preview.allocations.every((a) => a.newStatus === 'paid') && deferredByWindow.length === 0 && (
+            {preview.allocations.length > 0 && preview.leftoverCents === 0 && preview.allocations.every((a) => a.newStatus === 'paid') && deferredByWindow.length === 0 && (
               <Alert className="border-success/30 bg-success/10">
                 <AlertDescription className="text-success">{t('summary.upToDate')}</AlertDescription>
               </Alert>

@@ -23,7 +23,7 @@ import {
   type AllocatableInstallment,
   type Allocation,
 } from './allocate';
-import { getHouseCredit, setHouseCredit } from './creditSweep';
+import { getHouseCredit } from './creditSweep';
 
 type SupabaseClient = DbClient;
 type Currency = 'USD' | 'Bs' | 'USDT';
@@ -51,9 +51,11 @@ export type ApplyAllocationErrors = {
   alreadyPaid: string;
   insufficientAmount: string;
   staleExchangeRate: string;
+  /** Another payment to the same house kept changing the state while this one retried. */
+  concurrentPayment: string;
 };
 
-type EvaluatedInstallment = { id: string; currency: string };
+type EvaluatedInstallment = { id: string; currency: string; amount_paid: number; status: string };
 
 /**
  * What evaluatePaymentAllocation found out, without having written anything:
@@ -67,7 +69,14 @@ type EvaluatedInstallment = { id: string; currency: string };
 export type PaymentEvaluation =
   | { kind: 'error'; error: string }
   | { kind: 'blockedByRate' }
-  | { kind: 'ok'; installments: EvaluatedInstallment[]; allocations: Allocation[]; leftoverCents: number };
+  | {
+      kind: 'ok';
+      installments: EvaluatedInstallment[];
+      allocations: Allocation[];
+      leftoverCents: number;
+      /** The house credit (in the payment's currency) the allocation was computed from. */
+      existingCredit: number;
+    };
 
 /**
  * The read-only half of applyPaymentAllocation: fetches the cuotas, the house's
@@ -136,124 +145,171 @@ export async function evaluatePaymentAllocation(
     return { kind: 'error', error: errors.insufficientAmount };
   }
 
-  return { kind: 'ok', installments, allocations: allocationResult.allocations, leftoverCents: allocationResult.leftoverCents };
+  return {
+    kind: 'ok',
+    installments: installments as EvaluatedInstallment[],
+    allocations: allocationResult.allocations,
+    leftoverCents: allocationResult.leftoverCents,
+    existingCredit,
+  };
 }
+
+// How many times a payment re-reads the state and tries again when another payment to
+// the same house got in first (see condo_apply_payment_batch's "conflict").
+const MAX_ATTEMPTS = 4;
 
 export async function applyPaymentAllocation(
   supabase: SupabaseClient,
   params: ApplyAllocationParams,
   errors: ApplyAllocationErrors,
 ): Promise<{ error: string } | { onHold: true } | { success: true; batchId: string; receiptNumber: number }> {
-  const evaluation = await evaluatePaymentAllocation(supabase, params, errors);
-  if (evaluation.kind === 'error') return { error: evaluation.error };
-  // No BCV rate for the payment's date yet: write nothing; the caller parks it
-  // as 'on_hold' and it is released when the rate arrives.
-  if (evaluation.kind === 'blockedByRate') return { onHold: true };
-  const { installments, allocations, leftoverCents } = evaluation;
-
-  const { data: receiptData, error: receiptError } = await supabase.rpc('condo_next_receipt_number');
-  if (receiptError) return { error: await friendlyError(receiptError) };
-  const receiptNumber = receiptData as number;
+  let receiptNumber: number | null = null;
   const batchId = randomUUID();
+  let current = params;
 
-  type PaymentInsertRow = {
-    house_id: string;
-    installment_id: string | null;
-    payment_batch_id: string;
-    amount_paid: number;
-    currency: Currency;
-    payment_date: string;
-    reference: string | null;
-    notes: string | null;
-    receipt_number: number;
-    created_by: string | null;
-    funding_breakdown?: unknown;
-  };
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const evaluation = await evaluatePaymentAllocation(supabase, current, errors);
+    if (evaluation.kind === 'error') return { error: evaluation.error };
+    // No BCV rate for the payment's date yet: write nothing; the caller parks it
+    // as 'on_hold' and it is released when the rate arrives.
+    if (evaluation.kind === 'blockedByRate') return { onHold: true };
+    const { installments, allocations, leftoverCents, existingCredit } = evaluation;
 
-  // Each row's currency/amount is the INSTALLMENT's own denomination (same
-  // convention as confirmPaymentReport's wallet path) -- funding_breakdown
-  // records what was actually drawn from the received payment, and at what
-  // rate, whenever that differs from the installment's own currency (see
-  // lib/payments/allocate.ts's allocateFunds).
-  const currencyByInstallmentId = new Map(installments.map((i) => [i.id, i.currency as Currency]));
-  const walletTopUpRow = (amount: number): PaymentInsertRow => ({
-    house_id: params.house_id,
-    installment_id: null,
-    payment_batch_id: batchId,
-    amount_paid: amount,
-    currency: params.currency,
-    payment_date: params.payment_date,
-    reference: params.reference || null,
-    notes: params.notes || null,
-    receipt_number: receiptNumber,
-    created_by: params.created_by,
-  });
+    // One receipt number per payment, kept across retries (a retry writes nothing before it succeeds).
+    if (receiptNumber === null) {
+      const { data: receiptData, error: receiptError } = await supabase.rpc('condo_next_receipt_number');
+      if (receiptError) return { error: await friendlyError(receiptError) };
+      receiptNumber = receiptData as number;
+    }
 
-  const paymentRows: PaymentInsertRow[] =
-    allocations.length > 0
-      ? [
-          ...allocations.map((a) => ({
-            house_id: params.house_id,
-            installment_id: a.installment_id,
-            payment_batch_id: batchId,
-            amount_paid: a.amountApplied,
-            currency: currencyByInstallmentId.get(a.installment_id) ?? params.currency,
-            payment_date: params.payment_date,
-            reference: params.reference || null,
-            notes: params.notes || null,
-            receipt_number: receiptNumber,
-            created_by: params.created_by,
-            funding_breakdown: a.fundingSource ? [a.fundingSource] : null,
-          })),
-          // Funds left after every selected cuota was either paid or the
-          // walk stopped (full-or-nothing) -- gets its own line item so the
-          // receipt total still adds up to what was actually received,
-          // instead of the leftover only being inferable from the credit
-          // balance silently changing (2026-09-29 fix: a payment covering
-          // SOME cuotas with money left over previously wrote no row for
-          // that leftover at all -- see PLAN.md).
-          ...(leftoverCents > 0 ? [walletTopUpRow(leftoverCents / 100)] : []),
-        ]
-      : // Wallet-only deposit (nothing currently due to apply it to) -- one
-        // ledger row with a null installment_id so it still shows up in
-        // payment history with a real batch/receipt, instead of only being
-        // inferable from the credit balance silently changing.
-        [walletTopUpRow(params.amount_received)];
+    type PaymentInsertRow = {
+      house_id: string;
+      installment_id: string | null;
+      payment_batch_id: string;
+      amount_paid: number;
+      currency: Currency;
+      payment_date: string;
+      reference: string | null;
+      notes: string | null;
+      receipt_number: number;
+      created_by: string | null;
+      funding_breakdown?: unknown;
+    };
 
-  // The batch rows and the money received (amount_received, in its own currency)
-  // are saved by ONE database function, so the community balance and the payment
-  // ledger can't disagree: if the movement can't be written, no row is kept
-  // (change saldo-comunidad-libro). A payment funded only by existing credit has
-  // amount_received 0 and adds nothing -- that money was counted when it arrived.
-  const { data: batchResult, error: paymentsError } = await supabase.rpc('condo_apply_payment_batch', {
-    p_house_id: params.house_id,
-    p_batch_id: batchId,
-    p_rows: paymentRows,
-    p_currency: params.currency,
-    p_amount_received: params.amount_received,
-    p_occurred_on: params.payment_date,
-    p_created_by: params.created_by,
-  });
-  if (paymentsError) return { error: await friendlyError(paymentsError) };
-  if (!(batchResult as { ok?: boolean } | null)?.ok) return { error: errors.installmentsGone };
+    // Each row's currency/amount is the INSTALLMENT's own denomination (same
+    // convention as confirmPaymentReport's wallet path) -- funding_breakdown
+    // records what was actually drawn from the received payment, and at what
+    // rate, whenever that differs from the installment's own currency (see
+    // lib/payments/allocate.ts's allocateFunds).
+    const currencyByInstallmentId = new Map(installments.map((i) => [i.id, i.currency as Currency]));
+    const walletTopUpRow = (amount: number): PaymentInsertRow => ({
+      house_id: current.house_id,
+      installment_id: null,
+      payment_batch_id: batchId,
+      amount_paid: amount,
+      currency: current.currency,
+      payment_date: current.payment_date,
+      reference: current.reference || null,
+      notes: current.notes || null,
+      receipt_number: receiptNumber as number,
+      created_by: current.created_by,
+    });
 
-  for (const a of allocations) {
-    const { error: updateError } = await supabase
-      .from('condo_installments')
-      .update({ amount_paid: a.newAmountPaid, status: a.newStatus })
-      .eq('id', a.installment_id);
-    if (updateError) return { error: await friendlyError(updateError) };
+    const paymentRows: PaymentInsertRow[] =
+      allocations.length > 0
+        ? [
+            ...allocations.map((a) => ({
+              house_id: current.house_id,
+              installment_id: a.installment_id,
+              payment_batch_id: batchId,
+              amount_paid: a.amountApplied,
+              currency: currencyByInstallmentId.get(a.installment_id) ?? current.currency,
+              payment_date: current.payment_date,
+              reference: current.reference || null,
+              notes: current.notes || null,
+              receipt_number: receiptNumber as number,
+              created_by: current.created_by,
+              funding_breakdown: a.fundingSource ? [a.fundingSource] : null,
+            })),
+            // Funds left after every selected cuota was either paid or the
+            // walk stopped (full-or-nothing) -- gets its own line item so the
+            // receipt total still adds up to what was actually received,
+            // instead of the leftover only being inferable from the credit
+            // balance silently changing (2026-09-29 fix: a payment covering
+            // SOME cuotas with money left over previously wrote no row for
+            // that leftover at all -- see PLAN.md).
+            ...(leftoverCents > 0 ? [walletTopUpRow(leftoverCents / 100)] : []),
+          ]
+        : // Wallet-only deposit (nothing currently due to apply it to) -- one
+          // ledger row with a null installment_id so it still shows up in
+          // payment history with a real batch/receipt, instead of only being
+          // inferable from the credit balance silently changing.
+          [walletTopUpRow(current.amount_received)];
+
+    // What the database function re-checks before writing: each cuota to update must
+    // still be as read here, and so must the house credit. If another payment to this
+    // house got in first it answers "conflict" and writes nothing.
+    const installmentUpdates = allocations.map((a) => {
+      const before = installments.find((i) => i.id === a.installment_id);
+      return {
+        id: a.installment_id,
+        expected_amount_paid: before?.amount_paid ?? 0,
+        expected_status: before?.status ?? 'pending',
+        new_amount_paid: a.newAmountPaid,
+        new_status: a.newStatus,
+      };
+    });
+
+    // The batch rows, the money received (amount_received, in its own currency), the
+    // cuota updates and the new credit are saved by ONE database function: all or
+    // nothing, so the community balance, the ledger, the cuotas and the credit can't
+    // disagree (changes saldo-comunidad-libro and the QA round 1 fix). A payment funded
+    // only by existing credit has amount_received 0 and adds nothing to the community
+    // balance -- that money was counted when it arrived.
+    const { data: batchResult, error: paymentsError } = await supabase.rpc('condo_apply_payment_batch', {
+      p_house_id: current.house_id,
+      p_batch_id: batchId,
+      p_rows: paymentRows,
+      p_currency: current.currency,
+      p_amount_received: current.amount_received,
+      p_occurred_on: current.payment_date,
+      p_created_by: current.created_by,
+      p_installment_updates: installmentUpdates,
+      p_expected_credit: existingCredit,
+      p_new_credit: leftoverCents / 100,
+    });
+    if (paymentsError) return { error: await friendlyError(paymentsError) };
+    const outcome = batchResult as { ok?: boolean; reason?: string } | null;
+
+    if (outcome?.ok) {
+      await logAudit(supabase, {
+        userId: current.created_by,
+        action: 'payment.create',
+        entityType: 'payment_batch',
+        entityId: batchId,
+      });
+      return { success: true, batchId, receiptNumber };
+    }
+
+    if (outcome?.reason === 'conflict' && attempt < MAX_ATTEMPTS) {
+      // Another payment to this house got in first: nothing was written. Read the
+      // fresh state and try again. Cuotas that were paid meanwhile are dropped from
+      // an automatic selection; a selection the admin made on purpose is kept, so it
+      // fails with "already paid" instead of silently paying something else.
+      if (!current.explicit_installments) {
+        const { data: stillOpen } = await supabase
+          .from('condo_installments')
+          .select('id')
+          .in('id', current.installment_ids)
+          .neq('status', 'paid')
+          .is('deleted_at', null);
+        current = { ...current, installment_ids: (stillOpen ?? []).map((r) => r.id as string) };
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50 * attempt + Math.floor(Math.random() * 50)));
+      continue;
+    }
+    if (outcome?.reason === 'conflict') return { error: errors.concurrentPayment };
+    return { error: errors.installmentsGone };
   }
-
-  const { error: creditError } = await setHouseCredit(supabase, params.house_id, params.currency, leftoverCents / 100);
-  if (creditError) return { error: creditError };
-
-  await logAudit(supabase, {
-    userId: params.created_by,
-    action: 'payment.create',
-    entityType: 'payment_batch',
-    entityId: batchId,
-  });
-
-  return { success: true, batchId, receiptNumber };
+  return { error: errors.concurrentPayment };
 }

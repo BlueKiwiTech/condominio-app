@@ -30,6 +30,10 @@ supabase status -o env \
 {
   echo "E2E_ADMIN_EMAIL=$E2E_ADMIN_EMAIL"
   echo "E2E_ADMIN_PASSWORD=$E2E_ADMIN_PASSWORD"
+  # Signs the resident session cookie. Throwaway value for this local stack only; without
+  # it the resident login fails with "RESIDENT_SESSION_SECRET is not set" on a machine
+  # that has no .env (QA round 1).
+  echo "RESIDENT_SESSION_SECRET=$(openssl rand -hex 32)"
 } >> "$ENV_FILE"
 
 node --env-file="$ENV_FILE" scripts/seed-admin.mjs "$E2E_ADMIN_EMAIL" "$E2E_ADMIN_PASSWORD"

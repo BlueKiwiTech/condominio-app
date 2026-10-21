@@ -244,7 +244,7 @@ export function DashboardPageClient({
                     <TableCell className="h-11">{m.house_name ? `${m.house_number} · ${m.house_name}` : m.house_number}</TableCell>
                     <TableCell className="h-11">{m.owner_name ?? '—'}</TableCell>
                     <TableCell className="h-11 text-right">{formatAmount(m.owed, m.currency)}</TableCell>
-                    <TableCell className="h-11">{formatShortDate(new Date(m.owedSince), locale)}</TableCell>
+                    <TableCell className="h-11">{formatShortDate(m.owedSince, locale)}</TableCell>
                     <TableCell className="h-11 text-right">
                       <Badge variant="destructive">{m.daysOverdue}</Badge>
                     </TableCell>
@@ -275,7 +275,7 @@ export function DashboardPageClient({
               >
                 <div className="flex flex-col gap-0.5">
                   <span className="text-sm font-semibold">{batch.houseLabel}</span>
-                  <span className="text-xs text-muted-foreground">{formatShortDate(new Date(batch.paymentDate), locale)}</span>
+                  <span className="text-xs text-muted-foreground">{formatShortDate(batch.paymentDate, locale)}</span>
                 </div>
                 <div className="flex flex-col items-end gap-0.5">
                   {Object.entries(batch.totalsByCurrency).map(([currency, amount]) => (

@@ -42,7 +42,14 @@ async function requireAdmin(tc: Awaited<ReturnType<typeof getTranslations>>) {
  * should carry a visible explanation, not just a silent status flip).
  */
 export async function rejectPaymentReport(reportId: string, locale: string, reason: string | null): Promise<ActionResult> {
-  const tc = await getTranslations({ locale, namespace: 'common' });
+  const [tc, tr] = await Promise.all([
+    getTranslations({ locale, namespace: 'common' }),
+    getTranslations({ locale, namespace: 'paymentReports' }),
+  ]);
+  // The reason is mandatory (2026-09-29 business rule above): the resident sees it in Mi Cartera.
+  const cleanReason = reason?.trim() ?? '';
+  if (cleanReason.length < 3) return { error: tr('rejectReasonRequired') };
+  if (cleanReason.length > 500) return { error: tr('rejectReasonTooLong') };
   const { error: authError, supabase, userId } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
@@ -50,12 +57,13 @@ export async function rejectPaymentReport(reportId: string, locale: string, reas
   // hold for a missing rate. A confirmed one already registered a real payment.
   const { data: rejected, error } = await supabase
     .from('condo_payment_reports')
-    .update({ status: 'rejected', rejection_reason: reason?.trim() || null })
+    .update({ status: 'rejected', rejection_reason: cleanReason })
     .eq('id', reportId)
     .in('status', ['pending', 'on_hold'])
     .select('id');
   if (error) return { error: await friendlyError(error) };
-  if (!rejected || rejected.length === 0) return { error: tc('invalidData') };
+  // Someone else (or the release job) already took it out of the waiting states.
+  if (!rejected || rejected.length === 0) return { error: tr('alreadyProcessed') };
 
   await logAudit(supabase, {
     userId,
@@ -109,7 +117,7 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
   if (fetchError) return { error: await friendlyError(fetchError) };
   const report = reportData as ReportForConfirm | null;
   if (!report) return { error: tc('invalidData') };
-  if (report.status !== 'pending') return { error: tc('invalidData') };
+  if (report.status !== 'pending') return { error: tp('errors.reportAlreadyProcessed') };
 
   let installmentIds = report.installment_ids;
   if (installmentIds.length === 0) {
@@ -141,6 +149,7 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
       alreadyPaid: tp('errors.alreadyPaid'),
       insufficientAmount: tp('errors.insufficientAmount'),
       staleExchangeRate: tp('errors.staleExchangeRate'),
+      concurrentPayment: tp('errors.concurrentPayment'),
     },
   );
   if ('error' in result) return result;

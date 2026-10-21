@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { currencySchema } from './cuotas';
+import { positiveAmount } from './money';
 
 // See lib/validation/auth.ts's header comment — same factory pattern,
 // scoped to the `validation.residentPayments` messages namespace.
@@ -10,7 +11,7 @@ type Translator = (key: string) => string;
 // never from client input, so there's nothing to validate or trust.
 export function reportPaymentSchema(t: Translator) {
   return z.object({
-    amount: z.coerce.number().positive(t('amountPositive')),
+    amount: positiveAmount(t),
     currency: currencySchema,
     payment_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t('invalidDate')),
     reference: z.string().trim().max(120, t('referenceTooLong')).optional(),

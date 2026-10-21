@@ -4,6 +4,7 @@ import { friendlyError } from '@/lib/errors';
 import { randomUUID } from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
+import { caracasToday } from '@/lib/dates/caracas';
 import { getResidentSession } from '@/lib/auth/residentSession';
 import { createServiceClient } from '@/lib/supabase/service';
 import { reportPaymentSchema, type ReportPaymentInput } from '@/lib/validation/residentPayments';
@@ -20,6 +21,7 @@ const IGNORED_EVALUATION_ERRORS: ApplyAllocationErrors = {
   alreadyPaid: '',
   insufficientAmount: '',
   staleExchangeRate: '',
+  concurrentPayment: '',
 };
 
 const SCREENSHOT_BUCKET = 'payment-report-screenshots';
@@ -55,6 +57,7 @@ export async function reportPayment(
   const parsed = reportPaymentSchema(tv).safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
   const data = parsed.data;
+  if (data.payment_date > caracasToday()) return { error: tv('futureDate') };
 
   const session = await getResidentSession();
   if (!session) return { error: tc('sessionExpired') };

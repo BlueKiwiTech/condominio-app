@@ -18,6 +18,7 @@ const PROTECTED_PATHS = [
   '/reporte',
   '/gastos',
   '/gastos-pagados',
+  '/saldo-comunidad',
 ];
 
 // Resident-only routes — gated by the signed jose cookie (Pattern A), never
@@ -63,7 +64,13 @@ export async function proxy(request: NextRequest) {
   const { localePrefix, path } = stripLocalePrefix(request.nextUrl.pathname);
   const isProtectedRoute = PROTECTED_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
-  if (isProtectedRoute && !data?.claims) {
+  // A Server Action is a POST carrying the `next-action` header. Redirecting it to the
+  // login page breaks the client ("This page couldn't load", QA round 1: sending a form
+  // after logging out in another tab). Every admin action checks the session itself
+  // (getUser) and answers "Tu sesión expiró", so it is let through to do that; pages
+  // and everything else still redirect.
+  const isServerAction = request.headers.has('next-action');
+  if (isProtectedRoute && !data?.claims && !isServerAction) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = `${localePrefix}/login`;
     return NextResponse.redirect(loginUrl);

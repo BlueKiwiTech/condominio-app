@@ -8,12 +8,18 @@ function pinField(t: Translator) {
   return z.string().regex(/^\d{4}$/, t('pinFormat'));
 }
 
+const PHONE = /^[0-9+()\-\s.]{6,25}$/;
+
 function houseFields(t: Translator) {
   return {
-    house_number: z.string().trim().min(1, t('houseNumberRequired')),
-    house_name: z.string().trim().optional(),
-    owner_name: z.string().trim().optional(),
-    owner_phone: z.string().trim().optional(),
+    house_number: z.string().trim().min(1, t('houseNumberRequired')).max(20, t('houseNumberTooLong')),
+    house_name: z.string().trim().max(100, t('nameTooLong')).optional(),
+    owner_name: z.string().trim().max(100, t('nameTooLong')).optional(),
+    owner_phone: z
+      .string()
+      .trim()
+      .refine((v) => v === '' || PHONE.test(v), t('phoneInvalid'))
+      .optional(),
     owner_email: z
       .string()
       .trim()
@@ -25,7 +31,7 @@ function houseFields(t: Translator) {
     // .optional() only (no .default()) -- a default() here would make this
     // field's zod input/output types diverge, which breaks react-hook-form's
     // zodResolver typing against the other fields' input===output shape.
-    extra_phones: z.array(z.object({ phone: z.string().trim().min(1, t('phoneRequired')) })).optional(),
+    extra_phones: z.array(z.object({ phone: z.string().trim().min(1, t('phoneRequired')).regex(PHONE, t('phoneInvalid')) })).optional(),
   };
 }
 

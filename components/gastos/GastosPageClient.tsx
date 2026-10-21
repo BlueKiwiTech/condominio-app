@@ -260,18 +260,22 @@ export function GastosPageClient({
   // Changing currency, rate or date changes what the amount should be, so any
   // manual edit is dropped and the prefill takes over again.
   const changePaymentCurrency = (currency: ExpensePaymentCurrency) => {
+    setServerError(null);
     setPaymentCurrency(currency);
     setAmountText(null);
   };
   const changeRateType = (type: ExpensePaymentRateType) => {
+    setServerError(null);
     setRateType(type);
     setAmountText(null);
   };
   const changeCustomRate = (value: string) => {
+    setServerError(null);
     setCustomRate(value);
     setAmountText(null);
   };
   const changePaidDate = (date: Date) => {
+    setServerError(null);
     setPaidDate(date);
     setAmountText(null);
   };
@@ -545,7 +549,10 @@ export function GastosPageClient({
                 type="number"
                 step="any"
                 value={amountInputValue}
-                onChange={(e) => setAmountText(e.target.value)}
+                onChange={(e) => {
+                  setServerError(null);
+                  setAmountText(e.target.value);
+                }}
               />
             </div>
             {communityBalance !== null && (
@@ -640,7 +647,7 @@ export function GastosPageClient({
             </div>
           </div>
           <DialogFooter>
-            <Button disabled={isMarkingPaid || (fundsCheck !== null && !fundsCheck.ok) || (needsRate && (rateType === 'custom' ? selectedRate === null : dateRates === null))} onClick={confirmMarkPaid}>
+            <Button disabled={isMarkingPaid || amountValue === null || !Number.isFinite(amountValue) || amountValue <= 0 || (fundsCheck !== null && !fundsCheck.ok) || (needsRate && (rateType === 'custom' ? selectedRate === null : dateRates === null))} onClick={confirmMarkPaid}>
               {t('markPaidDialog.confirm')}
             </Button>
           </DialogFooter>

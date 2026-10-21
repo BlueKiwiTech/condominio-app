@@ -13,8 +13,8 @@
 7. **Casa al día.** Casa `QA-03`: mira qué ofrece el formulario. **Esperado:** avisa que no hay cuotas pendientes.
 
 ## Intenta romperlo
-- Monto `0`, `-50`, `abc`, `1e9`, `99999999999999`, `0,004`, `0.004`, `10,005`, `1.000,50` (con puntos y comas de distintas formas), vacío, con espacios. **Esperado:** validación clara, nunca un error técnico, nunca dinero mal contado.
-- Fecha de abono en el futuro, de hace años (2020), de mañana, `31/02`. Con una fecha antigua en Bs, **esperado:** queda "en espera de tasa" y no mueve el saldo hasta que llegue la tasa.
+- Monto `0`, `-50`, `abc`, `1e9`, `99999999999999`, `0,004`, `0.004`, `10,005`, `1.000,50`, `1,000.50`, vacío, con espacios. **Esperado:** `1.000,50` se registra exactamente como 1.000,50; `-50`, `1e9`, `abc` y `1,000.50` se rechazan en el campo con un mensaje (y el botón queda deshabilitado); `0,004` y `10,005` se rechazan con "máximo 2 decimales"; `99999999999999` con "demasiado grande". Nunca un error técnico ni dinero mal contado.
+- Fecha de abono en el futuro (el selector no debe dejar elegirla y el servidor la rechaza), de hace años (2020), de mañana, `31/02`. Con una fecha antigua en Bs, **esperado:** queda "en espera de tasa" y no mueve el saldo hasta que llegue la tasa.
 - **Doble clic rápido** en "Enviar reporte" y también enviar el mismo formulario desde dos pestañas a la vez. **Esperado:** un solo abono (o, si pasan dos, que el saldo y el libro cuadren con los dos recibos).
 - Cambiar la casa a mitad del formulario; cambiar la moneda después de escribir el monto; usar el botón "atrás" y reenviar.
 - Referencia o notas con 1.000 caracteres, emojis, `<b>x</b>`, saltos de línea.
