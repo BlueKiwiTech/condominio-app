@@ -88,6 +88,17 @@ Todas las acciones de casas y residentes SHALL devolver `sessionExpired` cuando 
 - **WHEN** se invoca `createHouse` sin sesión de admin válida
 - **THEN** devuelve `sessionExpired` y no inserta nada
 
+### Requirement: House field limits
+El número de casa SHALL tener como máximo 20 caracteres; el nombre y el propietario, 100; y un teléfono (el principal y los adicionales) SHALL contener solo números, espacios, `+`, `-`, `.` y paréntesis, entre 6 y 25 caracteres. Un valor fuera de esos límites SHALL rechazarse con un mensaje por campo y no guardarse.
+
+#### Scenario: Número de casa demasiado largo
+- **WHEN** el admin crea una casa con un número de 60 caracteres
+- **THEN** se rechaza con un mensaje de longitud
+
+#### Scenario: Teléfono con letras
+- **WHEN** el admin guarda un teléfono `abc<script>`
+- **THEN** se rechaza con "El teléfono no es válido"
+
 ## Known Limitations
 - `PLAN.md`/docs hablan de "generación" de PIN: en el código no hay generación aleatoria; el admin escribe el PIN de 4 dígitos manualmente al crear o resetear. Un PIN de solo 4 dígitos con bloqueo de 5 intentos/15 min es poco entropía (10.000 combinaciones) por diseño.
 - Migración `20260906170000_seed_house_pins.sql` asignó el mismo PIN compartido (solo su hash en el repo) a todas las casas; no hay forzado de cambio.

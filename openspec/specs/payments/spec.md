@@ -83,7 +83,7 @@ Antes de asignar, el sistema SHALL sumar a `amount_received` el saldo existente 
 - **THEN** se inserta una fila adicional sin `installment_id` (top-up de billetera) con el sobrante, con el mismo lote y recibo, y el saldo se actualiza
 
 ### Requirement: Wallet-only deposit
-Un pago SHALL poder registrarse sin cuotas elegibles (casa sin deuda, sin cuotas seleccionadas o fuera de la ventana de 30 días): se inserta UNA fila `condo_payments` con `installment_id = NULL` por el monto recibido y el monto se acredita al saldo. Un pago con `amount_received <= 0` SHALL rechazarse con `insufficientAmount`.
+Un pago SHALL poder registrarse sin cuotas elegibles (casa sin deuda, sin cuotas seleccionadas o fuera de la ventana de 30 días): se inserta UNA fila `condo_payments` con `installment_id = NULL` por el monto recibido y el monto se acredita al saldo. Un pago con `amount_received <= 0` SHALL rechazarse con `insufficientAmount`, salvo que el saldo a favor existente pague por completo al menos una cuota.
 
 #### Scenario: Casa sin cuotas pendientes
 - **WHEN** el admin registra 50 USD para una casa sin cuotas pendientes
@@ -93,6 +93,10 @@ Un pago SHALL poder registrarse sin cuotas elegibles (casa sin deuda, sin cuotas
 - **WHEN** `amount_received` es 0 y se llega a la validación de `applyPaymentAllocation`
 - **THEN** la acción devuelve `insufficientAmount`
 
+#### Scenario: Monto cero cubierto con saldo a favor
+- **WHEN** `amount_received` es 0 y el saldo a favor de la casa en esa moneda paga por completo la cuota más antigua
+- **THEN** el pago se registra, la cuota queda `paid`, el saldo a favor baja y la comunidad no suma nada
+
 ### Requirement: Installment preconditions
 Antes de asignar, el sistema SHALL recuperar de nuevo las cuotas por id con `deleted_at IS NULL` (nunca confiar en montos del cliente) y SHALL rechazar el pago si faltan cuotas (`installmentsGone`), si alguna pertenece a otra casa (`mixedHouses`) o si alguna ya está `paid` (`alreadyPaid`).
 
@@ -101,11 +105,11 @@ Antes de asignar, el sistema SHALL recuperar de nuevo las cuotas por id con `del
 - **THEN** la acción devuelve `installmentsGone`
 
 ### Requirement: Ledger-first non-transactional write order
-`applyPaymentAllocation` SHALL escribir en este orden: filas de `condo_payments`, luego actualización de `condo_installments` (`amount_paid`, `status`), luego `condo_house_credits`, y por último el audit log. Las escrituras NO ocurren en una sola transacción de base de datos.
+`applyPaymentAllocation` SHALL guardar las filas de `condo_payments`, el movimiento `payment_in`, la actualización de `condo_installments` (`amount_paid`, `status`) y el saldo a favor en **una sola transacción de base de datos**, y escribir el audit log después. Si algo falla, no queda nada guardado a medias.
 
 #### Scenario: Fallo posterior
-- **WHEN** falla la actualización de una cuota o del crédito después de insertar los pagos
-- **THEN** la acción devuelve error y las filas de `condo_payments` ya insertadas permanecen
+- **WHEN** falla la escritura de una cuota o del crédito del abono
+- **THEN** la acción devuelve error y no queda ninguna fila de `condo_payments`, movimiento, cuota ni crédito modificado
 
 ### Requirement: Payment audit log
 Un pago registrado con éxito SHALL escribir `condo_audit_logs` con acción `payment.create`, `entity_type = 'payment_batch'` y `entity_id = batchId`. La escritura de auditoría SHALL ser best-effort: un fallo se registra en consola y nunca bloquea ni revierte la operación.
@@ -167,22 +171,26 @@ La extracción desde captura (`extractPaymentFieldsFromScreenshot`, modelo `amaz
 - **THEN** se devuelve `extractFailed` y el formulario queda sin prellenar
 
 ### Requirement: Admin confirms a payment report
-`confirmPaymentReport` SHALL requerir admin y un reporte `pending`, y ejecutar la misma asignación que `registerPayment` (`applyPaymentAllocation`) con los datos del reporte; sin `installment_ids`, usa todas las cuotas no `paid` ni borradas de la casa. Después SHALL marcar el reporte `confirmed` con su lote y recibo y escribir el audit `payment_report.confirm`. Si falta la tasa BCV, SHALL ponerlo `on_hold` sin registrar pago ni error.
+`confirmPaymentReport` SHALL requerir admin y un reporte `pending`, reservarlo con un candado corto antes de aplicar el dinero, ejecutar la misma asignación que `registerPayment` con los datos del reporte (sin `installment_ids`, todas las cuotas no `paid` ni borradas de la casa), marcarlo `confirmed` con su lote y recibo y escribir el audit `payment_report.confirm`. Si falta la tasa BCV, SHALL ponerlo `on_hold` sin registrar pago ni error.
 
 #### Scenario: Reporte sin cuotas etiquetadas
 - **WHEN** el admin confirma un reporte con `installment_ids` vacío
 - **THEN** la asignación corre contra todas las cuotas pendientes de la casa dentro de la ventana de 30 días y el reporte queda enlazado al recibo
 
 #### Scenario: Reporte ya resuelto
-- **WHEN** el estado del reporte no es `pending` o no existe
-- **THEN** la acción devuelve `invalidData` y no registra pago
+- **WHEN** el estado del reporte no es `pending`
+- **THEN** la acción responde que el reporte ya fue procesado y no registra pago
 
 #### Scenario: Tasa BCV ausente al confirmar
 - **WHEN** el admin confirma un reporte `pending` y la tasa BCV a su `payment_date` no existe o no es fresca
 - **THEN** el reporte pasa a `on_hold`, no se registra ningún pago y la acción responde éxito indicando que quedó en espera
 
+#### Scenario: Doble confirmación simultánea
+- **WHEN** dos pestañas confirman a la vez el mismo reporte `pending`
+- **THEN** solo una aplica el pago y la otra responde que el reporte ya fue procesado, sin un segundo recibo
+
 ### Requirement: Admin rejects a payment report
-`rejectPaymentReport` SHALL requerir admin y un reporte `pending` u `on_hold`, fijar `status = 'rejected'` y `rejection_reason` (texto recortado o nulo) y escribir el audit `payment_report.reject`. El rechazo SHALL NOT crear ni modificar filas de pagos, cuotas o crédito.
+`rejectPaymentReport` SHALL requerir admin y un reporte `pending` u `on_hold`, exigir un `rejection_reason` de 3 a 500 caracteres, fijar `status = 'rejected'` con ese motivo y escribir el audit `payment_report.reject`. El rechazo SHALL NOT crear ni modificar filas de pagos, cuotas o crédito. Si el reporte ya no está en espera de revisión SHALL responder que ya fue procesado.
 
 #### Scenario: Rechazo con motivo
 - **WHEN** el admin rechaza con un motivo
@@ -194,7 +202,11 @@ La extracción desde captura (`extractPaymentFieldsFromScreenshot`, modelo `amaz
 
 #### Scenario: Reporte ya confirmado
 - **WHEN** el admin intenta rechazar un reporte `confirmed`
-- **THEN** la acción devuelve `invalidData` y no cambia el reporte
+- **THEN** la acción responde que el reporte ya fue procesado y no cambia el reporte
+
+#### Scenario: Rechazo sin motivo
+- **WHEN** el motivo está vacío o tiene menos de 3 caracteres
+- **THEN** la acción lo rechaza, el botón de confirmar el rechazo está deshabilitado y el reporte no cambia
 
 ### Requirement: Currency set
 Las monedas aceptadas en pagos y reportes SHALL ser `USD`, `Bs` y `USDT`, validadas por `currencySchema` y por CHECK en base de datos; el pago SHALL poder recibirse en cualquier moneda sin importar la de la cuota (se eliminó el trigger que las igualaba). Las cuotas NUEVAS solo se crean en USD (`cuotaCreateCurrencySchema`). La UI SHALL mostrar USD como "$ Efectivo", Bs como "Bs." y USDT como "Binance" sin cambiar los valores almacenados.
@@ -335,19 +347,66 @@ El formulario de pago del admin SHALL listar, al elegir una casa, sus cuotas esp
 - **WHEN** un pago con monto recibido cero se cubre con el saldo a favor de la casa
 - **THEN** no se registra ningún movimiento `payment_in`
 
+### Requirement: Concurrent payments to the same house
+Los abonos a la misma casa SHALL serializarse: la operación atómica SHALL comprobar que las cuotas a actualizar y el saldo a favor sigan exactamente como los leyó la evaluación y, si cambiaron, SHALL no escribir nada y devolver un conflicto; la aplicación SHALL reevaluar con el estado nuevo y reintentar (hasta 4 veces). Un abono SHALL NOT perder saldo a favor ni pagar dos veces la misma cuota, y si no se logra tras los reintentos SHALL responder que no se registró nada.
+
+#### Scenario: Dos depósitos simultáneos
+- **WHEN** se envían a la vez dos abonos de 3 USD a una casa sin cuotas
+- **THEN** el saldo a favor sube exactamente 6, hay dos recibos y la comunidad sube 6
+
+#### Scenario: Dos abonos para la misma cuota
+- **WHEN** se envían a la vez dos abonos de 70 USD a una casa con una cuota de 100 USD y 30 de saldo a favor
+- **THEN** la cuota se paga una sola vez y el saldo a favor queda en 70
+
+#### Scenario: Selección elegida a propósito
+- **WHEN** el admin marcó una cuota especial y otro abono la pagó primero
+- **THEN** el segundo se rechaza como cuota ya pagada y no se aplica a otra cuota
+
+#### Scenario: Selección automática ya cubierta
+- **WHEN** otro abono pagó todas las cuotas de una selección automática antes de que este se aplique
+- **THEN** este abono se registra como saldo a favor, porque es dinero realmente recibido (cada envío es un pago; no hay clave de idempotencia)
+
+### Requirement: Payment dates cannot be in the future
+La fecha de un abono, registrado por el admin o reportado por el residente, SHALL NOT ser posterior al día de hoy en Caracas (`America/Caracas`). El servidor SHALL rechazarla con un mensaje (es la barrera) y el selector del formulario del admin SHALL limitar la elección a hoy según el reloj del navegador.
+
+#### Scenario: Fecha futura
+- **WHEN** se envía un abono con fecha de mañana
+- **THEN** se rechaza con "La fecha del abono no puede ser futura." y no se registra
+
+#### Scenario: Cerca de la medianoche
+- **WHEN** son las 21:00 en Caracas y el servidor (en UTC) ya está en el día siguiente
+- **THEN** la fecha de hoy en Caracas se acepta
+
+### Requirement: Payment form blocks what cannot be applied and labels cuotas in their own currency
+El formulario de abono SHALL deshabilitar el envío cuando el monto es 0 y el saldo a favor no alcanza a pagar ninguna cuota, SHALL mostrar cada cuota del resumen en la moneda de la cuota (no en la del pago), SHALL NOT mostrar "la casa queda al día" sin un monto que lo logre y SHALL iniciar en USD cuando la casa no tiene cuotas.
+
+#### Scenario: Monto cero sin nada que aplicar
+- **WHEN** el monto es 0 y la casa no tiene saldo a favor suficiente
+- **THEN** el botón de enviar está deshabilitado
+
+#### Scenario: Cuota en otra moneda
+- **WHEN** se paga en Bs una cuota de 100 USD
+- **THEN** el resumen muestra la cuota como "100,00 $ Efectivo"
+
+#### Scenario: Monto vacío
+- **WHEN** el monto está vacío
+- **THEN** no aparece el aviso de que la casa queda al día
+
 ## Known Limitations
 - No existe anulación/reverso/edición de pagos: no hay acción que borre o revierta un lote de `condo_payments`, restaure `amount_paid` o devuelva crédito. Solo existe el soft-delete de cuotas al desactivar una plantilla.
 - Documentación vs. código: `PLAN.md` y cabeceras de `allocate.ts` aún mencionan pago parcial oldest-first ("la siguiente queda parcialmente pagada"); el código actual es full-or-nothing (decisión 2026-09-29) y el sobrante va a saldo a favor. El estado `partial` sigue en el CHECK pero ningún flujo lo produce; el comentario de `creditSweep.ts` aún dice que `registerPayment` puede dejar cuotas `partial`.
 - La cabecera de `20260908090000_resident_payment_reports.sql` dice que confirmar es solo un flag y que no hay UI de admin; hoy confirmar sí registra el pago real.
 - La cabecera de `20260908120000_exchange_rate.sql` y `20260908110000` dicen que no hay conversión automática ("cada quien saca la cuenta"); `allocateFunds` ahora convierte automáticamente.
-- Sin transacción entre cuotas y crédito: el lote de `condo_payments` y su movimiento del saldo de la comunidad se guardan juntos, pero los fallos posteriores dejan cuotas/crédito desincronizados (no hay compensación) y el dinero ya contado en el saldo; reintentar crea un lote nuevo y lo contaría otra vez (se corrige con un ajuste). Dos pagos concurrentes de la misma casa pueden leer el mismo saldo a favor (lectura-modificación-escritura sin bloqueo).
+- `creditSweep` (cron y generación de cuotas) NO usa el candado de la casa ni la comprobación de estado del abono: sigue escribiendo cuotas y crédito en llamadas separadas, así que puede colisionar con un abono simultáneo (límite previo; moverlo a SQL queda como mejora).
+- Cada envío de un abono es un pago: no hay clave de idempotencia. Un envío duplicado deliberado (no el doble clic, que el botón impide) es un segundo pago, y si otro abono cubrió toda la selección automática, el reintento por conflicto lo registra como saldo a favor porque el dinero sí se recibió.
+- Un abono que agota los reintentos por conflicto devuelve "otro pago se estaba procesando" sin registrar nada, pero deja un hueco en la numeración de recibos (el número se reserva una sola vez por abono).
 - `confirmPaymentReport` actualiza el reporte a `confirmed` en un paso aparte: si ese UPDATE falla tras registrar el pago, el reporte queda `pending` y reconfirmarlo duplicaría el pago. Tampoco filtra el UPDATE por `status = 'pending'`.
 - El saldo a favor solo se netea en la moneda del pago; el crédito en otra moneda no se mezcla al confirmar (lo recoge el barrido, solo de la misma moneda).
 - `payment_batch_id` no tiene FK ni tabla de lotes; `receipt_number` ya no es único a nivel de base de datos.
 - `rejectPaymentReport` solo actúa sobre reportes `pending` u `on_hold`; si el admin rechaza un reporte justo mientras se libera, el reporte queda `confirmed` si el pago ya se aplicó.
 - El esquema de `reportPaymentSchema` valida y el residente ve etiquetas, pero `reportPayment` no limita la frecuencia de envíos ni valida duplicados.
 - El barrido diario usa `paymentDate` = hoy y `created_by = null` para los lotes automáticos.
-- `applyPaymentAllocation` no es transaccional y la liberación de un pago en espera la reutiliza: una caída a mitad de una liberación puede dejar un pago aplicado a medias con el reporte aún `on_hold` (el reclamo vence a los 10 minutos y un reintento lo duplicaría), lo que requeriría conciliación manual.
+- El lote de un abono y sus cuotas, crédito y movimiento se guardan en una sola transacción (también al liberar un pago en espera); solo el audit log y, en `confirmPaymentReport`, el marcado final del reporte a `confirmed` van aparte: si ese marcado falla, el reporte queda reservado (no se confirma dos veces) hasta que venza el candado de 10 minutos y requiere revisión manual.
 - Un pago del admin en espera que nunca se puede aplicar (cuota ya pagada o inexistente) falla en cada liberación y sigue `on_hold`; no se descarta solo, el admin debe rechazarlo.
 - Un reporte de residente `on_hold` pasa a `pending` al llegar la tasa sin evaluar si luego se podrá aplicar; los errores se ven al confirmarlo.
 - Un pago del admin en espera con selección explícita cuya cuota se pague por otra vía (o deje de existir) antes de liberarse falla en cada corrida y sigue `on_hold`; el admin debe rechazarlo.
