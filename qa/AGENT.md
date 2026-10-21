@@ -35,8 +35,12 @@ Tasas: BCV 40 Bs por dólar y euro 45, ambas vigentes hoy. Gastos pendientes: Vi
 1. Lee `qa/scenarios/00-reglas-del-sistema.md` (qué debe cumplirse siempre) y luego los escenarios `01` a `08`, en orden. Si no hay tiempo para todos, prioriza 02, 03, 04 y 05.
 2. En cada escenario ejecuta los pasos, comprueba los resultados esperados y **dedica al menos la mitad del tiempo a la sección "Intenta romperlo"**.
 3. Después de cada operación que mueva dinero, verifica el **invariante del saldo** (descrito en `00-reglas-del-sistema.md`): en `/saldo-comunidad`, el saldo de cada moneda debe ser igual a la suma de los movimientos del libro de esa moneda.
-4. Anota cada hallazgo en el formato de `qa/REPORT_TEMPLATE.md`. Clasifica la severidad: **Crítico** (dinero mal contado, datos de otra casa visibles, acceso sin permiso), **Alto** (flujo principal roto), **Medio** (mensaje o cálculo incorrecto con salida), **Bajo** (texto, estilo, detalle).
-5. Termina con el reporte completo (en el chat y, si puedes escribir archivos, en `qa/reports/AAAA-MM-DD-agente.md`) y un resumen de una línea por severidad.
+4. Anota cada hallazgo con el formato del reporte (`qa/REPORT_TEMPLATE.html`). Clasifica la severidad: **Crítico** (dinero mal contado, datos de otra casa visibles, acceso sin permiso), **Alto** (flujo principal roto), **Medio** (mensaje o cálculo incorrecto con salida), **Bajo** (texto, estilo, detalle).
+5. **Genera el reporte en HTML.** Al terminar todas las pruebas, copia `qa/REPORT_TEMPLATE.html`, sustituye todo lo que está entre `{{llaves}}`, repite los bloques marcados con `REPETIR` (una fila por escenario y una tarjeta por hallazgo) y entrega **un solo archivo HTML autocontenido** (sin librerías ni internet, capturas en base64 si las incluyes).
+   - Si puedes escribir archivos: guárdalo como `qa/reports/AAAA-MM-DD-agente.html`.
+   - Si no puedes: entrégalo completo dentro de **un único bloque de código** ```` ```html ```` para que lo guarde como `.html` y lo abra con doble clic.
+6. **Cada fallo lleva "Comentarios del agente".** Para cada hallazgo (Crítico, Alto, Medio, Bajo o duda) escribe: la causa probable (dónde podría estar el fallo: formulario, validación, cálculo, permisos), el impacto para el usuario y para el dinero, y una sugerencia concreta de arreglo o de prueba para confirmarlo. Separa lo que **viste** de lo que **supones**: usa "supongo que…" para las inferencias.
+7. En el chat, cierra con un resumen de una línea por severidad y la ruta o el bloque del HTML. Si todo pasó, dilo sin adornos y lista igual la tabla de escenarios y la verificación del saldo.
 
 ## Qué cuenta como "romper la aplicación"
 

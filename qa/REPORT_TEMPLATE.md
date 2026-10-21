@@ -26,6 +26,7 @@
 - **Real:**
 - **Evidencia:** (captura, texto exacto del mensaje, montos antes y después)
 - **¿Se repite?** (siempre / a veces / una sola vez)
+- **Comentarios del agente:** causa probable, impacto en el usuario y en el dinero, y sugerencia de arreglo o de prueba para confirmarlo. Separa lo que viste de lo que supones.
 
 ## Escenarios que pasaron sin novedad
 
