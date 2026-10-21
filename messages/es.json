@@ -986,7 +986,7 @@
       "description": "Corrige el saldo sumando o restando un monto, con un motivo. Queda en el libro y no se puede editar ni borrar.",
       "currency": "Moneda",
       "direction": "Tipo de ajuste",
-      "increase": "Sumar al saldo",
+      "increase": "Abonar a cartera",
       "decrease": "Restar del saldo",
       "amount": "Monto",
       "note": "Motivo",
