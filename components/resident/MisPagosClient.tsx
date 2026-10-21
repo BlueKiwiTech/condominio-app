@@ -163,7 +163,7 @@ export function MisPagosClient({
   const reportRow = (report: ResidentPaymentReport) => {
     const isCreditTopUp =
       report.status === 'confirmed' && report.installment_ids.length === 0 && report.resulting_receipt_number !== null;
-    const date = formatShortDate(new Date(report.payment_date), locale);
+    const date = formatShortDate(report.payment_date, locale);
     return (
       <ListRow
         key={report.id}

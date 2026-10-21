@@ -115,7 +115,7 @@ El admin SHALL poder registrar un ajuste positivo o negativo por moneda, con mon
 - **THEN** se rechaza con un mensaje de validación
 
 ### Requirement: Community balance screen for admins
-Una pantalla del admin SHALL mostrar el saldo por moneda y el libro de movimientos paginado, del más reciente al más antiguo, con tipo, moneda, monto, referencia, nota, autor y fecha, y SHALL ofrecer los formularios de saldo inicial y de ajuste. El balance y el libro SHALL ser visibles solo para los admins de la comunidad y SHALL NOT mostrarse al residente.
+Una pantalla del admin, enlazada en una sección propia **Comunidad** del menú (no bajo Gastos), SHALL mostrar el saldo por moneda y el libro de movimientos paginado, del más reciente al más antiguo, con tipo, moneda, monto, referencia, nota, autor y fecha, y SHALL ofrecer los formularios de saldo inicial y de ajuste. El balance y el libro SHALL ser visibles solo para los admins de la comunidad y SHALL NOT mostrarse al residente.
 
 #### Scenario: Libro paginado
 - **WHEN** el libro tiene más movimientos que una página
@@ -128,6 +128,14 @@ Una pantalla del admin SHALL mostrar el saldo por moneda y el libro de movimient
 #### Scenario: Otra comunidad
 - **WHEN** un admin consulta balance o libro
 - **THEN** solo ve los de su propia comunidad
+
+#### Scenario: Sección del menú
+- **WHEN** el admin mira el menú lateral
+- **THEN** "Saldo de la comunidad" aparece en la sección "Comunidad" y no en "Gastos"
+
+#### Scenario: Página fuera de rango
+- **WHEN** el admin abre el libro con una página que no existe
+- **THEN** ve la primera página, sin error
 
 ### Requirement: Balance writes are restricted and attributed
 El balance y el libro SHALL modificarse solo mediante las operaciones de la capacidad, ejecutables únicamente por un admin de la comunidad o por el servicio de liberación de pagos en espera, y SHALL NOT poder escribirse directamente en las tablas ni invocarse sin sesión de admin. Cada movimiento SHALL atribuirse al usuario que ejecuta la operación, nunca a un valor enviado por el cliente, y un lote de pagos SHALL aceptar solo filas de la casa y de cuotas de esa casa.
@@ -162,8 +170,6 @@ Al activar el libro, el balance de cada moneda SHALL arrancar en el valor que pr
 ## Known Limitations
 
 - El balance guardado no se compara automáticamente con los registros (pagos, créditos, gastos): si un fallo parcial deja el libro y las cuotas descuadrados, se corrige con un ajuste manual.
-- Si fallan los pasos posteriores al lote de pagos (cuotas o crédito) el dinero ya sumó al saldo; reintentar crea un lote nuevo y lo suma otra vez.
 - Los movimientos de gastos no enlazan al gasto en el libro (solo los abonos enlazan a su recibo) y el movimiento de migración se muestra como "Sistema".
 - El saldo inicial real de la caja debe registrarlo el admin tras desplegar; hasta entonces el saldo solo refleja lo registrado en el sistema.
 - La fila del balance de una moneda se crea con el primer movimiento exitoso; una moneda sin movimientos no tiene fila (el saldo es cero).
-

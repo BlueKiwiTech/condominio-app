@@ -460,13 +460,14 @@ export async function deleteExpenseTemplate(templateId: string, locale: string):
   const { error: authError, supabase } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
-  const { count: paidCount, error: paidError } = await supabase
+  const { data: anyPaid, error: paidError } = await supabase
     .from('condo_expenses')
-    .select('id', { count: 'exact', head: true })
+    .select('id')
     .eq('template_id', templateId)
-    .in('status', ['paid', 'on_hold']); // a held expense is committed too (it will be paid by itself)
+    .in('status', ['paid', 'on_hold']) // a held expense is committed too (it will be paid by itself)
+    .limit(1);
   if (paidError) return { error: await friendlyError(paidError) };
-  if (paidCount && paidCount > 0) return { error: tg('errors.hasPayments') };
+  if ((anyPaid?.length ?? 0) > 0) return { error: tg('errors.hasPayments') };
 
   const now = new Date().toISOString();
 

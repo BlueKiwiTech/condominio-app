@@ -62,8 +62,11 @@ const GROUPS: NavGroup[] = [
     items: [
       { href: '/gastos', icon: Receipt, labelKey: 'items.gastos' },
       { href: '/gastos/plantillas', icon: Copy, labelKey: 'items.expenseTemplates' },
-      { href: '/saldo-comunidad', icon: Wallet, labelKey: 'items.communityBalance' },
     ],
+  },
+  {
+    titleKey: 'groups.community',
+    items: [{ href: '/saldo-comunidad', icon: Wallet, labelKey: 'items.communityBalance' }],
   },
   {
     titleKey: 'groups.reports',

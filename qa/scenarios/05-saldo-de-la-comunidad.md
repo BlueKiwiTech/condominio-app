@@ -4,7 +4,7 @@
 **Pantalla:** `/saldo-comunidad` (menú "Saldo de la comunidad", grupo Gastos).
 
 ## Pasos
-1. Abre la pantalla. **Esperado:** tres tarjetas (USD, Bs, USDT) con el saldo, y el libro con al menos el "Saldo inicial" de 500 USD, con tu usuario como autor.
+1. Abre la pantalla. **Esperado:** tres tarjetas (USD, Bs, USDT) con el saldo, y el libro con al menos el "Saldo inicial" de 500 USD (el sembrado figura como "Sistema"; los que registres tú muestran tu correo). El menú lateral la muestra en la sección **Comunidad**.
 2. "Registrar saldo inicial": el combo **no** debe ofrecer `$ Efectivo` (ya tiene uno). Registra `20000` en Bs. **Esperado:** el saldo Bs pasa a 20.000 y el libro suma un "Saldo inicial".
 3. Intenta registrar otro saldo inicial en Bs. **Esperado:** no es posible (la moneda ya no se ofrece o se rechaza con mensaje).
 4. "Registrar ajuste": `20` USD, "Restar del saldo", motivo "Comisión bancaria". **Esperado:** el saldo USD baja 20 y el libro muestra el ajuste con el motivo y tu usuario.

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { positiveAmount } from './money';
 
 // See lib/validation/auth.ts's header comment — same factory pattern,
 // scoped to the `validation.cuotas` messages namespace.
@@ -22,12 +23,12 @@ function isoDate(t: Translator) {
 
 function sharedFields(t: Translator) {
   return {
-    name: z.string().trim().min(1, t('nameRequired')),
-    description: z.string().trim().optional(),
+    name: z.string().trim().min(1, t('nameRequired')).max(120, t('nameTooLong')),
+    description: z.string().trim().max(500, t('descriptionTooLong')).optional(),
     currency: cuotaCreateCurrencySchema,
     // decimal(12,2) in the DB — validated as a positive number here, rounded
     // to cents at generation time (lib/cuotas/generate.ts's splitAmount et al.).
-    amount: z.coerce.number().positive(t('amountPositive')),
+    amount: positiveAmount(t),
     start_date: isoDate(t),
     // Empty = "Todas" (all houses at creation time — snapshotted, per PLAN.md
     // Phase 4 decision that a template's house scope is fixed at creation).
@@ -60,7 +61,7 @@ export function specialTemplateSchema(t: Translator) {
     // is built, mirroring lib/validation/gastos.ts's variable-expense shape).
     // Omitted (or ignored) when is_divided is false; the action falls back to
     // an even splitAmount() if is_divided is true but this is missing.
-    amounts: z.array(z.coerce.number().positive(t('amountPositive'))).optional(),
+    amounts: z.array(positiveAmount(t)).optional(),
     // Admin-entered (or baseline, left untouched) per-installment due dates
     // for a divided special cuota — individually overridable in the form.
     // Omitted/mismatched falls back to the cadence-derived baseline, same
@@ -118,10 +119,10 @@ export type CreateTemplateInput = z.infer<ReturnType<typeof createTemplateSchema
 // Left blank, behavior is unchanged: applies to every unpaid installment.
 export function updateTemplateSchema(t: Translator) {
   return z.object({
-    name: z.string().trim().min(1, t('nameRequired')),
-    description: z.string().trim().optional(),
+    name: z.string().trim().min(1, t('nameRequired')).max(120, t('nameTooLong')),
+    description: z.string().trim().max(500, t('descriptionTooLong')).optional(),
     currency: currencySchema,
-    amount: z.coerce.number().positive(t('amountPositive')),
+    amount: positiveAmount(t),
     effective_from: z.union([isoDate(t), z.literal('')]).optional(),
     // Optional new start date -- only honored while the cuota has no payments
     // at all (lib/actions/cuotas.ts's updateInstallmentTemplate re-checks

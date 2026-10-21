@@ -36,7 +36,7 @@ function RateColumn({ rateType, label, row }: { rateType: ExchangeRateType; labe
 
   const handleSave = () => {
     const parsed = Number(value);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
+    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 1_000_000) {
       setError(t('invalidValue'));
       return;
     }

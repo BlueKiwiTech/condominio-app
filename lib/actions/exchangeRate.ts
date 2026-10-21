@@ -104,7 +104,8 @@ export async function setExchangeRate(rateType: ExchangeRateType, rate: number, 
   const { error: authError, supabase, userId } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
-  if (!Number.isFinite(rate) || rate <= 0) return { error: tc('invalidData') };
+  // 1.000.000 is far above any real Bs/USD rate and keeps the value inside numeric(12,4).
+  if (!Number.isFinite(rate) || rate <= 0 || rate > 1_000_000) return { error: tc('invalidData') };
 
   const { error } = await supabase
     .from('condo_exchange_rates')

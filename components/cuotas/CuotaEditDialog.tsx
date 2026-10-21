@@ -298,7 +298,7 @@ export function CuotaEditDialog({
                         {entry.effective_from
                           ? t("priceHistory.effectiveFrom", {
                               date: formatShortDate(
-                                new Date(entry.effective_from),
+                                entry.effective_from,
                                 locale,
                               ),
                             })

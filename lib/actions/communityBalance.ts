@@ -5,6 +5,7 @@ import { getTranslations } from 'next-intl/server';
 import { friendlyError } from '@/lib/errors';
 import { createClient } from '@/lib/supabase/server';
 import { logAudit } from '@/lib/audit';
+import { caracasToday } from '@/lib/dates/caracas';
 import {
   openingBalanceSchema,
   adjustmentSchema,
@@ -14,11 +15,6 @@ import {
 
 type ActionResult = { error: string } | { success: true };
 type Currency = 'USD' | 'Bs' | 'USDT';
-
-/** Today's calendar day in Venezuela (the server runs in UTC: after 20:00 VET `new Date()` is already tomorrow). */
-function caracasToday(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
-}
 
 /** Network-verified — never getSession() as an authorization gate (CLAUDE.md). */
 async function requireAdmin(tc: Awaited<ReturnType<typeof getTranslations>>) {

@@ -172,7 +172,11 @@ function ReportCard({
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder={t('rejectionReasonPlaceholder')}
               disabled={isPending}
+              maxLength={500}
             />
+            {rejectReason.trim().length < 3 && (
+              <p className="text-xs text-muted-foreground">{t('rejectReasonRequired')}</p>
+            )}
           </div>
         )}
 
@@ -198,7 +202,7 @@ function ReportCard({
           )}
           {(report.status === 'pending' || report.status === 'on_hold') && rejecting && (
             <>
-              <Button type="button" variant="destructive" size="sm" disabled={isPending} onClick={handleReject}>
+              <Button type="button" variant="destructive" size="sm" disabled={isPending || rejectReason.trim().length < 3} onClick={handleReject}>
                 {t('confirmReject')}
               </Button>
               <Button

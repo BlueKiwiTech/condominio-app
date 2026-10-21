@@ -47,5 +47,4 @@ graphify-out
 .superpowers/
 
 # QA agent reports (the folder itself is versioned, the reports are not)
-qa/reports/*
 !qa/reports/.gitkeep

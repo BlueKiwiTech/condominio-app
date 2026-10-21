@@ -10,7 +10,9 @@
       "forbidden": "No tienes permiso para realizar esta acción.",
       "tooManyRequests": "Demasiados intentos. Espera un momento e intenta de nuevo.",
       "generic": "Ocurrió un error inesperado. Intenta de nuevo; si persiste, contacta al administrador."
-    }
+    },
+    "moneyInputInvalid": "Escribe solo números, con coma para los decimales (ej. 1.234,56). No uses signos negativos.",
+    "moneyInputReads": "Se leerá como {amount}."
   },
   "validation": {
     "auth": {
@@ -24,7 +26,10 @@
       "houseNumberRequired": "El número de casa es obligatorio.",
       "invalidEmail": "Correo inválido.",
       "residentNameRequired": "El nombre es obligatorio.",
-      "phoneRequired": "El teléfono es obligatorio."
+      "phoneRequired": "El teléfono es obligatorio.",
+      "houseNumberTooLong": "El número de casa es demasiado largo (máximo 20 caracteres).",
+      "nameTooLong": "El nombre es demasiado largo (máximo 100 caracteres).",
+      "phoneInvalid": "El teléfono no es válido: usa solo números, espacios, +, - y paréntesis."
     },
     "cuotas": {
       "invalidDate": "Fecha inválida.",
@@ -32,7 +37,11 @@
       "amountPositive": "El monto debe ser mayor a 0.",
       "minInstallments": "Debe haber al menos 1 cuota.",
       "maxInstallments": "Número de cuotas demasiado alto.",
-      "amountsSumMismatch": "La suma de las cuotas no coincide con el monto total."
+      "amountsSumMismatch": "La suma de las cuotas no coincide con el monto total.",
+      "amountTooLarge": "El monto es demasiado grande.",
+      "amountDecimals": "El monto admite como máximo 2 decimales.",
+      "nameTooLong": "El nombre es demasiado largo (máximo 120 caracteres).",
+      "descriptionTooLong": "La descripción es demasiado larga (máximo 500 caracteres)."
     },
     "gastos": {
       "invalidDate": "Fecha inválida.",
@@ -46,7 +55,13 @@
       "duplicateDates": "Las fechas de las cuotas no pueden repetirse.",
       "customRatePositive": "La tasa personalizada debe ser mayor a 0.",
       "customRateRequired": "Ingresa la tasa personalizada.",
-      "paidAmountPositive": "El monto pagado debe ser mayor a 0."
+      "paidAmountPositive": "El monto pagado debe ser mayor a 0.",
+      "amountTooLarge": "El monto es demasiado grande.",
+      "amountDecimals": "El monto admite como máximo 2 decimales.",
+      "customRateTooLarge": "La tasa es demasiado grande.",
+      "nameTooLong": "El nombre es demasiado largo (máximo 120 caracteres).",
+      "providerTooLong": "El proveedor es demasiado largo (máximo 120 caracteres).",
+      "notesTooLong": "Las notas son demasiado largas (máximo 500 caracteres)."
     },
     "payments": {
       "invalidSelection": "La selección de cuotas especiales no es válida.",
@@ -55,7 +70,10 @@
       "installmentsRequired": "Selecciona al menos una cuota.",
       "amountPositive": "El monto recibido no puede ser negativo.",
       "referenceTooLong": "La referencia es demasiado larga.",
-      "notesTooLong": "Las notas son demasiado largas."
+      "notesTooLong": "Las notas son demasiado largas.",
+      "amountTooLarge": "El monto es demasiado grande.",
+      "amountDecimals": "El monto admite como máximo 2 decimales.",
+      "futureDate": "La fecha del abono no puede ser futura."
     },
     "residentAuth": {
       "houseRequired": "Selecciona tu casa.",
@@ -67,14 +85,19 @@
       "referenceTooLong": "La referencia es demasiado larga.",
       "notesTooLong": "Las notas son demasiado largas.",
       "invalidFileType": "Debe ser una imagen (foto o captura de pantalla).",
-      "fileTooLarge": "La imagen es muy pesada (máximo 5 MB)."
+      "fileTooLarge": "La imagen es muy pesada (máximo 5 MB).",
+      "amountTooLarge": "El monto es demasiado grande.",
+      "amountDecimals": "El monto admite como máximo 2 decimales.",
+      "futureDate": "La fecha del pago no puede ser futura."
     },
     "communityBalance": {
       "amountInvalid": "El monto no es válido.",
       "amountPositive": "El monto debe ser mayor que cero.",
       "amountNonZero": "El monto no puede ser cero.",
       "noteRequired": "El motivo es obligatorio.",
-      "noteTooLong": "El motivo es demasiado largo (máximo 300 caracteres)."
+      "noteTooLong": "El motivo es demasiado largo (máximo 300 caracteres).",
+      "amountTooLarge": "El monto es demasiado grande.",
+      "amountDecimals": "El monto admite como máximo 2 decimales."
     }
   },
   "auth": {
@@ -137,6 +160,7 @@
       "general": "General",
       "collection": "Cobranza",
       "expenses": "Gastos",
+      "community": "Comunidad",
       "reports": "Reportes"
     },
     "items": {
@@ -230,7 +254,7 @@
       "setNow": "Establecer ahora",
       "save": "Guardar",
       "cancel": "Cancelar",
-      "invalidValue": "Ingresa un número mayor a 0."
+      "invalidValue": "Ingresa un número mayor a 0 y menor a 1.000.000."
     }
   },
   "houses": {
@@ -576,7 +600,9 @@
       "mixedHouses": "Todas las cuotas deben pertenecer a la misma casa.",
       "alreadyPaid": "Una de las cuotas seleccionadas ya está pagada.",
       "insufficientAmount": "Ingresa un monto recibido mayor a 0.",
-      "staleExchangeRate": "La tasa de cambio necesaria para convertir el saldo de la cartera no está actualizada (o no existe). Actualiza la tasa antes de confirmar este reporte."
+      "staleExchangeRate": "La tasa de cambio necesaria para convertir el saldo de la cartera no está actualizada (o no existe). Actualiza la tasa antes de confirmar este reporte.",
+      "reportAlreadyProcessed": "Este reporte ya fue procesado: recarga la lista.",
+      "concurrentPayment": "Otro pago de esta casa se estaba procesando al mismo tiempo. No se registró nada: revisa los recibos e inténtalo de nuevo."
     },
     "table": {
       "date": "Fecha",
@@ -694,7 +720,10 @@
     "confirmReject": "Confirmar rechazo",
     "cancel": "Cancelar",
     "rejectionReason": "Motivo del rechazo",
-    "rejectionReasonPlaceholder": "Explica por qué se rechaza este pago (el vecino lo verá en Mi Cartera)"
+    "rejectionReasonPlaceholder": "Explica por qué se rechaza este pago (el vecino lo verá en Mi Cartera)",
+    "rejectReasonRequired": "El motivo del rechazo es obligatorio (mínimo 3 caracteres): el vecino lo verá en Mi Cartera.",
+    "rejectReasonTooLong": "El motivo es demasiado largo (máximo 500 caracteres).",
+    "alreadyProcessed": "Este reporte ya fue procesado: recarga la lista."
   },
   "residentAuth": {
     "heading": "Entra con tu casa y PIN",

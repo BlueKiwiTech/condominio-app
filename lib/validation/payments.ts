@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { currencySchema } from './cuotas';
+import { nonNegativeAmount } from './money';
 
 // See lib/validation/auth.ts's header comment — same factory pattern,
 // scoped to the `validation.payments` messages namespace.
@@ -21,7 +22,7 @@ export function registerPaymentSchema(t: Translator) {
     // existing saldo a favor, with no new cash received -- see
     // applyPaymentAllocation's credit-netting), cents-safe allocation
     // happens in lib/payments/allocate.ts.
-    amount_received: z.coerce.number().nonnegative(t('amountPositive')),
+    amount_received: nonNegativeAmount(t),
     payment_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t('invalidDate')),
     reference: z.string().trim().max(120, t('referenceTooLong')).optional(),
     notes: z.string().trim().max(500, t('notesTooLong')).optional(),

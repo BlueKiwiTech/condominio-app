@@ -42,7 +42,13 @@ export function LoginForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex w-full flex-col gap-4">
+    <form
+      onSubmit={handleSubmit(onSubmit, () => setServerError(null))}
+      // Editing any field drops the previous server error (the browser's own email check can block
+      // the submit before react-hook-form runs, so the error would otherwise stay next to a new one).
+      onChange={() => setServerError(null)}
+      className="flex w-full flex-col gap-4"
+    >
       {successMessage && (
         <Alert>
           <AlertDescription>{successMessage}</AlertDescription>

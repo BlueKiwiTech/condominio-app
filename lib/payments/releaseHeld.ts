@@ -37,6 +37,7 @@ const LOGGED_ERRORS: ApplyAllocationErrors = {
   alreadyPaid: 'a selected cuota is already paid',
   insufficientAmount: 'nothing received',
   staleExchangeRate: 'exchange rate missing or stale',
+  concurrentPayment: 'another payment to the same house kept changing the state',
 };
 
 export type ReleaseSummary = {
