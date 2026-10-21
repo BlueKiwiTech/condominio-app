@@ -10,7 +10,8 @@ Todo corre **en local**: Supabase en Docker + la app en `http://localhost:3000`.
 |---|---|
 | `AGENT.md` | El prompt maestro: reglas, cuentas, datos sembrados y cómo trabajar |
 | `scenarios/` | Escenarios con pasos, resultado esperado y "Intenta romperlo" |
-| `REPORT_TEMPLATE.md` | Formato del reporte que debe devolver el agente |
+| `REPORT_TEMPLATE.html` | Plantilla del reporte en HTML (un archivo autocontenido: resumen, resultado por escenario, hallazgos con comentarios y verificación del saldo) |
+| `REPORT_TEMPLATE.md` | Versión en texto plano de la misma plantilla, por si el agente no puede producir HTML |
 | `reports/` | Reportes guardados (el contenido no se versiona) |
 | `start.sh` / `seed.mjs` | Reinicia el Supabase local, siembra datos y arranca la app |
 
@@ -37,6 +38,8 @@ Depende de lo que pueda hacer tu agente:
 Un agente en la nube **no puede abrir tu `localhost`**: el navegador del agente debe correr en tu máquina (o expón la app con un túnel de solo lectura de tu confianza, nunca el proyecto real).
 
 ## Paso 3: revisar el reporte
+
+Al terminar, el agente entrega un **HTML** (`qa/reports/AAAA-MM-DD-agente.html` o un bloque de código que guardas como `.html`): ábrelo con doble clic. Trae el veredicto, el resultado de cada escenario y, por cada fallo, pasos, esperado, real y **comentarios del agente** (causa probable, impacto y sugerencia).
 
 1. Reproduce a mano los hallazgos Críticos y Altos antes de darlos por buenos: un agente puede equivocarse o malinterpretar.
 2. Los fallos reales entran al flujo normal del proyecto: se arreglan con un change de OpenSpec si cambian comportamiento (`/opsx:propose`), o con una rama de corrección.
