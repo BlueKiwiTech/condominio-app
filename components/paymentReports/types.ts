@@ -23,4 +23,15 @@ export type PaymentReportRow = {
   condo_houses: { house_number: string; house_name: string | null } | null;
 };
 
+/** A pending special cuota of a house, offered in the confirm dialog (change ajustes-21-oct). */
+export type SpecialInstallment = {
+  id: string;
+  house_id: string;
+  name: string;
+  due_date: string;
+  amount: number;
+  amount_paid: number;
+  currency: Currency;
+};
+
 export type InstallmentLookup = Record<string, { name: string; due_date: string }>;

@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { registerPayment } from '@/lib/actions/payments';
 import { extractPaymentFromScreenshot } from '@/lib/actions/paymentOcr';
 import { getExchangeRatesAsOf } from '@/lib/actions/exchangeRate';
-import { allocateFunds, sortOldestFirst, filterEligibleForConversionWindow } from '@/lib/payments/allocate';
+import { allocateFunds, sortOldestFirst, filterEligibleForConversionWindow, splitFundsUse } from '@/lib/payments/allocate';
 import { toDateOnly } from '@/lib/cuotas/generate';
 import { currencyLabel, formatAmount, formatMoney, CURRENCY_SELECT_OPTIONS } from '@/lib/currency';
 import { referenceUsdAmount, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
@@ -195,6 +195,20 @@ export function PaymentFormClient({
     const result = allocateFunds(eligibleInstallments, fundsAvailable, currency, dateRates, paymentDate);
     return result.blocked ? null : result;
   }, [eligibleInstallments, fundsAvailable, currency, dateRates, paymentDate]);
+
+  // The receipt shows only what was handed over; the existing saldo a favor the payment
+  // actually uses is shown apart (lib/payments/allocate.ts's splitFundsUse).
+  const creditUsedCents = useMemo(
+    () =>
+      preview
+        ? splitFundsUse(
+            Math.round((Number.isFinite(amountReceived) ? amountReceived : 0) * 100),
+            Math.round(existingCredit * 100),
+            preview.leftoverCents,
+          ).creditUsedCents
+        : 0,
+    [preview, amountReceived, existingCredit],
+  );
 
   // Reference only (PLAN.md's "cada quien saca la cuenta" decision) -- never
   // sent to the server, never affects the allocation above. Uses dateRates
@@ -519,11 +533,11 @@ export function PaymentFormClient({
                 {formatMoney(Number.isNaN(amountReceived) ? 0 : amountReceived)} {currency ? currencyLabel(currency) : ''}
               </span>
             </div>
-            {existingCredit > 0 && (
+            {creditUsedCents > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('summary.creditUsed')}</span>
                 <span className="text-sm font-semibold">
-                  {formatMoney(existingCredit)} {currency ? currencyLabel(currency) : ''}
+                  {formatMoney(creditUsedCents / 100)} {currency ? currencyLabel(currency) : ''}
                 </span>
               </div>
             )}

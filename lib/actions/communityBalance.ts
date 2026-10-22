@@ -7,9 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { logAudit } from '@/lib/audit';
 import { caracasToday } from '@/lib/dates/caracas';
 import {
-  openingBalanceSchema,
   adjustmentSchema,
-  type OpeningBalanceInput,
   type AdjustmentInput,
 } from '@/lib/validation/communityBalance';
 
@@ -25,14 +23,11 @@ async function requireAdmin(tc: Awaited<ReturnType<typeof getTranslations>>) {
 }
 
 async function addMovement(
-  type: 'opening' | 'adjustment',
+  type: 'adjustment',
   input: { currency: Currency; amount: number; note: string | null },
   locale: string,
 ): Promise<ActionResult> {
-  const [tc, tb] = await Promise.all([
-    getTranslations({ locale, namespace: 'common' }),
-    getTranslations({ locale, namespace: 'communityBalance' }),
-  ]);
+  const tc = await getTranslations({ locale, namespace: 'common' });
   const { error: authError, supabase, userId } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
@@ -51,13 +46,12 @@ async function addMovement(
   if (error) return { error: await friendlyError(error) };
   const result = data as { ok: boolean; reason?: string } | null;
   if (!result?.ok) {
-    if (result?.reason === 'already_exists') return { error: tb('errors.openingExists') };
     return { error: tc('invalidData') };
   }
 
   await logAudit(supabase, {
     userId,
-    action: type === 'opening' ? 'community_balance.opening' : 'community_balance.adjustment',
+    action: 'community_balance.adjustment',
     entityType: 'community_balance',
     entityId: community.id,
   });
@@ -65,17 +59,6 @@ async function addMovement(
   revalidatePath('/dashboard');
   revalidatePath('/gastos');
   return { success: true };
-}
-
-/** Opening balance of one currency: once per currency, amount > 0. */
-export async function registerOpeningBalance(input: OpeningBalanceInput, locale: string): Promise<ActionResult> {
-  const [tv, tc] = await Promise.all([
-    getTranslations({ locale, namespace: 'validation.communityBalance' }),
-    getTranslations({ locale, namespace: 'common' }),
-  ]);
-  const parsed = openingBalanceSchema(tv).safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? tc('invalidData') };
-  return addMovement('opening', { currency: parsed.data.currency, amount: parsed.data.amount, note: null }, locale);
 }
 
 /** Manual adjustment: positive or negative, never zero, with a mandatory reason. */

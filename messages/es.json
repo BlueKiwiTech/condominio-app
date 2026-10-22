@@ -618,6 +618,7 @@
       "house": "Casa",
       "amountReceived": "Monto recibido",
       "appliedByCurrency": "Aplicado por moneda de cada cuota",
+      "creditApplied": "Saldo a favor aplicado",
       "cuotasCovered": "Pagos cubiertos",
       "walletTopUp": "Abono a cartera",
       "reference": "Referencia",
@@ -648,7 +649,7 @@
       "noHouses": "Selecciona una casa.",
       "noHousesRegistered": "No hay casas registradas.",
       "noPendingInstallments": "Esta casa no tiene cuotas pendientes. Lo que registres se guardará como saldo a favor.",
-      "existingCredit": "Esta casa tiene un saldo a favor de {amount} {currency}, que se aplicará automáticamente a este pago.",
+      "existingCredit": "Esta casa tiene un saldo a favor de {amount} {currency}, que se usará para completar este pago solo si hace falta.",
       "specialPicker": {
         "heading": "Abonar a cuotas especiales (opcional)",
         "hint": "Si marcas alguna, el abono se aplica solo a las marcadas, de la más antigua a la más nueva, sin la ventana de 30 días. Lo que sobre queda como saldo a favor. Sin marcar nada, el abono se reparte como siempre.",
@@ -705,6 +706,11 @@
       "cuotas": "Cuotas relacionadas"
     },
     "viewScreenshot": "Ver captura",
+    "specialPicker": {
+      "heading": "¿Abonar a cuotas especiales?",
+      "hint": "Opcional. Si marcas alguna, el abono se aplica solo a las marcadas, de la más antigua a la más nueva, sin la ventana de 30 días. Lo que sobre queda como saldo a favor. Sin marcar nada, el abono se reparte como siempre.",
+      "selectedNotice": "El abono se aplicará únicamente a las cuotas marcadas."
+    },
     "confirm": "Confirmar",
     "reject": "Rechazar",
     "status": {
@@ -825,6 +831,8 @@
       "fileTooLarge": "La imagen es muy pesada (máximo 5 MB).",
       "currencyFreeHint": "La moneda del pago no tiene que coincidir con la de las cuotas — se convierte automáticamente con la tasa de cambio vigente.",
       "usdReference": "≈ ${amount} (referencia {source})",
+      "bcvRate": "Tasa BCV: {rate} Bs por USD · {date}",
+      "rateDisclaimer": "Tasa de referencia: es solo informativa.",
       "submit": "Enviar reporte",
       "cancel": "Cancelar",
       "close": "Cerrar",
@@ -947,7 +955,6 @@
     "subtitle": "Dinero con el que cuenta la comunidad por moneda: lo que entra por abonos aplicados, más el saldo inicial y los ajustes, menos los gastos pagados. Nunca se suman monedas.",
     "balancesHeading": "Saldo actual",
     "actions": {
-      "opening": "Registrar saldo inicial",
       "adjustment": "Registrar ajuste"
     },
     "ledger": {
@@ -973,14 +980,6 @@
       "next": "Siguiente"
     },
     "loadError": "No se pudo cargar el saldo de la comunidad.",
-    "openingDialog": {
-      "heading": "Registrar saldo inicial",
-      "description": "Dinero que ya tenía la comunidad antes de usar el sistema. Se registra una sola vez por moneda y se suma al saldo.",
-      "currency": "Moneda",
-      "amount": "Monto",
-      "allRegistered": "Todas las monedas ya tienen saldo inicial.",
-      "submit": "Registrar saldo inicial"
-    },
     "adjustmentDialog": {
       "heading": "Registrar ajuste",
       "description": "Corrige el saldo sumando o restando un monto, con un motivo. Queda en el libro y no se puede editar ni borrar.",
@@ -994,12 +993,9 @@
       "submit": "Registrar ajuste"
     },
     "toasts": {
-      "opening": "Saldo inicial registrado.",
       "adjustment": "Ajuste registrado."
     },
-    "errors": {
-      "openingExists": "Esa moneda ya tiene un saldo inicial."
-    },
+    "errors": {},
     "cancel": "Cancelar"
   }
 }

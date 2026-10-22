@@ -25,7 +25,7 @@ import { getExchangeRatesAsOfForResident } from '@/lib/actions/exchangeRate';
 import { toDateOnly } from '@/lib/cuotas/generate';
 import { sortOldestFirst, filterEligibleForConversionWindow } from '@/lib/payments/allocate';
 import { CURRENCY_SELECT_OPTIONS, formatAmount, formatMoney } from '@/lib/currency';
-import { referenceUsdAmount, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
+import { referenceUsdAmount, isRateFresh, type ExchangeRateRow, type ExchangeRateType } from '@/lib/exchangeRate';
 import { isOverdue } from '@/lib/cuotas/status';
 import type { ResidentInstallment, Currency } from '@/lib/resident/queries';
 import { formatShortDate } from '@/lib/dateFormat';
@@ -191,6 +191,14 @@ export function ReportPaymentDialog({
     () => (amount === '' ? null : referenceUsdAmount(amount, currency, dateRates, paymentDate)),
     [amount, currency, dateRates, paymentDate],
   );
+
+  // The BCV rate itself (value + its date) shown with the Bs reference. Same freshness rule
+  // as the USD hint: hidden when missing or older than 24h. Reference only, never stored.
+  const bcvRate = useMemo(() => {
+    const row = dateRates.bcv;
+    if (currency !== 'Bs' || !row || !isRateFresh(row.updated_at, paymentDate)) return null;
+    return { rate: row.rate, date: row.effective_date ?? toDateOnly(new Date(row.updated_at)) };
+  }, [currency, dateRates, paymentDate]);
 
   // A report's own-day rate only reaches vencidas + up to 30 days ahead when
   // the admin confirms it -- cuotas further out stay pending and the rest
@@ -392,6 +400,14 @@ export function ReportPaymentDialog({
                   <p className="text-xs text-muted-foreground">
                     {t('usdReference', { amount: formatMoney(usdReference), source: currency === 'Bs' ? 'BCV' : 'Binance' })}
                   </p>
+                )}
+                {bcvRate && (
+                  <div className="flex flex-col gap-0.5" data-testid="bcv-rate-reference">
+                    <p className="text-xs text-muted-foreground">
+                      {t('bcvRate', { rate: formatMoney(bcvRate.rate), date: formatShortDate(parseISO(bcvRate.date), locale) })}
+                    </p>
+                    <p className="text-xs italic text-muted-foreground">{t('rateDisclaimer')}</p>
+                  </div>
                 )}
                 <p className="text-xs text-muted-foreground">{t('currencyFreeHint')}</p>
 

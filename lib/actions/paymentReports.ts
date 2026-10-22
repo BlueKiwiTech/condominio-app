@@ -6,6 +6,7 @@ import { getTranslations } from 'next-intl/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { applyPaymentAllocation } from '@/lib/payments/applyAllocation';
+import { validateSpecialSelection } from '@/lib/payments/specialSelection';
 import { logAudit } from '@/lib/audit';
 
 // `onHold` (confirm only): the BCV rate for the report's date is missing, so the report was parked instead of confirmed.
@@ -20,6 +21,7 @@ type ReportForConfirm = {
   reference: string | null;
   notes: string | null;
   installment_ids: string[];
+  explicit_installments: boolean;
   status: 'pending' | 'on_hold' | 'confirmed' | 'rejected';
 };
 
@@ -101,23 +103,44 @@ export async function rejectPaymentReport(reportId: string, locale: string, reas
  * (lib/payments/creditSweep.ts) the next time it applies, not blended in at
  * confirm time.
  */
-export async function confirmPaymentReport(reportId: string, locale: string): Promise<ActionResult> {
-  const [tc, tp] = await Promise.all([
+export async function confirmPaymentReport(
+  reportId: string,
+  locale: string,
+  selectedSpecialIds: string[] = [],
+): Promise<ActionResult> {
+  const [tc, tp, tv] = await Promise.all([
     getTranslations({ locale, namespace: 'common' }),
     getTranslations({ locale, namespace: 'payments' }),
+    getTranslations({ locale, namespace: 'validation.payments' }),
   ]);
   const { error: authError, supabase, userId } = await requireAdmin(tc);
   if (authError || !supabase) return { error: authError! };
 
   const { data: reportData, error: fetchError } = await supabase
     .from('condo_payment_reports')
-    .select('house_id, amount, currency, payment_date, reference, notes, installment_ids, status')
+    .select('house_id, amount, currency, payment_date, reference, notes, installment_ids, explicit_installments, status')
     .eq('id', reportId)
     .maybeSingle();
   if (fetchError) return { error: await friendlyError(fetchError) };
   const report = reportData as ReportForConfirm | null;
   if (!report) return { error: tc('invalidData') };
   if (report.status !== 'pending') return { error: tp('errors.reportAlreadyProcessed') };
+
+  // Special cuotas the admin picked in the confirm dialog (change ajustes-21-oct): the
+  // money goes to exactly those, oldest first, without the 30-day window. A selection a
+  // held report kept (explicit_installments) applies when none is sent again. Validated
+  // here, before anything is claimed or written.
+  const selection =
+    selectedSpecialIds.length > 0
+      ? selectedSpecialIds
+      : report.explicit_installments
+        ? report.installment_ids
+        : [];
+  const explicit = selection.length > 0;
+  if (explicit) {
+    const check = await validateSpecialSelection(supabase, report.house_id, selection);
+    if (!check.ok) return { error: tv('invalidSelection') };
+  }
 
   // Reserve the report BEFORE applying the money. Two tabs (or a double click) confirming the
   // same report both pass the status check above; without this claim both would apply the
@@ -139,7 +162,7 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
     return { error: message };
   };
 
-  let installmentIds = report.installment_ids;
+  let installmentIds = explicit ? selection : report.installment_ids;
   if (installmentIds.length === 0) {
     const { data: pendingRows, error: pendingFetchError } = await supabase
       .from('condo_installments')
@@ -162,6 +185,7 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
       notes: report.notes,
       installment_ids: installmentIds,
       created_by: userId,
+      explicit_installments: explicit,
     },
     {
       installmentsGone: tp('errors.installmentsGone'),
@@ -180,7 +204,12 @@ export async function confirmPaymentReport(reportId: string, locale: string): Pr
     // turned back into a normal 'pending' one when the rate arrives.
     const { error: holdError } = await supabase
       .from('condo_payment_reports')
-      .update({ status: 'on_hold', release_claimed_at: null })
+      .update({
+        status: 'on_hold',
+        release_claimed_at: null,
+        // Keep the admin's choice: it is applied when the report is confirmed again.
+        ...(explicit ? { installment_ids: installmentIds, explicit_installments: true } : {}),
+      })
       .eq('id', reportId)
       .eq('status', 'pending');
     if (holdError) return failAndRelease(await friendlyError(holdError));

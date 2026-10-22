@@ -1,6 +1,8 @@
 // Reads the stored community balance and its ledger (change
 // saldo-comunidad-libro). Server-side only: takes the admin's Supabase client,
-// so RLS applies (only admins of the community can read these tables).
+// so RLS applies (only admins of the community can read these tables). The
+// resident portal reuses fetchCommunityBalance with the service-role client to
+// show the balance per currency only (never the ledger).
 import type { DbClient } from '@/lib/supabase/dbClient';
 import type { Currency, CurrencyAmountMap } from './dashboard';
 

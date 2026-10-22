@@ -10,7 +10,8 @@ import type { InstallmentType } from '@/components/cuotas/types';
 import type { PaymentRow } from '@/components/payments/types';
 import type { ExchangeRateRow, ExchangeRateType } from '@/lib/exchangeRate';
 import type { ReportInstallment, CreditForReport as MonthlyReportCredit } from '@/lib/reporting/monthlyReport';
-import type { ExpenseForReport, PaymentForReport } from '@/lib/reporting/dashboard';
+import type { ExpenseForReport, PaymentForReport, CurrencyAmountMap } from '@/lib/reporting/dashboard';
+import { fetchCommunityBalance } from '@/lib/reporting/communityBalanceQuery';
 
 export type Currency = 'USD' | 'Bs' | 'USDT';
 
@@ -196,7 +197,7 @@ export async function getResidentPaymentBatch(houseId: string, batchId: string):
   const { data } = await supabase
     .from('condo_payments')
     .select(
-      'id, house_id, installment_id, payment_batch_id, amount_paid, currency, payment_date, reference, notes, receipt_number, created_at, funding_breakdown, condo_houses(house_number, house_name), condo_installments(name, due_date)',
+      'id, house_id, installment_id, payment_batch_id, amount_paid, currency, payment_date, reference, notes, receipt_number, created_at, funding_breakdown, receipt_meta, condo_houses(house_number, house_name), condo_installments(name, due_date)',
     )
     .eq('house_id', houseId)
     .eq('payment_batch_id', batchId);
@@ -215,6 +216,8 @@ export type CommunityBalanceData = {
   credits: MonthlyReportCredit[];
   expenses: CommunityExpenseRow[];
   payments: PaymentForReport[];
+  /** The community's stored balance per currency (the admin's saldo-comunidad), read-only -- never the ledger. Zero balances are left out. */
+  storedBalance: CurrencyAmountMap;
 };
 
 type CommunityExpenseQueryRow = {
@@ -240,7 +243,7 @@ type CommunityExpenseQueryRow = {
 export async function getCommunityBalanceData(): Promise<CommunityBalanceData> {
   const supabase = createServiceClient();
 
-  const [{ data: installments }, { data: credits }, { data: expenses }, { data: payments }] = await Promise.all([
+  const [{ data: installments }, { data: credits }, { data: expenses }, { data: payments }, rawBalance] = await Promise.all([
     supabase
       .from('condo_installments')
       .select('house_id, amount, amount_paid, currency, due_date, status')
@@ -252,6 +255,10 @@ export async function getCommunityBalanceData(): Promise<CommunityBalanceData> {
       .is('deleted_at', null)
       .order('period_date', { ascending: true }),
     supabase.from('condo_payments').select('amount_paid, currency, payment_date'),
+    fetchCommunityBalance(supabase).catch((err) => {
+      console.error('[resident] could not load the community balance:', err);
+      return {} as CurrencyAmountMap;
+    }),
   ]);
 
   return {
@@ -267,5 +274,6 @@ export async function getCommunityBalanceData(): Promise<CommunityBalanceData> {
       name: e.condo_expense_templates?.name ?? '',
     })),
     payments: (payments as PaymentForReport[] | null) ?? [],
+    storedBalance: Object.fromEntries(Object.entries(rawBalance).filter(([, v]) => (v ?? 0) !== 0)) as CurrencyAmountMap,
   };
 }

@@ -7,7 +7,7 @@ import { es, enUS } from 'date-fns/locale';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from 'cn';
-import { creditsByCurrency, outstandingByCurrency, type CurrencyAmountMap } from '@/lib/reporting/dashboard';
+import { outstandingByCurrency, type CurrencyAmountMap } from '@/lib/reporting/dashboard';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import type { ResidentPortalData, CommunityBalanceData } from '@/lib/resident/queries';
@@ -65,11 +65,11 @@ export function MiComunidadClient({
   // falling back to the house label when it's unset.
   const displayName = house.owner_name ?? (house.house_name ? `${house.house_number} · ${house.house_name}` : house.house_number);
 
-  // All-time, not month-scoped: every house's positive credit balance
-  // (saldo disponible) and every non-paid installment's remaining balance
+  // All-time, not month-scoped: the community's stored balance per currency (saldo
+  // disponible, same figure as the admin's Saldo de la comunidad) and every non-paid installment's remaining balance
   // (saldo pendiente) due by the end of the current month -- cuotas generated
   // ahead for later months aren't counted yet (2026-10-06).
-  const available = useMemo(() => creditsByCurrency(communityBalance.credits), [communityBalance.credits]);
+  const available = communityBalance.storedBalance;
   const pending = useMemo(() => outstandingByCurrency(communityBalance.installments, today), [communityBalance.installments, today]);
 
   const availableYears = useMemo(() => {

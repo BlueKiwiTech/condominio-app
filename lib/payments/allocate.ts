@@ -196,6 +196,26 @@ export function allocateFunds(
 }
 
 /**
+ * Splits what a payment consumed into the part that came from the money the
+ * payer handed over and the part that came from the house's existing saldo a
+ * favor (change ajustes-21-oct: a transaction only reflects what was received).
+ * `leftoverCents` is what allocateFunds returned for a pool of
+ * received + existing credit. The new credit is always `leftoverCents`:
+ * existing - creditUsed + topUp = leftover.
+ */
+export function splitFundsUse(
+  receivedCents: number,
+  existingCreditCents: number,
+  leftoverCents: number,
+): { creditUsedCents: number; topUpCents: number } {
+  const usedCents = receivedCents + existingCreditCents - leftoverCents;
+  return {
+    creditUsedCents: Math.max(0, usedCents - receivedCents),
+    topUpCents: Math.max(0, receivedCents - usedCents),
+  };
+}
+
+/**
  * Same "oldest due_date first" pass as allocateFunds, but full-or-nothing
  * AND strictly in order: an installment is only ever fully paid, never
  * left 'partial' — and the walk STOPS at the first installment the
