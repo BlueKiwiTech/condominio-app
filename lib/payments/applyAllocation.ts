@@ -21,6 +21,7 @@ import {
   sortOldestFirst,
   filterEligibleForConversionWindow,
   type AllocatableInstallment,
+  splitFundsUse,
   type Allocation,
 } from './allocate';
 import { getHouseCredit } from './creditSweep';
@@ -177,6 +178,17 @@ export async function applyPaymentAllocation(
     if (evaluation.kind === 'blockedByRate') return { onHold: true };
     const { installments, allocations, leftoverCents, existingCredit } = evaluation;
 
+    // What came from the money handed over vs. the house's existing credit: the
+    // receipt and the leftover row reflect only what was received (the credit used
+    // is shown apart), and the new credit is still the pool's remainder.
+    const receivedCents = Math.round(current.amount_received * 100);
+    const { creditUsedCents, topUpCents } = splitFundsUse(receivedCents, Math.round(existingCredit * 100), leftoverCents);
+    const receiptMeta = {
+      received: receivedCents / 100,
+      credit_applied: creditUsedCents / 100,
+      currency: current.currency,
+    };
+
     // One receipt number per payment, kept across retries (a retry writes nothing before it succeeds).
     if (receiptNumber === null) {
       const { data: receiptData, error: receiptError } = await supabase.rpc('condo_next_receipt_number');
@@ -196,6 +208,7 @@ export async function applyPaymentAllocation(
       receipt_number: number;
       created_by: string | null;
       funding_breakdown?: unknown;
+      receipt_meta: typeof receiptMeta;
     };
 
     // Each row's currency/amount is the INSTALLMENT's own denomination (same
@@ -215,6 +228,7 @@ export async function applyPaymentAllocation(
       notes: current.notes || null,
       receipt_number: receiptNumber as number,
       created_by: current.created_by,
+      receipt_meta: receiptMeta,
     });
 
     const paymentRows: PaymentInsertRow[] =
@@ -232,15 +246,16 @@ export async function applyPaymentAllocation(
               receipt_number: receiptNumber as number,
               created_by: current.created_by,
               funding_breakdown: a.fundingSource ? [a.fundingSource] : null,
+              receipt_meta: receiptMeta,
             })),
-            // Funds left after every selected cuota was either paid or the
+            // Received funds left after every selected cuota was either paid or the
             // walk stopped (full-or-nothing) -- gets its own line item so the
             // receipt total still adds up to what was actually received,
             // instead of the leftover only being inferable from the credit
             // balance silently changing (2026-09-29 fix: a payment covering
             // SOME cuotas with money left over previously wrote no row for
             // that leftover at all -- see PLAN.md).
-            ...(leftoverCents > 0 ? [walletTopUpRow(leftoverCents / 100)] : []),
+            ...(topUpCents > 0 ? [walletTopUpRow(topUpCents / 100)] : []),
           ]
         : // Wallet-only deposit (nothing currently due to apply it to) -- one
           // ledger row with a null installment_id so it still shows up in

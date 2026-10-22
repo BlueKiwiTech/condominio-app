@@ -20,7 +20,7 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
     supabase
       .from('condo_payments')
       .select(
-        'id, house_id, installment_id, payment_batch_id, amount_paid, currency, payment_date, reference, notes, receipt_number, created_at, funding_breakdown, condo_houses(house_number, house_name), condo_installments(name, due_date)',
+        'id, house_id, installment_id, payment_batch_id, amount_paid, currency, payment_date, reference, notes, receipt_number, created_at, funding_breakdown, receipt_meta, condo_houses(house_number, house_name), condo_installments(name, due_date)',
       )
       .eq('payment_batch_id', batchId),
     supabase.auth.getUser(),
@@ -41,7 +41,12 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
   const totalsEntries = Object.entries(batch.totalsByCurrency);
   const breakdownDiffersFromReceived =
     totalsEntries.length !== receivedEntries.length ||
-    totalsEntries.some(([currency, amount]) => batch.receivedByCurrency[currency as keyof typeof batch.receivedByCurrency] !== amount);
+    totalsEntries.some(([currency, amount]) => {
+      // The saldo a favor used to complete the payment is part of what got applied, shown on its own line.
+      const credit = batch.creditApplied?.currency === currency ? batch.creditApplied.amount : 0;
+      const received = batch.receivedByCurrency[currency as keyof typeof batch.receivedByCurrency] ?? 0;
+      return Math.round((received + credit) * 100) !== Math.round(amount * 100);
+    });
 
   // A wallet top-up isn't a cuota being paid down -- it's money parked in
   // the house's credit balance for later use, so it's set apart in its own
@@ -107,6 +112,16 @@ export default async function PaymentDetailPage({ params }: { params: Promise<{ 
                     {formatMoney(amount ?? 0)} {currencyLabel(currency)}
                   </p>
                 ))}
+                {receivedEntries.length === 0 && batch.creditApplied && (
+                  <p className="text-xl font-bold">
+                    {formatMoney(0)} {currencyLabel(batch.creditApplied.currency)}
+                  </p>
+                )}
+                {batch.creditApplied && (
+                  <p className="text-sm text-muted-foreground" data-testid="credit-applied">
+                    {t('creditApplied')}: {formatMoney(batch.creditApplied.amount)} {currencyLabel(batch.creditApplied.currency)}
+                  </p>
+                )}
               </div>
               {breakdownDiffersFromReceived && (
                 <div className="flex flex-col items-end gap-0.5 pt-1">

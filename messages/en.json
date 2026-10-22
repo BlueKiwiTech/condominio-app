@@ -618,6 +618,7 @@
       "house": "House",
       "amountReceived": "Amount received",
       "appliedByCurrency": "Applied by each cuota's currency",
+      "creditApplied": "Credit applied",
       "cuotasCovered": "Cuotas covered",
       "walletTopUp": "Wallet top-up",
       "reference": "Reference",
@@ -648,7 +649,7 @@
       "noHouses": "Select a house.",
       "noHousesRegistered": "No houses registered.",
       "noPendingInstallments": "This house has no pending cuotas. What you register will be saved as wallet credit.",
-      "existingCredit": "This house has a credit balance of {amount} {currency}, which will be applied automatically to this payment.",
+      "existingCredit": "This house has a credit balance of {amount} {currency}, which will only be used to complete this payment if needed.",
       "specialPicker": {
         "heading": "Pay towards special cuotas (optional)",
         "hint": "If you tick any, the payment applies only to the ticked ones, oldest first, without the 30-day window. Whatever is left becomes saldo a favor. With nothing ticked, the payment is spread as usual.",
@@ -705,6 +706,11 @@
       "cuotas": "Related cuotas"
     },
     "viewScreenshot": "View screenshot",
+    "specialPicker": {
+      "heading": "Pay special cuotas?",
+      "hint": "Optional. If you check any, the payment applies only to the checked ones, oldest first, without the 30-day window. Whatever is left becomes credit. With nothing checked, the payment is spread as usual.",
+      "selectedNotice": "The payment will apply only to the checked cuotas."
+    },
     "confirm": "Confirm",
     "reject": "Reject",
     "status": {
@@ -825,6 +831,8 @@
       "fileTooLarge": "The image is too large (max 5 MB).",
       "currencyFreeHint": "The payment's currency doesn't have to match the cuotas' currency — it's converted automatically using the current exchange rate.",
       "usdReference": "≈ ${amount} ({source} reference)",
+      "bcvRate": "BCV rate: {rate} Bs per USD · {date}",
+      "rateDisclaimer": "Reference rate: for information only.",
       "submit": "Send report",
       "cancel": "Cancel",
       "close": "Close",
@@ -947,7 +955,6 @@
     "subtitle": "Money the community has, per currency: what comes in from applied payments, plus the opening balance and adjustments, minus paid expenses. Currencies are never added together.",
     "balancesHeading": "Current balance",
     "actions": {
-      "opening": "Register opening balance",
       "adjustment": "Register adjustment"
     },
     "ledger": {
@@ -973,14 +980,6 @@
       "next": "Next"
     },
     "loadError": "The community balance could not be loaded.",
-    "openingDialog": {
-      "heading": "Register opening balance",
-      "description": "Money the community already had before using the system. Registered once per currency and added to the balance.",
-      "currency": "Currency",
-      "amount": "Amount",
-      "allRegistered": "Every currency already has an opening balance.",
-      "submit": "Register opening balance"
-    },
     "adjustmentDialog": {
       "heading": "Register adjustment",
       "description": "Corrects the balance by adding or subtracting an amount, with a reason. It stays in the ledger and can't be edited or deleted.",
@@ -994,12 +993,9 @@
       "submit": "Register adjustment"
     },
     "toasts": {
-      "opening": "Opening balance registered.",
       "adjustment": "Adjustment registered."
     },
-    "errors": {
-      "openingExists": "That currency already has an opening balance."
-    },
+    "errors": {},
     "cancel": "Cancel"
   }
 }

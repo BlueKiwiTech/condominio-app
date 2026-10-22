@@ -12,10 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { confirmPaymentReport, rejectPaymentReport, getReportScreenshotUrl } from '@/lib/actions/paymentReports';
 import { formatAmount } from '@/lib/currency';
 import { formatShortDate, formatDateTime } from '@/lib/dateFormat';
-import type { PaymentReportRow, InstallmentLookup, ReportStatus } from './types';
+import type { PaymentReportRow, InstallmentLookup, ReportStatus, SpecialInstallment } from './types';
 
 const STATUS_CLASSES: Record<ReportStatus, string> = {
   confirmed: 'bg-success/10 text-success',
@@ -27,9 +29,11 @@ const STATUS_CLASSES: Record<ReportStatus, string> = {
 function ReportCard({
   report,
   installmentLookup,
+  specials,
 }: {
   report: PaymentReportRow;
   installmentLookup: InstallmentLookup;
+  specials: SpecialInstallment[];
 }) {
   const t = useTranslations('paymentReports');
   const locale = useLocale();
@@ -40,6 +44,8 @@ function ReportCard({
   const [screenshotLoading, setScreenshotLoading] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selectedSpecialIds, setSelectedSpecialIds] = useState<string[]>([]);
 
   const houseLabel = report.condo_houses
     ? report.condo_houses.house_name
@@ -49,14 +55,27 @@ function ReportCard({
 
   const taggedInstallments = report.installment_ids.map((id) => installmentLookup[id]).filter(Boolean);
 
-  const handleConfirm = () => {
+  // A house with pending special cuotas gets a dialog first (nothing checked, optional);
+  // without them the report is confirmed straight away, as before.
+  const startConfirm = () => {
+    if (specials.length > 0) {
+      setSelectedSpecialIds([]);
+      setPickerOpen(true);
+      return;
+    }
+    handleConfirm([]);
+  };
+
+  const handleConfirm = (specialIds: string[]) => {
     setActionError(null);
     startTransition(async () => {
-      const result = await confirmPaymentReport(report.id, locale);
+      const result = await confirmPaymentReport(report.id, locale, specialIds);
       if ('error' in result) {
+        setPickerOpen(false);
         setActionError(result.error);
         return;
       }
+      setPickerOpen(false);
       // The BCV rate for this report's date isn't there: it was parked instead of confirmed.
       if ('onHold' in result) toast.info(t('onHoldToast'));
       router.refresh();
@@ -191,7 +210,7 @@ function ReportCard({
             <>
               {/* A report waiting for its exchange rate can't be confirmed (it releases by itself) but can still be rejected. */}
               {report.status === 'pending' && (
-                <Button type="button" size="sm" disabled={isPending} onClick={handleConfirm}>
+                <Button type="button" size="sm" disabled={isPending} onClick={startConfirm} data-testid="confirm-report">
                   {t('confirm')}
                 </Button>
               )}
@@ -220,6 +239,44 @@ function ReportCard({
             </>
           )}
         </div>
+
+        <Dialog open={pickerOpen} onOpenChange={(open) => !isPending && setPickerOpen(open)}>
+          <DialogContent data-testid="confirm-specials-dialog">
+            <DialogHeader>
+              <DialogTitle>{t('specialPicker.heading')}</DialogTitle>
+              <DialogDescription>{t('specialPicker.hint')}</DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-3">
+              {specials.map((inst) => (
+                <label key={inst.id} className="flex cursor-pointer items-center gap-3">
+                  <Checkbox
+                    checked={selectedSpecialIds.includes(inst.id)}
+                    onCheckedChange={(checked) =>
+                      setSelectedSpecialIds((prev) => (checked === true ? [...prev, inst.id] : prev.filter((x) => x !== inst.id)))
+                    }
+                    data-testid={`confirm-special-${inst.id}`}
+                  />
+                  <span className="flex flex-1 flex-wrap items-center justify-between gap-2 text-sm">
+                    <span>
+                      {inst.name}
+                      <span className="text-muted-foreground"> · {formatShortDate(parseISO(inst.due_date), locale)}</span>
+                    </span>
+                    <span className="tabular-nums">{formatAmount(inst.amount - inst.amount_paid, inst.currency)}</span>
+                  </span>
+                </label>
+              ))}
+              {selectedSpecialIds.length > 0 && <p className="text-xs text-muted-foreground">{t('specialPicker.selectedNotice')}</p>}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" disabled={isPending} onClick={() => setPickerOpen(false)}>
+                {t('cancel')}
+              </Button>
+              <Button type="button" disabled={isPending} onClick={() => handleConfirm(selectedSpecialIds)} data-testid="confirm-with-selection">
+                {t('confirm')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
@@ -228,9 +285,11 @@ function ReportCard({
 export function PaymentReportsPageClient({
   reports,
   installmentLookup,
+  specialInstallments,
 }: {
   reports: PaymentReportRow[];
   installmentLookup: InstallmentLookup;
+  specialInstallments: SpecialInstallment[];
 }) {
   const t = useTranslations('paymentReports');
   const [tab, setTab] = useState<'pending' | 'all'>('pending');
@@ -254,7 +313,12 @@ export function PaymentReportsPageClient({
       ) : (
         <div className="flex w-full flex-col gap-3">
           {visibleReports.map((report) => (
-            <ReportCard key={report.id} report={report} installmentLookup={installmentLookup} />
+            <ReportCard
+              key={report.id}
+              report={report}
+              installmentLookup={installmentLookup}
+              specials={specialInstallments.filter((s) => s.house_id === report.house_id)}
+            />
           ))}
         </div>
       )}

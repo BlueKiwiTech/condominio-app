@@ -35,7 +35,12 @@ export default async function MiCarteraDetailPage({ params }: { params: Promise<
   const totalsEntries = Object.entries(batch.totalsByCurrency);
   const breakdownDiffersFromReceived =
     totalsEntries.length !== receivedEntries.length ||
-    totalsEntries.some(([currency, amount]) => batch.receivedByCurrency[currency as keyof typeof batch.receivedByCurrency] !== amount);
+    totalsEntries.some(([currency, amount]) => {
+      // The saldo a favor used to complete the payment is part of what got applied, shown on its own line.
+      const credit = batch.creditApplied?.currency === currency ? batch.creditApplied.amount : 0;
+      const received = batch.receivedByCurrency[currency as keyof typeof batch.receivedByCurrency] ?? 0;
+      return Math.round((received + credit) * 100) !== Math.round(amount * 100);
+    });
 
   const cuotaRows = batch.rows.filter((r) => r.installment_id !== null);
   const walletRows = batch.rows.filter((r) => r.installment_id === null);
@@ -89,6 +94,16 @@ export default async function MiCarteraDetailPage({ params }: { params: Promise<
                     {formatMoney(amount ?? 0)} {currencyLabel(currency)}
                   </p>
                 ))}
+                {receivedEntries.length === 0 && batch.creditApplied && (
+                  <p className="text-xl font-bold">
+                    {formatMoney(0)} {currencyLabel(batch.creditApplied.currency)}
+                  </p>
+                )}
+                {batch.creditApplied && (
+                  <p className="text-sm text-muted-foreground" data-testid="credit-applied">
+                    {t('creditApplied')}: {formatMoney(batch.creditApplied.amount)} {currencyLabel(batch.creditApplied.currency)}
+                  </p>
+                )}
               </div>
               {breakdownDiffersFromReceived && (
                 <div className="flex flex-col items-end gap-0.5 pt-1">

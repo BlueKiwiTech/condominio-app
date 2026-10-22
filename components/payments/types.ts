@@ -38,6 +38,9 @@ export type FundingSourceEntry = {
   exchangeRateType: string | null;
 };
 
+/** Same on every row of a batch written after ajustes-21-oct (null before): what was handed over vs. the existing saldo a favor used. */
+export type ReceiptMeta = { received: number; credit_applied: number; currency: Currency };
+
 export type PaymentRow = {
   id: string;
   house_id: string;
@@ -59,6 +62,7 @@ export type PaymentRow = {
   // own denomination, not the received one (see groupPaymentsByBatch's
   // receivedByCurrency).
   funding_breakdown: FundingSourceEntry[] | null;
+  receipt_meta?: ReceiptMeta | null;
   condo_houses: { house_number: string; house_name: string | null } | null;
   condo_installments: { name: string; due_date: string } | null;
 };
@@ -94,6 +98,8 @@ export type PaymentBatch = {
    * above the breakdown (2026-09-29 fix, user feedback).
    */
   receivedByCurrency: Partial<Record<Currency, number>>;
+  /** Existing saldo a favor used to complete this payment, in the payment's currency; null when none or unknown (older receipts). */
+  creditApplied: { currency: Currency; amount: number } | null;
   installmentNames: string[];
   rows: PaymentRow[];
 };
@@ -132,6 +138,16 @@ export function groupPaymentsByBatch(payments: PaymentRow[]): PaymentBatch[] {
       }
     }
 
+    // A receipt written with receipt_meta shows exactly what was handed over; the saldo
+    // used to complete it is set apart. Older rows keep the totals derived above.
+    const meta = rows.find((r) => r.receipt_meta)?.receipt_meta ?? null;
+    let creditApplied: PaymentBatch['creditApplied'] = null;
+    if (meta) {
+      for (const k of Object.keys(receivedByCurrency)) delete receivedByCurrency[k as Currency];
+      if (meta.received > 0) receivedByCurrency[meta.currency] = meta.received;
+      if (meta.credit_applied > 0) creditApplied = { currency: meta.currency, amount: meta.credit_applied };
+    }
+
     batches.push({
       batchId,
       receiptNumber: first.receipt_number,
@@ -142,6 +158,7 @@ export function groupPaymentsByBatch(payments: PaymentRow[]): PaymentBatch[] {
       reference: first.reference,
       totalsByCurrency,
       receivedByCurrency,
+      creditApplied,
       // A wallet-only row (installment_id null) isn't a cuota name -- excluded
       // here so callers can tell "N cuotas covered" apart from "pure wallet
       // top-up" (see PaymentsPageClient's use of this list's length).

@@ -12,16 +12,10 @@ export default async function SaldoComunidadPage({ searchParams }: { searchParam
   let data: {
     balance: Awaited<ReturnType<typeof fetchCommunityBalance>>;
     ledger: Awaited<ReturnType<typeof fetchMovementsPage>>;
-    openingCurrencies: string[];
   } | null = null;
   try {
-    const [balance, ledger, { data: openings, error }] = await Promise.all([
-      fetchCommunityBalance(supabase),
-      fetchMovementsPage(supabase, page),
-      supabase.from('condo_community_movements').select('currency').eq('type', 'opening'),
-    ]);
-    if (error) throw new Error(error.message);
-    data = { balance, ledger, openingCurrencies: (openings ?? []).map((o) => o.currency as string) };
+    const [balance, ledger] = await Promise.all([fetchCommunityBalance(supabase), fetchMovementsPage(supabase, page)]);
+    data = { balance, ledger };
   } catch (err) {
     console.error('[saldo-comunidad] could not load the page:', err);
   }
@@ -39,7 +33,6 @@ export default async function SaldoComunidadPage({ searchParams }: { searchParam
           total={data.ledger.total}
           pageSize={data.ledger.pageSize}
           page={data.ledger.page}
-          openingCurrencies={data.openingCurrencies}
         />
       ) : (
         <p className="text-sm text-destructive">{t('loadError')}</p>

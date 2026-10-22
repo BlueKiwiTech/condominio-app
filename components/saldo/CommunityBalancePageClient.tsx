@@ -15,7 +15,7 @@ import { MoneyInput } from '@/components/ui/money-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { registerOpeningBalance, registerAdjustment } from '@/lib/actions/communityBalance';
+import { registerAdjustment } from '@/lib/actions/communityBalance';
 import { currencyLabel, formatAmount } from '@/lib/currency';
 import { formatShortDate } from '@/lib/dateFormat';
 import type { CurrencyAmountMap } from '@/lib/reporting/dashboard';
@@ -37,47 +37,18 @@ export function CommunityBalancePageClient({
   total,
   pageSize,
   page,
-  openingCurrencies,
 }: {
   balance: CurrencyAmountMap;
   movements: CommunityMovement[];
   total: number;
   pageSize: number;
   page: number;
-  openingCurrencies: string[];
 }) {
   const t = useTranslations('communityBalance');
   const locale = useLocale();
   const [isPending, startTransition] = useTransition();
 
-  const openingOptions = CURRENCIES.filter((c) => !openingCurrencies.includes(c));
   const pages = Math.max(1, Math.ceil(total / pageSize));
-
-  // ---- opening balance dialog
-  const [openingOpen, setOpeningOpen] = useState(false);
-  const [openingCurrency, setOpeningCurrency] = useState<Currency | null>(null);
-  const [openingAmount, setOpeningAmount] = useState<number | null>(null);
-  const [openingError, setOpeningError] = useState<string | null>(null);
-
-  const openOpening = () => {
-    setOpeningCurrency(openingOptions[0] ?? null);
-    setOpeningAmount(null);
-    setOpeningError(null);
-    setOpeningOpen(true);
-  };
-  const submitOpening = () => {
-    if (!openingCurrency) return;
-    setOpeningError(null);
-    startTransition(async () => {
-      const result = await registerOpeningBalance({ currency: openingCurrency, amount: openingAmount ?? 0 }, locale);
-      if ('error' in result) {
-        setOpeningError(result.error);
-        return;
-      }
-      toast.success(t('toasts.opening'));
-      setOpeningOpen(false);
-    });
-  };
 
   // ---- adjustment dialog
   const [adjOpen, setAdjOpen] = useState(false);
@@ -117,9 +88,6 @@ export function CommunityBalancePageClient({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">{t('balancesHeading')}</h2>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={openOpening} disabled={openingOptions.length === 0} data-testid="open-opening">
-              {t('actions.opening')}
-            </Button>
             <Button type="button" onClick={openAdjustment} data-testid="open-adjustment">
               {t('actions.adjustment')}
             </Button>
@@ -210,59 +178,6 @@ export function CommunityBalancePageClient({
           </div>
         )}
       </section>
-
-      <Dialog open={openingOpen} onOpenChange={setOpeningOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('openingDialog.heading')}</DialogTitle>
-            <DialogDescription>{t('openingDialog.description')}</DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-4">
-            {openingError && (
-              <Alert variant="destructive">
-                <AlertDescription>{openingError}</AlertDescription>
-              </Alert>
-            )}
-            {openingOptions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('openingDialog.allRegistered')}</p>
-            ) : (
-              <>
-                <div className="grid gap-2">
-                  <Label htmlFor="openingCurrency">{t('openingDialog.currency')}</Label>
-                  <Select
-                    value={openingCurrency ?? undefined}
-                    onValueChange={(v) => v && setOpeningCurrency(v as Currency)}
-                    items={currencyItems(openingOptions)}
-                  >
-                    <SelectTrigger id="openingCurrency" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {openingOptions.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {currencyLabel(c)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="openingAmount">{t('openingDialog.amount')}</Label>
-                  <MoneyInput id="openingAmount" value={openingAmount} onChange={setOpeningAmount} />
-                </div>
-              </>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpeningOpen(false)}>
-              {t('cancel')}
-            </Button>
-            <Button type="button" disabled={isPending || openingOptions.length === 0 || !openingAmount} onClick={submitOpening} data-testid="submit-opening">
-              {t('openingDialog.submit')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={adjOpen} onOpenChange={setAdjOpen}>
         <DialogContent>
